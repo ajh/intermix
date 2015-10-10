@@ -3,7 +3,7 @@ module Intermix
   # a window pane, which is a rectangular section of the screen that the user
   # sees
   class Pane
-    attr_accessor :screen, :size_rows, :size_cols, :offset_row, :offset_col, :name
+    attr_accessor :screen, :program, :size_rows, :size_cols, :offset_row, :offset_col, :name
 
     def initialize(size_rows, size_cols, offset_row, offset_col, name="")
       self.size_rows = size_rows

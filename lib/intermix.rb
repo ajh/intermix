@@ -3,6 +3,7 @@
 #require "pry-nav"
 
 require "intermix/app"
+require "intermix/mode"
 require "intermix/pane"
 require "intermix/program"
 require "intermix/screen"

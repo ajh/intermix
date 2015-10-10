@@ -8,7 +8,7 @@ module Intermix
     attr_accessor :parser, :screen, :input, :output, :pid, :size_rows, :size_cols
 
     def self.logger
-      Logger.new 'log/program.log'
+      @logger ||= Logger.new 'log/program.log'
     end
 
     def self.code_to_s(c)
@@ -40,7 +40,7 @@ module Intermix
       parser << output.read_nonblock(100)
 
     rescue IO::WaitReadable
-      self.class.logger.warn $!.inspect
+      #self.class.logger.warn $!.inspect
     end
 
     private

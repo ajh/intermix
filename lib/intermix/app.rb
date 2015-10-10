@@ -1,14 +1,15 @@
 require 'shellwords'
 require 'pty'
 require 'terminfo'
+require 'io/console'
 
 # This app is the terminal emulator / multiplexer / shell that I am building.
 module Intermix
   class App
-    attr_accessor :window, :programs, :panes
+    attr_accessor :window, :programs, :panes, :mode
 
     def self.logger
-      Logger.new 'log/b.log'
+      @logger ||= Logger.new 'log/app.log'
     end
 
     def self.code_to_s(c)
@@ -24,6 +25,9 @@ module Intermix
       right_pane  = Pane.new(window.rows - 1,  window.cols / 2,  0,  window.cols / 2, "right")
       status_pane = StatusPane.new(window)
       self.panes = [left_pane, right_pane, status_pane]
+
+      self.mode = CommandMode.new(self)
+      self.mode.enter
     end
 
     def run(command, pane)
@@ -31,16 +35,22 @@ module Intermix
       program.run command
 
       pane.screen = program.screen
+      pane.program = program
       self.programs << program
     end
 
     def main_loop
+      STDIN.raw!
+
       window.start
 
       loop do
         begin
-          # TODO: always writes to first program
-          programs.first.input << STDIN.read_nonblock(100)
+          #programs.first.input << STDIN.read_nonblock(100)
+
+          STDIN.read_nonblock(100).each_char do |char|
+            mode.handle_key char
+          end
         rescue IO::WaitReadable
         end
 
@@ -50,10 +60,6 @@ module Intermix
           rescue EOFError
             break
           end
-        end
-
-        if status_pane = panes.find {|p| p.name == "status"}
-          status_pane.status = "still going..."
         end
 
         panes.each do |pane|

@@ -8,7 +8,7 @@ module Intermix
     attr_accessor :buffer, :pen, :terminfo, :size_cols, :size_rows
 
     def self.logger
-      Logger.new('log/screen.log').tap do |l|
+      @logger ||= Logger.new('log/screen.log').tap do |l|
         #l.sev_threshold = Logger::WARN
       end
     end
@@ -128,7 +128,7 @@ module Intermix
         :underlined
       # ... many more
 
-      def self.logger; Screen.logger; end
+      def self.logger; @logger ||= Screen.logger; end
 
       def initialize(row, col, max_row, max_col)
         self.col = col
