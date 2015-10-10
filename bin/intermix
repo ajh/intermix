@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "intermix"
+
+b = Intermix::App.new
+b.run ARGV.join(' '), b.panes.first
+b.run ARGV.join(' '), b.panes.last
+b.main_loop
