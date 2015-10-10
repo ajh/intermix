@@ -34,7 +34,7 @@ module Intermix
 
     # Run this often to get the latest update from the program.
     #
-    # This'll update the video terminal via the configured parser callbakcs.
+    # This'll update the screen via the configured parser callbakcs.
     def update
       pid.present? or raise "can't update when program is not running"
       parser << output.read_nonblock(100)
@@ -45,8 +45,8 @@ module Intermix
 
     private
 
+    # Define callbacks to hook up the parser to the screen
     def hook_up_parser_to_screen(parser, screen)
-      # Define callbacks to hook up the parser to the video terminal
       parser.configure_callbacks do |config|
         config.handle_print do |code|
           screen.print code

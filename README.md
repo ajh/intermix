@@ -43,6 +43,14 @@ Not started
 
 Not started
 
+### keyboard interactions
+
+Detecting and using keyup keydown events and timing. Not started
+
+### screen transforms
+
+Not started
+
 ## Installation
 
 Add this line to your application's Gemfile:

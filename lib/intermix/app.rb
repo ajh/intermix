@@ -20,16 +20,17 @@ module Intermix
 
       self.programs = []
 
-      left_pane = Pane.new(window.rows,   window.cols / 2,  0,  0)
-      right_pane = Pane.new(window.rows,  window.cols / 2,  0,  window.cols / 2)
-      self.panes = [left_pane, right_pane]
+      left_pane   = Pane.new(window.rows - 1,   window.cols / 2,  0,  0, "left")
+      right_pane  = Pane.new(window.rows - 1,  window.cols / 2,  0,  window.cols / 2, "right")
+      status_pane = StatusPane.new(window)
+      self.panes = [left_pane, right_pane, status_pane]
     end
 
     def run(command, pane)
       program = Program.new pane.size_rows, pane.size_cols
       program.run command
 
-      pane.program = program
+      pane.screen = program.screen
       self.programs << program
     end
 
@@ -51,9 +52,13 @@ module Intermix
           end
         end
 
+        if status_pane = panes.find {|p| p.name == "status"}
+          status_pane.status = "still going..."
+        end
+
         panes.each do |pane|
-          pane.program or next
-          window.paint pane.program.screen, pane.offset_row, pane.offset_col
+          pane.screen or next
+          window.paint pane.screen, pane.offset_row, pane.offset_col
         end
       end
 
