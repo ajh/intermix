@@ -13,7 +13,11 @@ through the emulator as command line options, like:
 
 This will run `ls -G` in the emulator.
 
-# Status
+## Status
+
+### terminal emulation
+
+First pass working:
 
 * ls - works okay!
 * ls -G - no colors
@@ -22,6 +26,22 @@ This will run `ls -G` in the emulator.
 * vtest - nope
 * tmux - nope
 * unicode - untested probably not working
+
+### running multiple processes at once
+
+First pass working
+
+### client server
+
+Not started
+
+### modal ui
+
+Not started
+
+### shell
+
+Not started
 
 ## Installation
 
