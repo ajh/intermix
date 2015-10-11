@@ -51,6 +51,7 @@ module Intermix
         config.handle_print do |code|
           screen.print code
         end
+
         config.handle_csi_dispatch do |sequence|
           self.class.logger.debug "csi_dispatch sequence: #{sequence.inspect}"
           sequence or next
@@ -65,20 +66,30 @@ module Intermix
           elsif sequence.capname == 'rmcup'
             screen.save_cursor
             screen.normal_screen_buffer
+          elsif sequence.capname == 'elr'
+            screen.erase_in_line
+          else
+            self.class.logger.debug "unhandled csi_dispatch sequence: #{sequence.inspect}"
           end
         end
+
         config.handle_esc_dispatch do |sequence|
           self.class.logger.debug "esc_dispatch sequence: #{sequence.inspect}"
+          self.class.logger.debug "unhandled esc_dispatch sequence: #{sequence.inspect}"
         end
+
         config.handle_execute do |sequence|
-          self.class.logger.debug "execute_dispatch sequence: #{sequence.inspect}"
+          self.class.logger.debug "execute sequence: #{sequence.inspect}"
           sequence or next
 
           if sequence.capname == 'cr'
             screen.pen.move_left full: true
-          end
-          if sequence.capname == 'nl'
+          elsif sequence.capname == 'nl'
             screen.pen.move_down
+          elsif sequence.long_name == 'backspace'
+            screen.pen.move_left
+          else
+            self.class.logger.debug "unhandled execute sequence: #{sequence.inspect}"
           end
         end
       end

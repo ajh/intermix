@@ -42,6 +42,16 @@ module Intermix
       spaces_needed.times { print 0x20 }
     end
 
+    def backspace
+      pen.move_left
+    end
+
+    def erase_in_line(direction: :right)
+      if direction == :right
+        buffer[pen.row][pen.col].draw 0x20, pen
+      end
+    end
+
     def save_cursor
     end
 

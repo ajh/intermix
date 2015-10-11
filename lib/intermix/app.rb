@@ -68,7 +68,8 @@ module Intermix
         end
       end
 
-      window.close
+    ensure
+      window.close rescue nil
     end
   end
 end
