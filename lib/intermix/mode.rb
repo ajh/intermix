@@ -72,7 +72,7 @@ module Intermix
     def handle_key(key)
       super key
 
-      if "c-b" == key
+      if "\c-b" == key
         switch_mode CommandMode.new(app)
       else
         program.input << key
