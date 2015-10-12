@@ -21,10 +21,11 @@ module Intermix
 
       self.programs = []
 
-      left_pane   = Pane.new(window.rows - 1,   window.cols / 2,  0,  0, "left")
-      right_pane  = Pane.new(window.rows - 1,  window.cols / 2,  0,  window.cols / 2, "right")
+      #left_pane   = Pane.new(window.rows - 1,   window.cols / 2,  0,  0, "left")
+      #right_pane  = Pane.new(window.rows - 1,  window.cols / 2,  0,  window.cols / 2, "right")
       status_pane = StatusPane.new(window)
-      self.panes = [left_pane, right_pane, status_pane]
+      #self.panes = [left_pane, right_pane, status_pane]
+      self.panes = [status_pane]
 
       self.mode = CommandMode.new(self)
       self.mode.enter
@@ -69,6 +70,7 @@ module Intermix
       end
 
     ensure
+      STDIN.cooked! # this assumes we were cooked at the start
       window.close rescue nil
     end
   end

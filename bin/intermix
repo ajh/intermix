@@ -4,6 +4,4 @@ require "bundler/setup"
 require "intermix"
 
 b = Intermix::App.new
-b.run ARGV.join(' '), b.panes[0]
-b.run ARGV.join(' '), b.panes[1]
 b.main_loop
