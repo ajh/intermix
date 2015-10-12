@@ -1,6 +1,18 @@
 require 'active_support/all'
+require 'pry'
+require 'pry-nav'
 
 module Intermix
+  # found expirementaly by doing:
+  #
+  #   irb -r io/console
+  #   $ STDIN.getch
+  #
+  KEYS = {
+    "ctrl-c" => "\x3",
+    "ctrl-p" => "\x10",
+    "ctrl-b" => "\x2",
+  }.freeze
 
   # Base class for modes
   class Mode
@@ -16,13 +28,11 @@ module Intermix
 
     def enter
       self.class.logger.info "enter #{self}"
-      if status_pane = app.panes.find {|p| p.name == "status" }
-        status_pane.status = self.class.to_s.demodulize.underscore.humanize
-      end
+      app.status = "enter"
     end
 
     def handle_key(key)
-      if ["\x03", "\x1C"].include? key
+      if KEYS['ctrl-c'] == key
         Kernel.exit
       end
     end
@@ -46,17 +56,23 @@ module Intermix
 
     def initialize(*args)
       super(*args)
-      self.selected_pane = 0
+      self.selected_pane = app.panes.first
     end
 
     def handle_key(key)
       super key
 
-      if (1..9).to_a.map(&:to_s).include? key
-        self.selected_pane = key.to_i - 1
-        self.class.logger.info "selected pane: #{selected_pane}"
+      if (0..9).to_a.map(&:to_s).include? key
+        if pane = app.panes[key.to_i]
+          self.selected_pane = pane
+          app.status = "selected pane: #{pane.inspect}"
+        end
       elsif key == 'i'
-        switch_mode ProgramMode.new(app, app.panes[selected_pane].program)
+        if selected_pane
+          switch_mode ProgramMode.new(app, selected_pane.program)
+        end
+      elsif KEYS['ctrl-p'] == key
+        switch_mode PryMode.new(app)
       end
     end
   end
@@ -72,10 +88,75 @@ module Intermix
     def handle_key(key)
       super key
 
-      if "\c-b" == key
+      if KEYS['ctrl-b'] == key
         switch_mode CommandMode.new(app)
       else
-        program.input << key
+        if program.state == :running
+          begin
+            program.input << key
+
+          rescue EOFError, Errno::EIO
+            # this is not my responsiblity, but oh well
+            program.kill
+          end
+        end
+      end
+    end
+  end
+
+  class PryMode < Mode
+    def enter
+      super
+
+      STDIN.cooked!
+      self.pry
+      STDIN.raw!
+
+      switch_mode CommandMode.new(app)
+    end
+
+    def split_and_run(command)
+      new_pane = Pane.new(0, app.window.cols, 0, 0, command)
+      app.panes << new_pane
+
+      resize_panes
+
+      app.run command, new_pane
+      app.refresh
+
+      true
+    end
+
+    def panes
+      app.panes.each_with_index do |p, i|
+        puts "#{i}: #{p.name} #{p.inspect}"
+      end
+
+      nil
+    end
+
+    def close_pane(index)
+      pane = app.panes[index]
+      pane.program.kill
+      app.panes -= [pane]
+
+      resize_panes
+    end
+
+    private
+
+    def resize_panes
+      panes_to_size = app.panes.reject {|p| p.name == 'status'}
+
+      size_of_each_pane = if panes_to_size.length > 1
+                            app.window.rows / panes_to_size.length
+                          else
+                            app.window.rows
+                          end
+
+      panes_to_size.each_with_index do |p, i|
+        p.size_rows = size_of_each_pane
+        p.offset_row = size_of_each_pane * i
       end
     end
   end

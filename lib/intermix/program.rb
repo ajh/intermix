@@ -5,7 +5,10 @@ module Intermix
 
   # This class represents a running program inside the terminal emulator
   class Program
-    attr_accessor :parser, :screen, :input, :output, :pid, :size_rows, :size_cols
+    attr_accessor :parser, :screen, :input, :output, :pid, :size_rows, :size_cols, :command
+
+    # one of: :not_started, :running, :exited
+    attr_accessor :state
 
     def self.logger
       @logger ||= Logger.new 'log/program.log'
@@ -15,19 +18,27 @@ module Intermix
       "#{[c].pack('U').inspect}(0x%02X)" % c
     end
 
-    def initialize(size_rows, size_cols)
+    def initialize(size_rows, size_cols, command)
       self.parser = TtyOutputParser.new
       self.size_rows = size_rows
       self.size_cols = size_cols
+      self.state = :not_started
+      self.command = command
+
+      ObjectSpace.define_finalizer(self) do
+        kill
+      end
     end
 
     # Run the program
-    def run(command)
+    def run
       self.output, self.input, self.pid = PTY.spawn command
       TermInfo.tiocswinsz output, size_rows, size_cols
 
       self.screen = Screen.new size_rows, size_cols, TermInfo.new(ENV['TERM'], output)
       hook_up_parser_to_screen parser, screen
+
+      self.state = :running
 
       true
     end
@@ -36,11 +47,20 @@ module Intermix
     #
     # This'll update the screen via the configured parser callbakcs.
     def update
-      pid.present? or raise "can't update when program is not running"
+      state == :running or return
       parser << output.read_nonblock(100)
 
     rescue IO::WaitReadable
-      #self.class.logger.warn $!.inspect
+      nil
+
+    rescue EOFError, Errno::EIO
+      self.state = :exited
+      self.class.logger.error $!.inspect
+    end
+
+    def kill(signal="TERM")
+      self.class.logger.info "killing pid #{pid}"
+      Process.kill(signal, pid)
     end
 
     private
@@ -94,5 +114,13 @@ module Intermix
         end
       end
     end
+
+    # Not using now, but maybe I will?
+    #def alive?
+      #Process.kill(0, @pid)
+      #true
+    #rescue Errno::ESRCH, Errno::ENOENT
+      #false
+    #end
   end
 end

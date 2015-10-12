@@ -26,11 +26,11 @@ module Intermix
     end
 
     # Painters may paint in sections of the window by using the offsets
-    def paint(screen, offset_row=0, offset_col=0)
+    def paint(screen, offset_row=0, offset_col=0, refresh=false)
       last_row = last_col = 0
 
       screen.cells.each do |cell|
-        cell.dirty or next
+        cell.dirty || refresh or next
         cell.code or next
 
         current_row = cell.row + offset_row

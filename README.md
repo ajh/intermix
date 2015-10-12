@@ -6,12 +6,17 @@ where code changes are easy, then eventually port it to rust.
 
 ## How to use
 
-Run the ruby script bin/intermix passing in the command that will run
-through the emulator as command line options, like:
+Run the ruby script bin/intermix.
 
-    bin/intermix ls -G
+Intermix will start in 'Command Mode'. `Ctrl-c` will exit, `Ctrl-p` will
+enter Pry Mode. From within Pry Mode, a command can be run with
+`split_and_run` like this:
 
-This will run `ls -G` in the emulator.
+    $ split_and_run 'irb'
+
+Then press `Ctrl-d` to go back to command mode. Press `1` to select the irb
+pane, then `i` to get into program mode for irb. Then irb can be
+interacted with.
 
 ## Status
 

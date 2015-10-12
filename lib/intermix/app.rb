@@ -6,7 +6,7 @@ require 'io/console'
 # This app is the terminal emulator / multiplexer / shell that I am building.
 module Intermix
   class App
-    attr_accessor :window, :programs, :panes, :mode
+    attr_accessor :window, :programs, :panes, :mode, :status_pane
 
     def self.logger
       @logger ||= Logger.new 'log/app.log'
@@ -23,7 +23,7 @@ module Intermix
 
       #left_pane   = Pane.new(window.rows - 1,   window.cols / 2,  0,  0, "left")
       #right_pane  = Pane.new(window.rows - 1,  window.cols / 2,  0,  window.cols / 2, "right")
-      status_pane = StatusPane.new(window)
+      self.status_pane = StatusPane.new(window)
       #self.panes = [left_pane, right_pane, status_pane]
       self.panes = [status_pane]
 
@@ -32,17 +32,17 @@ module Intermix
     end
 
     def run(command, pane)
-      program = Program.new pane.size_rows, pane.size_cols
-      program.run command
+      program = Program.new pane.size_rows, pane.size_cols, command
+      program.run
 
       pane.screen = program.screen
       pane.program = program
+
       self.programs << program
     end
 
     def main_loop
       STDIN.raw!
-
       window.start
 
       loop do
@@ -65,13 +65,22 @@ module Intermix
 
         panes.each do |pane|
           pane.screen or next
-          window.paint pane.screen, pane.offset_row, pane.offset_col
+          window.paint pane.screen, pane.offset_row, pane.offset_col, @refresh
+          @refresh = false
         end
       end
 
     ensure
       STDIN.cooked! # this assumes we were cooked at the start
       window.close rescue nil
+    end
+
+    def refresh
+      @refresh = true
+    end
+
+    def status=(msg)
+      status_pane.status = "#{mode.class.to_s.demodulize.underscore.humanize}: #{msg}"
     end
   end
 end
