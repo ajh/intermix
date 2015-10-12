@@ -1,24 +1,24 @@
+#![feature(libc)]
+extern crate libc;
+use libc::c_void;
+use libc::c_int;
+use std::ptr;
 //mod libtsm;
+
+#[repr(C)]
+struct TsmScreen;
+#[repr(C)]
+struct TsmLogT;
 
 // This code is editable and runnable!
 fn main() {
-    // A simple integer calculator:
-    // `+` or `-` means add or subtract by 1
-    // `*` or `/` means multiply or divide by 2
-
-    let program = "+ + + +";
-    let mut accumulator = 0;
-
-    for token in program.chars() {
-        match token {
-            '+' => accumulator += 1,
-            '-' => accumulator -= 1,
-            '*' => accumulator *= 2,
-            '/' => accumulator /= 2,
-            _ => { /* ignore everything else */ }
-        }
+    #[link(name="tsm", kind="static")]
+    extern {
+        fn tsm_screen_new(out: *mut *mut TsmScreen, log: Option<TsmLogT>, log_data: *mut c_void) -> c_int;
     }
 
-    println!("The program \"{}\" calculates the value {}",
-             program, accumulator);
+    unsafe {
+      let mut screen = ptr::null_mut();
+      tsm_screen_new(&mut screen, None, ptr::null_mut());
+    };
 }
