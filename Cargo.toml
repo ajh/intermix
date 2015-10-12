@@ -1,0 +1,4 @@
+[package]
+name = "intermix"
+version = "0.1.0"
+authors = ["Andy Hartford <andy.hartford@cohealo.com>"]
