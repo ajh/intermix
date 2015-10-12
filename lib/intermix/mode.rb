@@ -124,7 +124,7 @@ module Intermix
       app.run command, new_pane
       app.refresh
 
-      true
+      nil
     end
 
     def panes
@@ -141,16 +141,25 @@ module Intermix
       app.panes -= [pane]
 
       resize_panes
+      nil
     end
 
     def crop_pane(index)
       pane = app.panes[index]
       pane.transforms << CropTransform.new(pane.screen, 10, 10, 0, 0)
+      nil
+    end
+
+    def sample_pane(index)
+      pane = app.panes[index]
+      pane.transforms << SampleTransform.new(pane.screen, (pane.size_rows / 3.0).ceil, (pane.size_cols / 3.0).ceil)
+      nil
     end
 
     def untransform_pane(index)
       pane = app.panes[index]
       pane.transforms = []
+      nil
     end
 
     # doesn't work because `help` is controlled by pry
