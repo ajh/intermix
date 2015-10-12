@@ -52,9 +52,9 @@ module Intermix
 
         # Inefficient to clear the attribute each time
         #terminfo.control 'sgr0'
-      end
 
-      screen.clean_all
+        cell.dirty = false
+      end
     end
   end
 end

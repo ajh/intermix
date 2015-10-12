@@ -6,8 +6,8 @@ module Intermix
     end
 
     def status=(val)
-      screen.pen.move_left full: true
-      val.each_byte {|byte| screen.print byte}
+      @screen.pen.move_left full: true
+      val.each_byte {|byte| @screen.print byte}
     end
   end
 end

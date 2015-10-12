@@ -83,10 +83,6 @@ module Intermix
       string + "\n] >"
     end
 
-    def clean_all
-      cells.each {|c| c.dirty = false }
-    end
-
     private
 
     class Cell

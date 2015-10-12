@@ -143,6 +143,21 @@ module Intermix
       resize_panes
     end
 
+    def crop_pane(index)
+      pane = app.panes[index]
+      pane.transforms << CropTransform.new(pane.screen, 10, 10, 0, 0)
+    end
+
+    def untransform_pane(index)
+      pane = app.panes[index]
+      pane.transforms = []
+    end
+
+    # doesn't work because `help` is controlled by pry
+    #def help
+      #(Object.new.methods - methods).sort
+    #end
+
     private
 
     def resize_panes
