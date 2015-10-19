@@ -24,39 +24,35 @@ fn set_raw_mode(fd: RawFd) {
 
 fn set_cooked_mode(fd: RawFd) {
     let mut t = termios::Termios::from_fd(fd).unwrap();
-    t.c_iflag |= (termios::BRKINT|termios::ISTRIP|termios::ICRNL|termios::IXON);
+    t.c_iflag |= termios::BRKINT|termios::ISTRIP|termios::ICRNL|termios::IXON;
     t.c_oflag |= termios::OPOST;
-    t.c_lflag |= (termios::ECHO|termios::ECHOE|termios::ECHOK|termios::ECHONL|termios::ICANON|termios::ISIG|termios::IEXTEN);
+    t.c_lflag |= termios::ECHO|termios::ECHOE|termios::ECHOK|termios::ECHONL|termios::ICANON|termios::ISIG|termios::IEXTEN;
     termios::tcsetattr(fd, termios::TCSANOW, &t);
 }
+
+const CtrlC: u8 = 0x03;
 
 fn main() {
     set_raw_mode(0);
 
-    let program = Program::new("date".to_string()).unwrap();
+    let mut program = Program::new("date program".to_string(), "date".to_string());
+    program.run().unwrap();
 
     loop {
-            // blocking! Need to put the file handle in raw mode.
-            let mut input_buf  = [0; 10];
-            io::stdin().read(&mut input_buf);
-            //println!("read from stdin {:?}", input_buf);
-            // find 0x02 which is \c-c
-            if input_buf.iter().find(|&x| *x == 0x03).is_some() {
-                break;
-            }
-
-            program.write(&input_buf);
-            //println!("write to program");
-
-            let mut output_buf = [0; 10];
+            let mut output_buf = [0 as u8; 10];
             program.read(&mut output_buf);
             //println!("read from program {:?}", output_buf);
 
-            //let s = program.read_to_string();
-            //println!("read from program {}", s);
-
             io::stdout().write(&output_buf);
-            //println!("wrote to stdout");
+            io::stdout().flush().ok().expect("Could not flush stdout");
+
+            let mut input_buf  = [0 as u8; 10];
+            io::stdin().read(&mut input_buf);
+            //println!("read from stdin {:?}", input_buf);
+            if input_buf.iter().find(|&x| *x == CtrlC).is_some() {
+                break;
+            }
+            program.write(&input_buf);
     }
 
     set_cooked_mode(0);
