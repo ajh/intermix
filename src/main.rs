@@ -1,59 +1,87 @@
+#![feature(unicode)]
+extern crate log4rs;
+#[macro_use]
+extern crate log;
 extern crate pty;
-extern crate tsm_sys;
 extern crate termios;
+extern crate tsm_sys;
 
 mod program;
+mod terminfo;
+mod screen;
 
 use program::*;
+use std::io::{Read, Write};
 use std::io;
-use std::io::Write;
-use std::io::Read;
-use std::os::unix::io::AsRawFd;
-use std::os::unix::io::RawFd;
-
-// https://github.com/ruby/ruby/blob/trunk/ext/io/console/console.c
-fn set_raw_mode(fd: RawFd) {
-    let mut t = termios::Termios::from_fd(fd).unwrap();
-    t.c_iflag &= !(termios::IGNBRK|termios::BRKINT|termios::PARMRK|termios::ISTRIP|termios::INLCR|termios::IGNCR|termios::ICRNL|termios::IXON);
-    t.c_oflag &= !termios::OPOST;
-    t.c_lflag &= !(termios::ECHO|termios::ECHOE|termios::ECHOK|termios::ECHONL|termios::ICANON|termios::ISIG|termios::IEXTEN);
-    t.c_cflag &= !(termios::CSIZE|termios::PARENB);
-    t.c_cflag |= termios::CS8;
-    termios::tcsetattr(fd, termios::TCSANOW, &t);
-}
-
-fn set_cooked_mode(fd: RawFd) {
-    let mut t = termios::Termios::from_fd(fd).unwrap();
-    t.c_iflag |= termios::BRKINT|termios::ISTRIP|termios::ICRNL|termios::IXON;
-    t.c_oflag |= termios::OPOST;
-    t.c_lflag |= termios::ECHO|termios::ECHOE|termios::ECHOK|termios::ECHONL|termios::ICANON|termios::ISIG|termios::IEXTEN;
-    termios::tcsetattr(fd, termios::TCSANOW, &t);
-}
-
-const CtrlC: u8 = 0x03;
+use std::sync::mpsc::channel;
+use std::thread;
 
 fn main() {
-    set_raw_mode(0);
+    log4rs::init_file(
+        &std::env::current_dir().unwrap().join("log4rs.toml"),
+        log4rs::toml::Creator::default()
+    ).unwrap();
+    info!("starting up");
 
-    let mut program = Program::new("date program".to_string(), "date".to_string());
-    program.run().unwrap();
+    terminfo::set_raw_mode(0);
 
-    loop {
-            let mut output_buf = [0 as u8; 10];
-            program.read(&mut output_buf);
-            //println!("read from program {:?}", output_buf);
+    {
+        let (rows_count, cols_count) = terminfo::get_win_size(0).unwrap();
+        let mut program = Program::new(
+            "Some name".to_string(),
+            "not implemented".to_string(),
+            rows_count as usize,
+            cols_count as usize
+        );
+        let (program_tx, program_rx) = program.run().unwrap();
+        let (control_tx, control_rx) = channel::<usize>();
 
-            io::stdout().write(&output_buf);
-            io::stdout().flush().ok().expect("Could not flush stdout");
+        // Spawn thread to display program output
+        let thread = thread::spawn(move || {
+            loop {
+                if control_rx.try_recv().is_ok() {
+                    info!("shutdown signal in channel -> pty thread");
+                    break;
+                }
 
-            let mut input_buf  = [0 as u8; 10];
-            io::stdin().read(&mut input_buf);
-            //println!("read from stdin {:?}", input_buf);
-            if input_buf.iter().find(|&x| *x == CtrlC).is_some() {
-                break;
+                match program_rx.recv() {
+                    Ok(byte) => {
+                        io::stdout().write(&[byte]).unwrap();
+                        io::stdout().flush().unwrap();
+                    },
+                    Err(_) => break,
+                };
             }
-            program.write(&input_buf);
+            info!("leaving program -> stdout thread");
+        });
+
+        // Main loop which blocks on user input
+        info!("Starting main loop");
+        let mut buf = [0 as u8; 1024];
+        loop {
+            match io::stdin().read(&mut buf) {
+                Ok(num_bytes) => {
+                    if num_bytes == 0 { break };
+
+                    if buf.iter().find(|&x| *x == terminfo::CTRL_C).is_some() {
+                        info!("CTRL_C detected");
+                        break;
+                    }
+                    for byte in buf[0..num_bytes].into_iter() { program_tx.send(*byte).unwrap() }
+                },
+                Err(_) => break,
+            }
+
+            let screen = program.screen.lock().unwrap();
+            screen.debug_draw();
+        }
+
+        info!("Ended main loop");
+        control_tx.send(1).unwrap();
+        info!("stopping stdout thread");
+        //thread.join().unwrap();
     }
 
-    set_cooked_mode(0);
+    terminfo::set_cooked_mode(0);
+    info!("All threads stopped. Shutting down.");
 }

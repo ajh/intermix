@@ -1,0 +1,21 @@
+refresh_rate = 30
+
+[appender.root]
+kind = "file"
+path = "log/intermix.log"
+pattern = "%d - %m"
+
+[appender.program]
+kind = "file"
+path = "log/program.log"
+pattern = "%d - %m"
+
+[root]
+appenders = ["root"]
+level = "trace"
+
+[[logger]]
+additive = false
+appenders = ["program"]
+level = "trace"
+name = "intermix::program"
