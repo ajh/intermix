@@ -6,4 +6,5 @@ authors = ["Andy Hartford <hartforda@gmail.com>"]
 [dependencies]
 libc = "0.1.10"
 pty = "0.1"
+termios = "0.2"
 tsm-sys = "0.1"
