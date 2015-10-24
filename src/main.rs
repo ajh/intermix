@@ -74,7 +74,7 @@ fn main() {
             }
 
             let screen = program.screen.lock().unwrap();
-            screen.debug_draw();
+            let painter = screen::tty_painter::draw_screen(&screen, &mut io::stdout());
         }
 
         info!("Ended main loop");
