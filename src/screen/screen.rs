@@ -1,14 +1,60 @@
 use std::io::{Write, Stdout};
 use std::io;
+use std::fmt;
 
 use super::*;
 
 /// a collection of cells and other metadata about the screen
-#[derive(Debug)]
 pub struct Screen {
     pub rows_count: usize,
     pub cols_count: usize,
     pub cells: Vec<Vec<Cell>>
+}
+
+impl fmt::Debug for Screen {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // cells_str will look like this:
+        //
+        //   01234567890123
+        //  0      eiei
+        //  1    h
+        //  2 d
+        //  3    hiekje
+        //  4
+        //  5 hello world
+        //
+        let mut cells_str = " ".to_string();
+
+        for i in (0..self.rows_count) {
+            if i > 10 {
+                cells_str.push_str("...");
+                break;
+            }
+
+            cells_str.push_str(&(i % 10).to_string());
+        }
+
+
+        for (i, row) in self.cells.iter().enumerate() {
+            if i > 10 {
+                cells_str.push_str("...");
+                continue
+            }
+
+            cells_str.push_str(&format!("\n{} ", i.to_string()));
+
+            for (j, cell) in row.iter().enumerate() {
+                if j > 10 {
+                    cells_str.push_str("...");
+                    continue
+                }
+
+                cells_str.push(cell.ch); // Could add other attrs here too
+            }
+        }
+
+        write!(f, "Screen ( rows_count: {}, cols_count: {},\n{}\n)", self.rows_count, self.cols_count, cells_str)
+    }
 }
 
 impl Screen {
