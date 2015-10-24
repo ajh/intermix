@@ -78,7 +78,7 @@ mod tests {
     impl VteIO {
         fn new(rows_count: usize, cols_count: usize) -> VteIO {
             VteIO {
-                vte: tsm_sys::Vte::new().unwrap(),
+                vte: tsm_sys::Vte::new(rows_count, cols_count).unwrap(),
                 screen: Screen::new(rows_count, cols_count),
             }
         }
@@ -88,8 +88,8 @@ mod tests {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.vte.input(buf);
 
-            // This aint going to work. Maybe draw should be an iterator instead?
             for cell in self.vte.screen.borrow_mut().cells() {
+                println!("{} {}", cell.posy, cell.posx);
                 self.screen.cells[cell.posy][cell.posx].ch = cell.ch
             };
             Ok(buf.len())
@@ -117,15 +117,15 @@ mod tests {
         assert_eq!(vte_io.screen, screen)
     }
 
-    //#[test]
-    //fn it_correctly_draws_screen_with_some_chars() {
-        //let mut screen = Screen::new(3, 3);
-        //screen.cells[0][0].ch = 'l' as char;
-        //screen.cells[0][1].ch = 'l' as char;
-        //screen.cells[0][2].ch = 'o' as char;
-        //let mut vte_io = VteIO::new(3, 3);
+    #[test]
+    fn it_correctly_draws_screen_with_some_chars() {
+        let mut screen = Screen::new(3, 3);
+        screen.cells[0][0].ch = 'l' as char;
+        screen.cells[0][1].ch = 'l' as char;
+        screen.cells[0][2].ch = 'o' as char;
+        let mut vte_io = VteIO::new(3, 3);
 
-        //draw_screen(&screen, &mut vte_io);
-        //assert_eq!(vte_io.screen, screen)
-    //}
+        draw_screen(&screen, &mut vte_io);
+        assert_eq!(vte_io.screen, screen)
+    }
 }

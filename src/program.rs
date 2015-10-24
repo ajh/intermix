@@ -154,7 +154,7 @@ impl Program {
         let screen_arc = self.screen.clone();
 
         thread::spawn(move || {
-            let mut vte = tsm_sys::Vte::new().unwrap();
+            let mut vte = tsm_sys::Vte::new(80, 24).unwrap();
             let mut buf = [0 as u8, 1024];
             loop {
                 if control_rx.try_recv().is_ok() {
