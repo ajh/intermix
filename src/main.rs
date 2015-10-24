@@ -5,6 +5,7 @@ extern crate log;
 extern crate pty;
 extern crate termios;
 extern crate tsm_sys;
+extern crate term;
 
 mod program;
 mod terminfo;
