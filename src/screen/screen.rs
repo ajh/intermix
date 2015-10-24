@@ -25,7 +25,7 @@ impl fmt::Debug for Screen {
         //
         let mut cells_str = " ".to_string();
 
-        for i in (0..self.rows_count) {
+        for i in 0..self.rows_count {
             if i > 10 {
                 cells_str.push_str("...");
                 break;
@@ -49,7 +49,14 @@ impl fmt::Debug for Screen {
                     continue
                 }
 
-                cells_str.push(cell.ch); // Could add other attrs here too
+                let ch = if cell.ch == '\x00' as char {
+                    ' ' // TODO: There are other unprintables that should get the same treatment
+                }
+                else {
+                    cell.ch
+                };
+
+                cells_str.push(ch); // Could add other attrs here too
             }
         }
 
@@ -59,13 +66,20 @@ impl fmt::Debug for Screen {
 
 impl Screen {
     pub fn new(rows_count: usize, cols_count: usize) -> Screen {
+        // index rows first then cols, so like
+        // cells[row_num][cols_num]
+        let mut cells = vec!();
+        for x in 0..rows_count {
+            cells.push(vec!());
+            for y in 0..cols_count {
+                cells[x].push(Cell { x: x, y: y, ..Default::default() });
+            }
+        }
+
         Screen {
             rows_count: rows_count,
             cols_count: cols_count,
-
-            // index rows first then cols, so like
-            // cells[row_num][cols_num]
-            cells: vec!(vec!(Default::default(); cols_count); rows_count)
+            cells:      cells,
         }
     }
 

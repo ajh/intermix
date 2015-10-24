@@ -57,6 +57,8 @@ impl Clone for CellAttr {
 
 #[derive(Debug)]
 pub struct Cell {
+    pub x:      usize,
+    pub y:      usize,
 	pub ch:     char,
 	pub width:  usize,
     pub attr:   CellAttr,
@@ -66,6 +68,8 @@ pub struct Cell {
 impl Default for Cell {
     fn default() -> Cell {
         Cell {
+            x:      0,
+            y:      0,
             ch:     '\x00' as char,
             width:  1,
             attr:   Default::default(),
@@ -77,6 +81,8 @@ impl Default for Cell {
 impl Clone for Cell {
     fn clone(&self) -> Self {
         Cell {
+            x:      self.x,
+            y:      self.y,
             ch:     self.ch,
             width:  self.width,
             attr:   self.attr.clone(),

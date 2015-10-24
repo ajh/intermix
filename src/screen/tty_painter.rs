@@ -1,11 +1,27 @@
+extern crate term;
+
 use std::io::Write;
 
 use super::*;
 
 pub fn draw_screen<T: Write>(screen: &Screen, writer: &mut T) {
+    let (last_x, last_y) = (0, 0);
+    //let tty = term::terminfo::TerminfoTerminal::new(writer);
+
     for row in &screen.cells {
         for cell in row {
             if cell.ch != '\x00' {
+                //if last_x + 1 != cell.x {
+                    //let terminfo.strings.get('cup').unwrap();
+                        //if let Some(cmd) = self.ti.strings.get(cmd) {
+                            //if let Ok(s) = expand(&cmd, params, &mut Variables::new()) {
+                                //try!(self.out.write_all(&s));
+                                //return Ok(true)
+                            //}
+                        //}
+                    // move cursor
+                //}
+
                 let mut buf = [0 as u8; 4];
                 match cell.ch.encode_utf8(&mut buf) {
                     Some(num_bytes) => {
@@ -33,38 +49,43 @@ mod tests {
     use super::super::*;
 
     // implements Write trait and writes to a string
-    struct StringIO {
-        pub s: String
+    struct byteVecIO {
+        pub bytes: Vec<u8>
     }
 
-    impl StringIO {
-        fn new() -> StringIO {
-            StringIO { s: String::new() }
+    impl byteVecIO {
+        fn new() -> byteVecIO {
+            byteVecIO { bytes: vec!() }
         }
 
-        fn string(&self) -> &str {
-            &self.s
+        fn bytes(&self) -> &Vec<u8> {
+            &self.bytes
         }
     }
 
-    impl Write for StringIO {
+    impl Write for byteVecIO {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-            let mut string = String::new();
-
             for byte in buf {
-                match char::from_u32(*byte as u32) {
-                    Some(ch) => string.push(ch),
-                    None => return Err(Error::new(ErrorKind::Other, "oh no!"))
-                }
+                self.bytes.push(*byte);
             }
-
-            self.s.push_str(&string);
             Ok(buf.len())
         }
 
         fn flush(&mut self) -> io::Result<()> {
             Ok(())
         }
+    }
+
+    fn build_screen_with_vte(bytes: &byteVecIO, rows_count: usize, cols_count: usize) -> Screen {
+        let mut vte = tsm_sys::Vte::new(rows_count, cols_count).unwrap();
+        vte.input(&bytes.bytes());
+
+        let mut screen = Screen::new(rows_count, cols_count);
+        for cell in vte.screen.borrow_mut().cells() {
+            screen.cells[cell.posy][cell.posx].ch = cell.ch
+        };
+
+        screen
     }
 
     // Implements write trait and writes to a vte which it owns. Then uses vte to update a screen
@@ -102,30 +123,34 @@ mod tests {
 
     #[test]
     fn it_draws_nothing_when_empty() {
-        let mut output = StringIO::new();
+        let mut io = byteVecIO::new();
         let mut screen = Screen::new(3, 3);
-        draw_screen(&screen, &mut output);
-        assert_eq!(output.string(), "");
+        draw_screen(&screen, &mut io);
+        assert_eq!(io.bytes().len(), 0);
     }
 
     #[test]
     fn it_correctly_draws_empty_screen() {
-        let mut screen = Screen::new(3, 3);
-        let mut vte_io = VteIO::new(3, 3);
+        let mut screen = Screen::new(2, 2);
 
-        draw_screen(&screen, &mut vte_io);
-        assert_eq!(vte_io.screen, screen)
+        let mut io = byteVecIO::new();
+        draw_screen(&screen, &mut io);
+
+        let actual = build_screen_with_vte(&io, 2, 2);
+        assert_eq!(screen, actual);
     }
 
     #[test]
-    fn it_correctly_draws_screen_with_some_chars() {
+    fn it_correctly_draws_position_of_chars() {
         let mut screen = Screen::new(3, 3);
-        screen.cells[0][0].ch = 'l' as char;
-        screen.cells[0][1].ch = 'l' as char;
-        screen.cells[0][2].ch = 'o' as char;
-        let mut vte_io = VteIO::new(3, 3);
+        screen.cells[0][0].ch = 'y' as char;
+        screen.cells[1][1].ch = 'o' as char;
+        screen.cells[2][2].ch = '!' as char;
 
-        draw_screen(&screen, &mut vte_io);
-        assert_eq!(vte_io.screen, screen)
+        let mut io = byteVecIO::new();
+        draw_screen(&screen, &mut io);
+
+        let actual = build_screen_with_vte(&io, 3, 3);
+        assert_eq!(screen, actual);
     }
 }
