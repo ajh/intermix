@@ -3,33 +3,33 @@ extern crate term;
 use std::io::Write;
 
 use super::*;
-use term::terminfo;
+use term::terminfo::*;
 
 pub fn draw_screen<T: Write+Send>(screen: &Screen, writer: &mut T) {
     let (last_x, last_y) = (0, 0);
-    let mut tty = terminfo::TerminfoTerminal::new(writer).unwrap();
+    let mut tty = TerminfoTerminal::new(writer).unwrap();
 
     for row in &screen.cells {
         for cell in row {
-            if cell.ch != '\x00' {
-                //if last_x + 1 != cell.x {
-                    //let terminfo.strings.get('cup').unwrap();
-                        //if let Some(cmd) = self.ti.strings.get(cmd) {
-                            //if let Ok(s) = expand(&cmd, params, &mut Variables::new()) {
-                                //try!(self.out.write_all(&s));
-                                //return Ok(true)
-                            //}
-                        //}
-                    // move cursor
-                //}
+            // ignore unprintables
+            if cell.ch == '\x00' {
+                continue;
+            }
 
-                let mut buf = [0 as u8; 4];
-                match cell.ch.encode_utf8(&mut buf) {
-                    Some(num_bytes) => {
-                        tty.write(&buf[0..num_bytes]);
-                    },
-                    None => {}
-                }
+            // move cursor maybe
+            if (last_x + 1 != cell.x) || (last_y != cell.y) {
+                let params = [ parm::Param::Number(cell.y as i16),
+                               parm::Param::Number(cell.x as i16) ];
+                tty.apply_cap("cup", &params);
+            }
+
+            // write character
+            let mut buf = [0 as u8; 4];
+            match cell.ch.encode_utf8(&mut buf) {
+                Some(num_bytes) => {
+                    tty.write(&buf[0..num_bytes]);
+                },
+                None => {}
             }
         }
     }
