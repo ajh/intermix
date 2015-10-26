@@ -61,16 +61,16 @@ impl Program {
         Ok(self.child.as_mut().unwrap().pty().unwrap().clone())
     }
 
-    pub fn run(&mut self) -> Result<(Sender<u8>, Receiver<u8>), ()> {
+    pub fn run(&mut self) -> Result<(Sender<u8>, Receiver<()>), ()> {
         info!("starting program name={:?} command={:?} rows_count={} cols_count={}", self.name, self.command, self.rows_count, self.cols_count);
 
         self.fork_pty().unwrap();
 
-        let (output_tx, output_rx) = channel::<u8>();
+        let (output_tx, output_rx) = channel::<()>();
         let (control_tx, control_rx) = channel::<usize>();
         self.thr_controls.push(control_tx);
         let fd = self.clone_pty_fd().unwrap();
-        self.spawn_pty_to_screen_thr(fd, control_rx);
+        self.spawn_pty_to_screen_thr(fd, output_tx, control_rx);
 
         let (input_tx, input_rx) = channel::<u8>();
         let (control_tx, control_rx) = channel::<usize>();
@@ -104,6 +104,7 @@ impl Program {
                     unreachable!();
                 }
                 else {
+                    // this isn't working for some reason
                     //let res = ::terminfo::set_win_size(
                         //child.pty().unwrap().as_raw_fd(),
                         //row_size,
@@ -150,7 +151,7 @@ impl Program {
     /// when something is read, pass it to vte via "input" call
     /// then use the vte's screen to ... do something
     /// another thread will use that to read the screen state and draw it
-    fn spawn_pty_to_screen_thr(&self, mut pty: pty::ChildPTY, control_rx: Receiver<usize>) -> thread::JoinHandle<()> {
+    fn spawn_pty_to_screen_thr(&self, mut pty: pty::ChildPTY, output_tx: Sender<()>, control_rx: Receiver<usize>) -> thread::JoinHandle<()> {
         let screen_arc = self.screen.clone();
 
         thread::spawn(move || {
@@ -181,6 +182,10 @@ impl Program {
                     let mut screen = screen_arc.lock().unwrap();
                     screen.cells[y as usize][x as usize].ch = ch
                 });
+
+                // signal that we've updated the screen
+                // we should really send an Enum or something, not u8.
+                output_tx.send(());
             }
             info!("leaving pty -> channel thread");
         })

@@ -10,6 +10,7 @@ extern crate term;
 mod program;
 mod terminfo;
 mod screen;
+mod window;
 
 use program::*;
 use std::io::{Read, Write};
@@ -24,7 +25,8 @@ fn main() {
     ).unwrap();
     info!("starting up");
 
-    terminfo::set_raw_mode(0);
+    let window = window::Window::new();
+    window.start();
 
     {
         let (rows_count, cols_count) = terminfo::get_win_size(0).unwrap();
@@ -46,9 +48,9 @@ fn main() {
                 }
 
                 match program_rx.recv() {
-                    Ok(byte) => {
-                        io::stdout().write(&[byte]).unwrap();
-                        io::stdout().flush().unwrap();
+                    Ok(_) => {
+                        let screen = program.screen.lock().unwrap();
+                        screen::tty_painter::draw_screen(&screen, &mut io::stdout());
                     },
                     Err(_) => break,
                 };
@@ -72,9 +74,6 @@ fn main() {
                 },
                 Err(_) => break,
             }
-
-            let screen = program.screen.lock().unwrap();
-            let painter = screen::tty_painter::draw_screen(&screen, &mut io::stdout());
         }
 
         info!("Ended main loop");
@@ -83,6 +82,6 @@ fn main() {
         //thread.join().unwrap();
     }
 
-    terminfo::set_cooked_mode(0);
+    window.stop();
     info!("All threads stopped. Shutting down.");
 }
