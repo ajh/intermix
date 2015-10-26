@@ -6,20 +6,22 @@ use super::*;
 use term::terminfo::*;
 
 pub fn draw_screen<T: Write+Send>(screen: &Screen, writer: &mut T) {
-    let (last_x, last_y) = (0, 0);
     let mut tty = TerminfoTerminal::new(writer).unwrap();
+
+    let (mut last_x, mut last_y) = (0, 0);
+    let params = [ parm::Param::Number(0 as i16),
+                   parm::Param::Number(0 as i16) ];
+    tty.apply_cap("cup", &params);
+    drop(params);
 
     for row in &screen.cells {
         for cell in row {
-            // ignore unprintables
-            if cell.ch == '\x00' {
-                continue;
-            }
+            // TODO: check age and maybe don't draw this cell
 
             // move cursor maybe
             if (last_x + 1 != cell.x) || (last_y != cell.y) {
-                let params = [ parm::Param::Number(cell.y as i16),
-                               parm::Param::Number(cell.x as i16) ];
+                let params = [ parm::Param::Number(cell.x as i16),
+                               parm::Param::Number(cell.y as i16) ];
                 tty.apply_cap("cup", &params);
             }
 
@@ -31,6 +33,9 @@ pub fn draw_screen<T: Write+Send>(screen: &Screen, writer: &mut T) {
                 },
                 None => {}
             }
+
+            last_x = cell.x;
+            last_y = cell.y;
         }
     }
 }
@@ -91,14 +96,6 @@ mod tests {
     }
 
     #[test]
-    fn it_draws_nothing_when_empty() {
-        let mut io = CaptureIO::new();
-        let mut screen = Screen::new(3, 3);
-        draw_screen(&screen, &mut io);
-        assert_eq!(io.slice().len(), 0);
-    }
-
-    #[test]
     fn it_correctly_draws_empty_screen() {
         let mut screen = Screen::new(2, 2);
 
@@ -115,6 +112,49 @@ mod tests {
         screen.cells[0][0].ch = 'y' as char;
         screen.cells[1][1].ch = 'o' as char;
         screen.cells[2][2].ch = '!' as char;
+
+        let mut io = CaptureIO::new();
+        draw_screen(&screen, &mut io);
+
+        let actual = build_screen_with_vte(&io, 3, 3);
+        assert_eq!(screen, actual);
+    }
+
+    #[test]
+    fn it_draws_consecutive_chars() {
+        let mut screen = Screen::new(3, 3);
+        screen.cells[1][0].ch = 'y' as char;
+        screen.cells[1][1].ch = 'o' as char;
+        screen.cells[1][2].ch = '!' as char;
+
+        let mut io = CaptureIO::new();
+        draw_screen(&screen, &mut io);
+
+        let actual = build_screen_with_vte(&io, 3, 3);
+        assert_eq!(screen, actual);
+    }
+
+    #[test]
+    fn it_draws_chars_with_gaps() {
+        let mut screen = Screen::new(3, 3);
+        screen.cells[0][0].ch = 'a' as char;
+        screen.cells[0][2].ch = 'b' as char;
+        screen.cells[1][0].ch = 'c' as char;
+        screen.cells[1][2].ch = 'd' as char;
+
+        let mut io = CaptureIO::new();
+        draw_screen(&screen, &mut io);
+
+        let actual = build_screen_with_vte(&io, 3, 3);
+        assert_eq!(screen, actual);
+    }
+
+    #[test]
+    fn it_draws_vertical_chars() {
+        let mut screen = Screen::new(3, 3);
+        screen.cells[0][1].ch = 'a' as char;
+        screen.cells[1][1].ch = 'b' as char;
+        screen.cells[2][1].ch = 'c' as char;
 
         let mut io = CaptureIO::new();
         draw_screen(&screen, &mut io);
