@@ -62,7 +62,8 @@ pub struct Cell {
 	pub ch:     char,
 	pub width:  usize,
     pub attr:   CellAttr,
-    pub age:    u32
+    pub age:    u32,
+    pub dirty:  bool,
 }
 
 impl Default for Cell {
@@ -73,7 +74,8 @@ impl Default for Cell {
             ch:     '\x00' as char,
             width:  1,
             attr:   Default::default(),
-            age:    0
+            age:    0,
+            dirty:  false,
         }
     }
 }
@@ -86,7 +88,8 @@ impl Clone for Cell {
             ch:     self.ch,
             width:  self.width,
             attr:   self.attr.clone(),
-            age:    self.age
+            age:    self.age,
+            dirty:  self.dirty,
         }
     }
 }

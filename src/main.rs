@@ -49,8 +49,8 @@ fn main() {
 
                 match program_rx.recv() {
                     Ok(_) => {
-                        let screen = program.screen.lock().unwrap();
-                        screen::tty_painter::draw_screen(&screen, &mut io::stdout());
+                        let mut screen = program.screen.lock().unwrap();
+                        screen::tty_painter::draw_screen(&mut screen, &mut io::stdout());
                     },
                     Err(_) => break,
                 };

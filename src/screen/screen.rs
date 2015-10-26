@@ -83,14 +83,10 @@ impl Screen {
         }
     }
 
-    pub fn debug_draw(&self) {
-        // go to top left
-        io::stdout().write(b"\x1b[0;0H");
-
-        for row in &(self.cells) {
-            for cell in row {
-                io::stdout().write(cell.ch.to_string().as_bytes());
-            }
+    pub fn update_cell(&mut self, x: usize, y: usize, ch: char) {
+        if self.cells[y as usize][x as usize].ch != ch {
+          self.cells[y as usize][x as usize].ch = ch;
+          self.cells[y as usize][x as usize].dirty = true;
         }
     }
 }
@@ -139,7 +135,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn it_is_not_equal_when_screens_have_different_colss_count() {
+    fn it_is_not_equal_when_screens_have_different_cols_count() {
         let mut a = Screen::new(2, 1);
         let mut b = Screen::new(2, 2);
         assert_eq!(a, b);

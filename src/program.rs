@@ -180,7 +180,7 @@ impl Program {
                 // update the screen
                 vte.screen.borrow_mut().draw(|_, ch, _, _, x, y, _| {
                     let mut screen = screen_arc.lock().unwrap();
-                    screen.cells[y as usize][x as usize].ch = ch
+                    screen.update_cell(x as usize, y as usize, ch);
                 });
 
                 // signal that we've updated the screen

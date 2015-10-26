@@ -5,7 +5,7 @@ use std::io::Write;
 use super::*;
 use term::terminfo::*;
 
-pub fn draw_screen<T: Write+Send>(screen: &Screen, writer: &mut T) {
+pub fn draw_screen<T: Write+Send>(screen: &mut Screen, writer: &mut T) {
     let mut tty = TerminfoTerminal::new(writer).unwrap();
 
     let (mut last_x, mut last_y) = (0, 0);
@@ -14,9 +14,17 @@ pub fn draw_screen<T: Write+Send>(screen: &Screen, writer: &mut T) {
     tty.apply_cap("cup", &params);
     drop(params);
 
-    for row in &screen.cells {
+    for row in &mut screen.cells {
         for cell in row {
-            // TODO: check age and maybe don't draw this cell
+            // check age and maybe don't draw this cell
+            if !cell.dirty {
+                // how can I DRY this?
+                last_x = cell.x;
+                last_y = cell.y;
+                continue;
+            }
+
+            cell.dirty = false;
 
             // move cursor maybe
             if (last_x + 1 != cell.x) || (last_y != cell.y) {
