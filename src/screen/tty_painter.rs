@@ -18,43 +18,41 @@ pub fn draw_screen<T: Write+Send>(screen: &Screen, writer: &mut T, last_age: u32
 
     let mut max_age: u32 = 0;
 
-    for row in &screen.cells {
-        for cell in row {
-            //trace!("{:?}", cell);
+    for cell in screen.cells_iter() {
+        //trace!("{:?}", cell);
 
-            // check age and maybe don't draw this cell
-            if cell.age <= last_age && cell.age != 0 {
-                //trace!("cell age {} not older than last_age {}", cell.age, last_age);
-                continue;
-            }
-            if cell.age > max_age { max_age = cell.age }
-
-            let is_unprintable = (cell.ch as u32) < 32;
-            if is_unprintable {
-                //trace!("unprintable");
-                continue;
-            }
-
-            let already_in_position = (last_x + 1 == cell.x) && (last_y == cell.y);
-            if !already_in_position {
-                //trace!("out of position");
-                let params = [ parm::Param::Number(cell.x as i16),
-                               parm::Param::Number(cell.y as i16) ];
-                tty.apply_cap("cup", &params);
-            }
-
-            // write character
-            let mut buf = [0 as u8; 4];
-            match cell.ch.encode_utf8(&mut buf) {
-                Some(num_bytes) => {
-                    tty.write_all(&buf[0..num_bytes]);
-                },
-                None => {}
-            }
-
-            last_x = cell.x;
-            last_y = cell.y;
+        // check age and maybe don't draw this cell
+        if cell.age <= last_age && cell.age != 0 {
+            //trace!("cell age {} not older than last_age {}", cell.age, last_age);
+            continue;
         }
+        if cell.age > max_age { max_age = cell.age }
+
+        let is_unprintable = (cell.ch as u32) < 32;
+        if is_unprintable {
+            //trace!("unprintable");
+            continue;
+        }
+
+        let already_in_position = (last_x + 1 == cell.x) && (last_y == cell.y);
+        if !already_in_position {
+            //trace!("out of position");
+            let params = [ parm::Param::Number(cell.x as i16),
+                           parm::Param::Number(cell.y as i16) ];
+            tty.apply_cap("cup", &params);
+        }
+
+        // write character
+        let mut buf = [0 as u8; 4];
+        match cell.ch.encode_utf8(&mut buf) {
+            Some(num_bytes) => {
+                tty.write_all(&buf[0..num_bytes]);
+            },
+            None => {}
+        }
+
+        last_x = cell.x;
+        last_y = cell.y;
     }
 
     max_age

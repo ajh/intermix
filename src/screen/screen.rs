@@ -85,8 +85,18 @@ impl Screen {
     pub fn update_cell(&mut self, x: usize, y: usize, ch: char, age: u32) {
         let mut cell = self.cells[y].get_mut(x).unwrap();
 
-        if cell.ch != ch { cell.ch = ch }
-        if cell.age != age { cell.age = age }
+        if cell.age >= age {
+            return;
+        }
+
+        cell.ch = ch;
+        cell.age = age;
+    }
+}
+
+impl<'a> Screen {
+    pub fn cells_iter(&'a self) -> CellsIter<'a> {
+        CellsIter::new(&self.cells)
     }
 }
 
@@ -148,5 +158,20 @@ mod tests {
         let mut b = Screen::new(1, 1);
         b.cells[0][0].ch = 'b' as char;
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn cels_iter_returns_and_iterator() {
+        let mut screen = Screen::new(2, 2);
+        screen.cells[0][0].ch = 'a';
+        screen.cells[0][1].ch = 'b';
+        screen.cells[1][0].ch = 'c';
+        screen.cells[1][1].ch = 'd';
+
+        let mut iter = screen.cells_iter();
+        assert_eq!(iter.next().unwrap().ch, 'a');
+        assert_eq!(iter.next().unwrap().ch, 'b');
+        assert_eq!(iter.next().unwrap().ch, 'c');
+        assert_eq!(iter.next().unwrap().ch, 'd');
     }
 }
