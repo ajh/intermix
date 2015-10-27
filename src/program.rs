@@ -3,12 +3,13 @@ extern crate tsm_sys;
 
 use pty;
 use std::ffi::CString;
-use std::io::{self, Read, Write};
+use std::fs::File;
+use std::io::prelude::*;
+use std::os::unix::io::{FromRawFd, AsRawFd};
 use std::ptr;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::os::unix::io::AsRawFd;
 
 use screen::*;
 
@@ -85,7 +86,12 @@ impl Program {
                     let arg1  = CString::new("Cargo.toml").unwrap().as_ptr();
                     let args = [cmd, arg1, ptr::null()].as_mut_ptr();
 
-                    unsafe { libc::execvp(cmd, args) };
+                    trace!("in forked child, about to exec");
+                    let result = unsafe { libc::execvp(cmd, args) };
+
+                    // rust seems very fussy about what is here when running in release mode.
+                    // Removing the `error!` call for examples causes the execvp to not work??!
+                    error!("execvp result is {}", result);
                     unreachable!();
                 }
                 else {
@@ -93,14 +99,13 @@ impl Program {
                     // this.
                     thread::sleep_ms(1000);
 
-                    // this isn't working for some reason
-                    let res = ::terminfo::set_win_size(
+                    match ::terminfo::set_win_size(
                         child.pty().unwrap().as_raw_fd(),
                         self.rows_count as u32,
                         self.cols_count as u32
-                    );
-                    if res.is_err() {
-                        error!("{}", res.unwrap_err());
+                    ) {
+                        Ok(_) => trace!("resized pty to {}rows {}cols", self.rows_count, self.cols_count),
+                        Err(msg) => error!("{}", msg)
                     }
 
                     self.child = Some(child);
@@ -140,20 +145,25 @@ impl Program {
         let (rows_count, cols_count) = (self.rows_count, self.cols_count);
 
         thread::spawn(move || {
-            let mut vte = tsm_sys::Vte::new(rows_count, cols_count).unwrap();
+            let mut vte = tsm_sys::Vte::new(rows_count, cols_count).expect("error creating vte");
             let mut buf = [0 as u8, 1024];
+            let mut io = unsafe { File::from_raw_fd(pty.as_raw_fd()) };
+
             loop {
                 let mut bytes: &[u8];
 
                 // block waiting to read
-                match pty.read(&mut buf) {
+                match io.read(&mut buf) {
                     Ok(num_bytes) => {
-                        if num_bytes == 0 { break }
+                        if num_bytes == 0 {
+                            error!("read 0 bytes from pty. breaking");
+                            break;
+                        }
                         bytes = &buf[0..num_bytes];
                     },
                     Err(_) => {
-                        error!("error reading from pty, trying");
-                        continue;
+                        error!("error reading from pty. breaking");
+                        break;
                     }
                 }
 
@@ -161,7 +171,7 @@ impl Program {
                 vte.input(bytes);
 
                 // update the screen
-                let mut screen = screen_arc.lock().unwrap();
+                let mut screen = screen_arc.lock().expect("error aquiring lock on screen");
                 for cell in vte.screen.borrow_mut().cells() {
                     screen.update_cell(cell.posx as usize, cell.posy as usize, cell.ch, cell.age as u32);
                 };
