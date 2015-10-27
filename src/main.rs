@@ -13,8 +13,7 @@ mod screen;
 mod window;
 
 use program::*;
-use std::io::{Read, Write};
-use std::io;
+use std::io::{self, Read, Write};
 use std::sync::mpsc::channel;
 use std::thread;
 

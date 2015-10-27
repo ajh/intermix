@@ -3,8 +3,7 @@ extern crate tsm_sys;
 
 use pty;
 use std::ffi::CString;
-use std::io::{Read, Write};
-use std::io;
+use std::io::{self, Read, Write};
 use std::ptr;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex};

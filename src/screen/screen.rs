@@ -1,5 +1,4 @@
-use std::io::{Write, Stdout};
-use std::io;
+use std::io::{self, Write, Stdout};
 use std::fmt;
 
 use super::*;

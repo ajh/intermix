@@ -8,8 +8,7 @@
 // &str -> String
 // String -> &str
 
-use std::char::from_u32;
-use std::char;
+use std::char::{self, from_u32};
 
 #[test]
 fn u8_to_char() {

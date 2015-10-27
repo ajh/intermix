@@ -52,12 +52,9 @@ mod tests {
     extern crate tsm_sys;
     extern crate num;
 
-    use std::io::Write;
-    use std::io;
+    use std::io::{self, Error, ErrorKind, Write};
     use std::str::*;
-    use std::char::from_u32;
-    use std::char;
-    use std::io::{Error, ErrorKind};
+    use std::char::{self, from_u32};
 
     use super::*;
     use super::super::*;
