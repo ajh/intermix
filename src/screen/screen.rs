@@ -82,11 +82,11 @@ impl Screen {
         }
     }
 
-    pub fn update_cell(&mut self, x: usize, y: usize, ch: char) {
-        if self.cells[y as usize][x as usize].ch != ch {
-          self.cells[y as usize][x as usize].ch = ch;
-          self.cells[y as usize][x as usize].dirty = true;
-        }
+    pub fn update_cell(&mut self, x: usize, y: usize, ch: char, age: u32) {
+        let mut cell = self.cells[y].get_mut(x).unwrap();
+
+        if cell.ch != ch { cell.ch = ch }
+        if cell.age != age { cell.age = age }
     }
 }
 

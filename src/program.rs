@@ -163,7 +163,7 @@ impl Program {
                 // update the screen
                 let mut screen = screen_arc.lock().unwrap();
                 for cell in vte.screen.borrow_mut().cells() {
-                    screen.update_cell(cell.posx as usize, cell.posy as usize, cell.ch);
+                    screen.update_cell(cell.posx as usize, cell.posy as usize, cell.ch, cell.age as u32);
                 };
 
                 // signal that we've updated the screen

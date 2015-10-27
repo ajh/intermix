@@ -4,8 +4,10 @@ use std::io::Write;
 
 use super::*;
 use term::terminfo::*;
+use std::io::BufWriter;
 
-pub fn draw_screen<T: Write+Send>(screen: &mut Screen, writer: &mut T) {
+pub fn draw_screen<T: Write+Send>(screen: &Screen, writer: &mut T, last_age: u32) -> u32 {
+    let mut writer = BufWriter::new(writer);
     let mut tty = TerminfoTerminal::new(writer).unwrap();
 
     let (mut last_x, mut last_y) = (0, 0);
@@ -14,15 +16,19 @@ pub fn draw_screen<T: Write+Send>(screen: &mut Screen, writer: &mut T) {
     tty.apply_cap("cup", &params);
     drop(params);
 
-    for row in &mut screen.cells {
+    let mut max_age: u32 = 0;
+
+    for row in &screen.cells {
         for cell in row {
             //trace!("{:?}", cell);
 
             // check age and maybe don't draw this cell
-            if !cell.dirty {
-                //trace!("not dirty");
+            if cell.age <= last_age && cell.age != 0 {
+                //trace!("cell age {} not older than last_age {}", cell.age, last_age);
                 continue;
             }
+            if cell.age > max_age { max_age = cell.age }
+
             let is_unprintable = (cell.ch as u32) < 32;
             if is_unprintable {
                 //trace!("unprintable");
@@ -41,16 +47,17 @@ pub fn draw_screen<T: Write+Send>(screen: &mut Screen, writer: &mut T) {
             let mut buf = [0 as u8; 4];
             match cell.ch.encode_utf8(&mut buf) {
                 Some(num_bytes) => {
-                    tty.write(&buf[0..num_bytes]);
+                    tty.write_all(&buf[0..num_bytes]);
                 },
                 None => {}
             }
 
-            cell.dirty = false;
             last_x = cell.x;
             last_y = cell.y;
         }
     }
+
+    max_age
 
     //panic!("blah");
 }
@@ -78,7 +85,7 @@ mod tests {
             let x = i % cols_count;
             let y = i / cols_count;
             screen.cells[y][x].ch = ch;
-            screen.cells[y][x].dirty = true;
+            screen.cells[y][x].age = 1;
         }
 
         screen
@@ -130,7 +137,7 @@ mod tests {
         let mut screen = Screen::new(2, 2);
 
         let mut io = CaptureIO::new();
-        draw_screen(&mut screen, &mut io);
+        draw_screen(&mut screen, &mut io, 0);
 
         let actual = build_screen_with_vte(&io, 2, 2);
         assert_eq!(screen, actual);
@@ -144,7 +151,7 @@ mod tests {
             "  !"));
 
         let mut io = CaptureIO::new();
-        draw_screen(&mut screen, &mut io);
+        draw_screen(&mut screen, &mut io, 0);
 
         let actual = build_screen_with_vte(&io, 3, 3);
         assert_eq!(screen, actual);
@@ -158,7 +165,7 @@ mod tests {
             "!  "));
 
         let mut io = CaptureIO::new();
-        draw_screen(&mut screen, &mut io);
+        draw_screen(&mut screen, &mut io, 0);
 
         let actual = build_screen_with_vte(&io, 3, 3);
         assert_eq!(screen, actual);
@@ -172,7 +179,7 @@ mod tests {
             "   "));
 
         let mut io = CaptureIO::new();
-        draw_screen(&mut screen, &mut io);
+        draw_screen(&mut screen, &mut io, 0);
 
         let actual = build_screen_with_vte(&io, 3, 3);
         assert_eq!(screen, actual);
@@ -186,7 +193,7 @@ mod tests {
             "e f"));
 
         let mut io = CaptureIO::new();
-        draw_screen(&mut screen, &mut io);
+        draw_screen(&mut screen, &mut io, 0);
 
         let actual = build_screen_with_vte(&io, 3, 3);
         assert_eq!(screen, actual);
@@ -200,7 +207,7 @@ mod tests {
             " c "));
 
         let mut io = CaptureIO::new();
-        draw_screen(&mut screen, &mut io);
+        draw_screen(&mut screen, &mut io, 0);
 
         let actual = build_screen_with_vte(&io, 3, 3);
         assert_eq!(screen, actual);

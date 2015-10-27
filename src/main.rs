@@ -43,14 +43,20 @@ fn main() {
         // debug performance issue
         thread::sleep_ms(5000);
 
+        let mut last_age: u32 = 0;
+
         loop {
-            match program_rx.recv() {
-                Ok(_) => {
-                    let mut screen = program.screen.lock().unwrap();
-                    screen::tty_painter::draw_screen(&mut screen, &mut io::stdout());
-                },
-                Err(_) => break,
-            };
+            // block till we see something
+            let result = program_rx.recv();
+            if result.is_err() {
+                break;
+            }
+
+            // Drain the receiver since we'll be drawing the must uptodate stuff
+            loop { if program_rx.try_recv().is_err() { break; } }
+
+            let screen = program.screen.lock().unwrap();
+            last_age = screen::tty_painter::draw_screen(&screen, &mut io::stdout(), last_age);
         }
         info!("leaving program -> stdout thread");
     });
