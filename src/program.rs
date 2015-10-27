@@ -171,17 +171,20 @@ impl Program {
                         if num_bytes == 0 { break }
                         bytes = &buf[0..num_bytes];
                     },
-                    Err(_) => break,
+                    Err(_) => {
+                        error!("error reading from pty, trying");
+                        continue;
+                    }
                 }
 
                 // pass bytes to the vte
                 vte.input(bytes);
 
                 // update the screen
-                vte.screen.borrow_mut().draw(|_, ch, _, _, x, y, _| {
-                    let mut screen = screen_arc.lock().unwrap();
-                    screen.update_cell(x as usize, y as usize, ch);
-                });
+                let mut screen = screen_arc.lock().unwrap();
+                for cell in vte.screen.borrow_mut().cells() {
+                    screen.update_cell(cell.posx as usize, cell.posy as usize, cell.ch);
+                };
 
                 // signal that we've updated the screen
                 // we should really send an Enum or something, not u8.

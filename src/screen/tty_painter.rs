@@ -24,8 +24,6 @@ pub fn draw_screen<T: Write+Send>(screen: &mut Screen, writer: &mut T) {
                 continue;
             }
 
-            cell.dirty = false;
-
             // move cursor maybe
             if (last_x + 1 != cell.x) || (last_y != cell.y) {
                 let params = [ parm::Param::Number(cell.x as i16),
@@ -42,6 +40,7 @@ pub fn draw_screen<T: Write+Send>(screen: &mut Screen, writer: &mut T) {
                 None => {}
             }
 
+            cell.dirty = false;
             last_x = cell.x;
             last_y = cell.y;
         }
@@ -51,6 +50,7 @@ pub fn draw_screen<T: Write+Send>(screen: &mut Screen, writer: &mut T) {
 #[cfg(test)]
 mod tests {
     extern crate tsm_sys;
+    extern crate num;
 
     use std::io::Write;
     use std::io;
@@ -61,6 +61,23 @@ mod tests {
 
     use super::*;
     use super::super::*;
+
+    fn new_screen(rows_count: usize, contents: &str) -> Screen {
+        if contents.len() % rows_count != 0 {
+            panic!("contents don't match given rows_count");
+        }
+        let cols_count = num::integer::div_floor(contents.len(), rows_count);
+        let mut screen = Screen::new(rows_count, cols_count);
+
+        for (i, ch) in contents.chars().enumerate() {
+            let x = i % cols_count;
+            let y = i / cols_count;
+            screen.cells[y][x].ch = ch;
+            screen.cells[y][x].dirty = true;
+        }
+
+        screen
+    }
 
     // implements Write trait and writes to a string
     struct CaptureIO {
@@ -108,21 +125,35 @@ mod tests {
         let mut screen = Screen::new(2, 2);
 
         let mut io = CaptureIO::new();
-        draw_screen(&screen, &mut io);
+        draw_screen(&mut screen, &mut io);
 
         let actual = build_screen_with_vte(&io, 2, 2);
         assert_eq!(screen, actual);
     }
 
     #[test]
-    fn it_correctly_draws_position_of_chars() {
-        let mut screen = Screen::new(3, 3);
-        screen.cells[0][0].ch = 'y' as char;
-        screen.cells[1][1].ch = 'o' as char;
-        screen.cells[2][2].ch = '!' as char;
+    fn it_draws_diagonal_chars() {
+        let mut screen = new_screen(3, &format!("{}{}{}",
+            "y  ",
+            " o ",
+            "  !"));
 
         let mut io = CaptureIO::new();
-        draw_screen(&screen, &mut io);
+        draw_screen(&mut screen, &mut io);
+
+        let actual = build_screen_with_vte(&io, 3, 3);
+        assert_eq!(screen, actual);
+    }
+
+    #[test]
+    fn it_draws_other_diagonal_chars() {
+        let mut screen = new_screen(3, &format!("{}{}{}",
+            "  y",
+            " o ",
+            "!  "));
+
+        let mut io = CaptureIO::new();
+        draw_screen(&mut screen, &mut io);
 
         let actual = build_screen_with_vte(&io, 3, 3);
         assert_eq!(screen, actual);
@@ -130,13 +161,13 @@ mod tests {
 
     #[test]
     fn it_draws_consecutive_chars() {
-        let mut screen = Screen::new(3, 3);
-        screen.cells[1][0].ch = 'y' as char;
-        screen.cells[1][1].ch = 'o' as char;
-        screen.cells[1][2].ch = '!' as char;
+        let mut screen = new_screen(3, &format!("{}{}{}",
+            "   ",
+            "yo!",
+            "   "));
 
         let mut io = CaptureIO::new();
-        draw_screen(&screen, &mut io);
+        draw_screen(&mut screen, &mut io);
 
         let actual = build_screen_with_vte(&io, 3, 3);
         assert_eq!(screen, actual);
@@ -144,14 +175,13 @@ mod tests {
 
     #[test]
     fn it_draws_chars_with_gaps() {
-        let mut screen = Screen::new(3, 3);
-        screen.cells[0][0].ch = 'a' as char;
-        screen.cells[0][2].ch = 'b' as char;
-        screen.cells[1][0].ch = 'c' as char;
-        screen.cells[1][2].ch = 'd' as char;
+        let mut screen = new_screen(3, &format!("{}{}{}",
+            "a b",
+            "c d",
+            "e f"));
 
         let mut io = CaptureIO::new();
-        draw_screen(&screen, &mut io);
+        draw_screen(&mut screen, &mut io);
 
         let actual = build_screen_with_vte(&io, 3, 3);
         assert_eq!(screen, actual);
@@ -159,13 +189,13 @@ mod tests {
 
     #[test]
     fn it_draws_vertical_chars() {
-        let mut screen = Screen::new(3, 3);
-        screen.cells[0][1].ch = 'a' as char;
-        screen.cells[1][1].ch = 'b' as char;
-        screen.cells[2][1].ch = 'c' as char;
+        let mut screen = new_screen(3, &format!("{}{}{}",
+            " a ",
+            " b ",
+            " c "));
 
         let mut io = CaptureIO::new();
-        draw_screen(&screen, &mut io);
+        draw_screen(&mut screen, &mut io);
 
         let actual = build_screen_with_vte(&io, 3, 3);
         assert_eq!(screen, actual);
