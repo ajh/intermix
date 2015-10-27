@@ -8,6 +8,7 @@ use std::ptr;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::os::unix::io::AsRawFd;
 
 use screen::*;
 
@@ -88,15 +89,19 @@ impl Program {
                     unreachable!();
                 }
                 else {
+                    // have to wait for the exec to happen in the fork. Not sure how to improve
+                    // this.
+                    thread::sleep_ms(1000);
+
                     // this isn't working for some reason
-                    //let res = ::terminfo::set_win_size(
-                        //child.pty().unwrap().as_raw_fd(),
-                        //row_size,
-                        //col_size
-                    //);
-                    //if res.is_err() {
-                        //error!("{}", res.unwrap_err());
-                    //}
+                    let res = ::terminfo::set_win_size(
+                        child.pty().unwrap().as_raw_fd(),
+                        self.rows_count as u32,
+                        self.cols_count as u32
+                    );
+                    if res.is_err() {
+                        error!("{}", res.unwrap_err());
+                    }
 
                     self.child = Some(child);
                     Ok(())
@@ -132,9 +137,10 @@ impl Program {
     /// another thread will use that to read the screen state and draw it
     fn spawn_pty_to_screen_thr(&self, mut pty: pty::ChildPTY, output_tx: Sender<()>) -> thread::JoinHandle<()> {
         let screen_arc = self.screen.clone();
+        let (rows_count, cols_count) = (self.rows_count, self.cols_count);
 
         thread::spawn(move || {
-            let mut vte = tsm_sys::Vte::new(80, 24).unwrap();
+            let mut vte = tsm_sys::Vte::new(rows_count, cols_count).unwrap();
             let mut buf = [0 as u8, 1024];
             loop {
                 let mut bytes: &[u8];

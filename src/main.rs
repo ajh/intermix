@@ -34,8 +34,8 @@ fn main() {
     let mut program = Program::new(
         "Some name".to_string(),
         "not implemented".to_string(),
-        24 as usize,
-        80 as usize
+        window.rows_count(),
+        window.cols_count()
     );
     let (program_tx, program_rx) = program.run().unwrap();
     // Spawn thread to display program output
