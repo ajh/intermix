@@ -18,12 +18,7 @@ pub struct Program {
     pub rows_count:  usize,
     pub cols_count:  usize,
     pub screen:      Arc<Mutex<Screen>>,
-
     child:       Option<pty::Child>,
-
-    // threads will listen for messages to know when to shut down
-    thr_controls:   Vec<Sender<usize>>,
-
 }
 
 //
@@ -53,7 +48,6 @@ impl Program {
             name:       name,
             rows_count: rows_count,
             screen: Arc::new(Mutex::new(Screen::new(rows_count, cols_count))),
-            thr_controls:   vec!(),
         }
     }
 
@@ -67,27 +61,18 @@ impl Program {
         self.fork_pty().unwrap();
 
         let (output_tx, output_rx) = channel::<()>();
-        let (control_tx, control_rx) = channel::<usize>();
-        self.thr_controls.push(control_tx);
         let fd = self.clone_pty_fd().unwrap();
-        self.spawn_pty_to_screen_thr(fd, output_tx, control_rx);
+        self.spawn_pty_to_screen_thr(fd, output_tx);
 
         let (input_tx, input_rx) = channel::<u8>();
-        let (control_tx, control_rx) = channel::<usize>();
-        self.thr_controls.push(control_tx);
         let fd = self.clone_pty_fd().unwrap();
-        self.spawn_channel_to_pty_thr(fd, input_rx, control_rx);
+        self.spawn_channel_to_pty_thr(fd, input_rx);
 
         Ok((input_tx, output_rx))
     }
 
     /// Not sure how to kill the forked process. Also maybe this should be in drop?
     pub fn stop(&mut self) -> Result<(), ()> {
-        // shutdown threads
-        for tx in &self.thr_controls {
-            tx.send(1).unwrap();
-        }
-
         Ok(())
     }
 
@@ -125,14 +110,9 @@ impl Program {
     }
 
     /// Spawn a thread that receives from the input channel and writes to the pty
-    fn spawn_channel_to_pty_thr(&mut self, mut pty: pty::ChildPTY, rx: Receiver<u8>, control_rx: Receiver<usize>) -> thread::JoinHandle<()> {
+    fn spawn_channel_to_pty_thr(&mut self, mut pty: pty::ChildPTY, rx: Receiver<u8>) -> thread::JoinHandle<()> {
         thread::spawn(move || {
             loop {
-                if control_rx.try_recv().is_ok() {
-                    info!("shutdown signal in channel -> pty thread");
-                    break;
-                }
-
                 match rx.recv() {
                     Ok(byte) => pty.write(&[byte]).unwrap(),
                     Err(_) => break
@@ -151,18 +131,13 @@ impl Program {
     /// when something is read, pass it to vte via "input" call
     /// then use the vte's screen to ... do something
     /// another thread will use that to read the screen state and draw it
-    fn spawn_pty_to_screen_thr(&self, mut pty: pty::ChildPTY, output_tx: Sender<()>, control_rx: Receiver<usize>) -> thread::JoinHandle<()> {
+    fn spawn_pty_to_screen_thr(&self, mut pty: pty::ChildPTY, output_tx: Sender<()>) -> thread::JoinHandle<()> {
         let screen_arc = self.screen.clone();
 
         thread::spawn(move || {
             let mut vte = tsm_sys::Vte::new(80, 24).unwrap();
             let mut buf = [0 as u8, 1024];
             loop {
-                if control_rx.try_recv().is_ok() {
-                    info!("shutdown signal in pty -> channel thread");
-                    break;
-                }
-
                 let mut bytes: &[u8];
 
                 // block waiting to read

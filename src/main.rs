@@ -32,9 +32,6 @@ fn main() {
     let window = window::Window::new();
     window.start();
 
-    // TODO: move this to window
-    //let (rows_count, cols_count) = terminfo::get_win_size(0).unwrap();
-
     let mut program = Program::new(
         "Some name".to_string(),
         "not implemented".to_string(),
@@ -42,16 +39,9 @@ fn main() {
         80 as usize
     );
     let (program_tx, program_rx) = program.run().unwrap();
-    let (control_tx, control_rx) = channel::<usize>();
-
     // Spawn thread to display program output
     thread::spawn(move || {
         loop {
-            if control_rx.try_recv().is_ok() {
-                info!("shutdown signal in channel -> pty thread");
-                break;
-            }
-
             match program_rx.recv() {
                 Ok(_) => {
                     let mut screen = program.screen.lock().unwrap();
@@ -82,6 +72,5 @@ fn main() {
     }
 
     info!("Ended main loop");
-    control_tx.send(1).unwrap();
     window.stop();
 }

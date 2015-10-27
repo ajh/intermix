@@ -22,4 +22,14 @@ impl Window {
         let mut tty = TerminfoTerminal::new(io::stdout()).unwrap();
         tty.apply_cap("rmcup", &[]);
     }
+
+    pub fn rows_count(&self) -> usize {
+      let (rows_count, _) = terminfo::get_win_size(0).unwrap();
+      rows_count as usize
+    }
+
+    pub fn cols_count(&self) -> usize {
+      let (_, cols_count) = terminfo::get_win_size(0).unwrap();
+      cols_count as usize
+    }
 }
