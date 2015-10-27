@@ -1,5 +1,6 @@
 extern crate libc;
 extern crate tsm_sys;
+extern crate time;
 
 use pty;
 use std::ffi::CString;
@@ -171,7 +172,10 @@ impl Program {
                 vte.input(bytes);
 
                 // update the screen
+                let start = time::now();
                 let mut screen = screen_arc.lock().expect("error aquiring lock on screen");
+                let stop = time::now();
+                trace!("spent time getting lock {}", stop - start);
                 for cell in vte.screen.borrow_mut().cells() {
                     screen.update_cell(cell.posx as usize, cell.posy as usize, cell.ch, cell.age as u32);
                 };

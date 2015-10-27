@@ -6,6 +6,7 @@ extern crate pty;
 extern crate termios;
 extern crate tsm_sys;
 extern crate term;
+extern crate time;
 
 mod program;
 mod terminfo;
@@ -55,7 +56,10 @@ fn main() {
             // Drain the receiver since we'll be drawing the must uptodate stuff
             loop { if program_rx.try_recv().is_err() { break; } }
 
+            let start = time::now();
             let screen = program.screen.lock().unwrap();
+            let stop = time::now();
+            trace!("spent time getting lock {}", stop - start);
             last_age = screen::tty_painter::draw_screen(&screen, &mut io::stdout(), last_age);
         }
         info!("leaving program -> stdout thread");

@@ -10,6 +10,7 @@ dependencies = [
  "pty 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "term 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "termios 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "tsm-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
