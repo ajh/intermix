@@ -40,6 +40,9 @@ fn main() {
     let (program_tx, program_rx) = program.run().unwrap();
     // Spawn thread to display program output
     thread::spawn(move || {
+        // debug performance issue
+        thread::sleep_ms(5000);
+
         loop {
             match program_rx.recv() {
                 Ok(_) => {

@@ -93,3 +93,22 @@ impl Clone for Cell {
         }
     }
 }
+
+pub struct Cells<'a> {
+    index: u32,
+    cells: &'a Vec<Vec<Cell>>,
+}
+
+impl<'a> Cells<'a> {
+    fn new(cells: &'a Vec<Vec<Cell>>) -> Cells<'a> {
+        Cells { index: 0, cells: cells }
+    }
+}
+
+impl<'a> Iterator for Cells<'a> {
+    type Item = Cell;
+
+    fn next(&mut self) -> Option<Cell> {
+        None
+    }
+}

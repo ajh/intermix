@@ -16,16 +16,22 @@ pub fn draw_screen<T: Write+Send>(screen: &mut Screen, writer: &mut T) {
 
     for row in &mut screen.cells {
         for cell in row {
+            //trace!("{:?}", cell);
+
             // check age and maybe don't draw this cell
             if !cell.dirty {
-                // how can I DRY this?
-                last_x = cell.x;
-                last_y = cell.y;
+                //trace!("not dirty");
+                continue;
+            }
+            let is_unprintable = (cell.ch as u32) < 32;
+            if is_unprintable {
+                //trace!("unprintable");
                 continue;
             }
 
-            // move cursor maybe
-            if (last_x + 1 != cell.x) || (last_y != cell.y) {
+            let already_in_position = (last_x + 1 == cell.x) && (last_y == cell.y);
+            if !already_in_position {
+                //trace!("out of position");
                 let params = [ parm::Param::Number(cell.x as i16),
                                parm::Param::Number(cell.y as i16) ];
                 tty.apply_cap("cup", &params);
@@ -45,6 +51,8 @@ pub fn draw_screen<T: Write+Send>(screen: &mut Screen, writer: &mut T) {
             last_y = cell.y;
         }
     }
+
+    //panic!("blah");
 }
 
 #[cfg(test)]
