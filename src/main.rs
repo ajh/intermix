@@ -6,17 +6,115 @@ extern crate pty;
 extern crate termios;
 extern crate tsm_sys;
 extern crate term;
+extern crate libc;
 
-mod program;
-mod terminfo;
-mod screen;
 mod window;
+mod terminfo;
 
-use program::*;
-use std::io::{Read, Write};
+use std::ffi::CString;
+use std::io::{Read, Write, BufReader, BufWriter};
 use std::io;
-use std::sync::mpsc::channel;
+use std::ptr;
+use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::{Arc, Mutex};
 use std::thread;
+use term::terminfo::*;
+use std::fs::File;
+use std::os::unix::io::{AsRawFd, FromRawFd};
+
+fn fork() -> pty::Child {
+    match pty::fork() {
+        Ok(child) => {
+            if child.pid() == 0 {
+                // run the command
+                let cmd  = CString::new("vim").unwrap().as_ptr();
+                let arg1  = CString::new("Cargo.toml").unwrap().as_ptr();
+                let args = [cmd, arg1, ptr::null()].as_mut_ptr();
+
+                info!("about to execvp");
+                let ret = unsafe { libc::execvp(cmd, args) };
+                error!("done execvp {}", ret);
+                unreachable!();
+            }
+            else {
+                info!("got vim child process");
+                child
+            }
+        },
+        Err(e) => {
+            panic!("pty::fork error: {}", e);
+        }
+    }
+}
+
+fn spawn_stdin_thr(child: &pty::Child) {
+    // thread for sending stdin to pty
+    let mut pty = child.pty().unwrap().clone();
+    thread::spawn(move || {
+        let mut buf = [0 as u8; 1024];
+        info!("starting stdin -> pty thread");
+        loop {
+            match io::stdin().read(&mut buf) {
+                Ok(num_bytes) => {
+                    if num_bytes == 0 { break };
+
+                    //if buf.iter().find(|&x| *x == terminfo::CTRL_C).is_some() {
+                        //info!("CTRL_C detected");
+                        //exit();
+                    //}
+
+                    pty.write(&buf[0..num_bytes]);
+                },
+                Err(_) => break,
+            }
+        }
+        info!("ending stdin -> pty thread");
+    });
+}
+
+fn read_bytes_from_pty<'a, F: Read>(io: &mut F, buf: &'a mut [u8]) -> Result<&'a [u8], String> {
+    // block waiting to read
+    match io.read(buf) {
+        Ok(num_bytes) => {
+            if num_bytes == 0 {
+                return Err("zero bytes reading from pty".to_string());
+            }
+            info!("read {} bytes", num_bytes);
+            Ok(&buf[0..num_bytes])
+        },
+        Err(_) => Err("error reading from pty".to_string())
+    }
+}
+
+fn draw<F: Write>(vte: &tsm_sys::Vte, io: &F, last_age: u32) -> u32 {
+    // update the screen
+    let age = vte.screen.borrow_mut().draw(|_, ch, _, _, x, y, age| {
+        if last_age >= age {
+            return;
+        }
+
+        if (ch as u32) < 32 {
+            // unprintable
+            return;
+        }
+
+        // move cursor
+        let params = [ parm::Param::Number(y as i16), parm::Param::Number(x as i16) ];
+        let mut tty = TerminfoTerminal::new(io::stdout()).unwrap();
+        tty.apply_cap("cup", &params);
+
+        // write character
+        let mut buf = [0 as u8; 4];
+        match ch.encode_utf8(&mut buf) {
+            Some(num_bytes) => {
+                io::stdout().write(&buf[0..num_bytes]);
+            },
+            None => {}
+        }
+    });
+
+    age
+}
 
 fn main() {
     log4rs::init_file(
@@ -28,60 +126,27 @@ fn main() {
     let window = window::Window::new();
     window.start();
 
-    {
-        let (rows_count, cols_count) = terminfo::get_win_size(0).unwrap();
-        let mut program = Program::new(
-            "Some name".to_string(),
-            "not implemented".to_string(),
-            rows_count as usize,
-            cols_count as usize
-        );
-        let (program_tx, program_rx) = program.run().unwrap();
-        let (control_tx, control_rx) = channel::<usize>();
+    let vim_process = fork();
+    spawn_stdin_thr(&vim_process);
 
-        // Spawn thread to display program output
-        let thread = thread::spawn(move || {
-            loop {
-                if control_rx.try_recv().is_ok() {
-                    info!("shutdown signal in channel -> pty thread");
-                    break;
-                }
-
-                match program_rx.recv() {
-                    Ok(_) => {
-                        let mut screen = program.screen.lock().unwrap();
-                        screen::tty_painter::draw_screen(&mut screen, &mut io::stdout());
-                    },
-                    Err(_) => break,
-                };
+    let mut current_age: u32 = 0;
+    let mut buf = [0 as u8, 1024];
+    let mut io_pty = unsafe { File::from_raw_fd(vim_process.pty().unwrap().as_raw_fd()) };
+    let mut reader = BufReader::new(io_pty);
+    let mut writer = BufWriter::new(io::stdout());
+    let mut vte = tsm_sys::Vte::new(80, 24).unwrap();
+    info!("starting main loop");
+    loop {
+        match read_bytes_from_pty(&mut reader, &mut buf) {
+            Ok(bytes) => {
+                // pass bytes to the vte
+                vte.input(bytes)
             }
-            info!("leaving program -> stdout thread");
-        });
-
-        // Main loop which blocks on user input
-        info!("Starting main loop");
-        let mut buf = [0 as u8; 1024];
-        loop {
-            match io::stdin().read(&mut buf) {
-                Ok(num_bytes) => {
-                    if num_bytes == 0 { break };
-
-                    if buf.iter().find(|&x| *x == terminfo::CTRL_C).is_some() {
-                        info!("CTRL_C detected");
-                        break;
-                    }
-                    for byte in buf[0..num_bytes].into_iter() { program_tx.send(*byte).unwrap() }
-                },
-                Err(_) => break,
-            }
+            Err(msg) => panic!(msg)
         }
 
-        info!("Ended main loop");
-        control_tx.send(1).unwrap();
-        info!("stopping stdout thread");
-        //thread.join().unwrap();
+        current_age = draw(&vte, &writer, current_age);
     }
 
     window.stop();
-    info!("All threads stopped. Shutting down.");
 }
