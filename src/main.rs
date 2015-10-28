@@ -86,7 +86,11 @@ fn read_bytes_from_pty<'a, F: Read>(io: &mut F, buf: &'a mut [u8]) -> Result<&'a
     }
 }
 
-fn draw<F: Write>(vte: &tsm_sys::Vte, io: &F, last_age: u32) -> u32 {
+fn draw_from_vte<F: Write>(bytes: &[u8], vte: &mut tsm_sys::Vte, io: &F, last_age: u32) -> u32 {
+
+    // feed vte
+    vte.input(bytes);
+
     // update the screen
     let age = vte.screen.borrow_mut().draw(|_, ch, _, _, x, y, age| {
         if last_age >= age {
@@ -116,6 +120,11 @@ fn draw<F: Write>(vte: &tsm_sys::Vte, io: &F, last_age: u32) -> u32 {
     age
 }
 
+fn draw_direct<F: Write>(bytes: &[u8], io: &mut F) {
+    io.write(bytes);
+    io.flush();
+}
+
 fn main() {
     log4rs::init_file(
         &std::env::current_dir().unwrap().join("log4rs.toml"),
@@ -129,23 +138,32 @@ fn main() {
     let vim_process = fork();
     spawn_stdin_thr(&vim_process);
 
-    let mut current_age: u32 = 0;
     let mut buf = [0 as u8, 1024];
-    let mut io_pty = unsafe { File::from_raw_fd(vim_process.pty().unwrap().as_raw_fd()) };
-    let mut reader = BufReader::new(io_pty);
-    let mut writer = BufWriter::new(io::stdout());
+    let mut reader = unsafe { File::from_raw_fd(vim_process.pty().unwrap().as_raw_fd()) };
+    let mut reader = BufReader::new(reader);
+
+    let mut current_age: u32 = 0;
     let mut vte = tsm_sys::Vte::new(80, 24).unwrap();
+
+    let mut writer = io::stdout();
+    let mut writer = BufWriter::new(writer);
+
     info!("starting main loop");
     loop {
-        match read_bytes_from_pty(&mut reader, &mut buf) {
-            Ok(bytes) => {
-                // pass bytes to the vte
-                vte.input(bytes)
-            }
-            Err(msg) => panic!(msg)
+        let result = read_bytes_from_pty(&mut reader, &mut buf);
+        if result.is_err() {
+            error!("{}", result.err().unwrap());
+            break;
+        }
+        let bytes = result.unwrap();
+
+        if false {
+            current_age = draw_from_vte(bytes, &mut vte, &writer, current_age);
         }
 
-        current_age = draw(&vte, &writer, current_age);
+        else {
+            draw_direct(bytes, &mut writer);
+        }
     }
 
     window.stop();
