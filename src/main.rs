@@ -26,15 +26,16 @@ fn fork() -> pty::Child {
     match pty::fork() {
         Ok(child) => {
             if child.pid() == 0 {
-                // run the command
-                let cmd  = CString::new("vim").unwrap().as_ptr();
-                let arg1  = CString::new("Cargo.toml").unwrap().as_ptr();
-                let args = [cmd, arg1, ptr::null()].as_mut_ptr();
+                let mut ptrs = [
+                    CString::new("vim").unwrap().as_ptr(),
+                    CString::new("Cargo.toml").unwrap().as_ptr(),
+                    ptr::null()
+                ];
 
-                info!("about to execvp");
-                let ret = unsafe { libc::execvp(cmd, args) };
-                error!("done execvp {}", ret);
-                unreachable!();
+                print!(" "); // mysterious but pty uses it too
+
+                let ret = unsafe { libc::execvp(*ptrs.as_ptr(), ptrs.as_mut_ptr()) };
+                panic!("error {} in execvp {}", ret, io::Error::last_os_error());
             }
             else {
                 info!("got vim child process");
