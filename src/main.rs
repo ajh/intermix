@@ -104,72 +104,38 @@ fn color_to_index(state: &State, target: &Color) -> isize {
     -1
 }
 
-fn dump_cell<F: Write>(state: &State, cell: &ScreenCell, prev_cell: &ScreenCell, io: &mut F, pos: &Pos, cursor_pos: &mut Pos) {
+fn draw_cell<F: Write>(state: &State, cell: &ScreenCell, prev_cell: &ScreenCell, io: &mut F, pos: &Pos, cursor_pos: &mut Pos) {
     let mut sgrs: Vec<isize> = vec!();
 
-    if !prev_cell.attrs.bold && cell.attrs.bold {
-        sgrs.push(1);
-    }
-
-    if prev_cell.attrs.bold && !cell.attrs.bold {
-        sgrs.push(22);
-    }
-
-    if prev_cell.attrs.underline == 0 && cell.attrs.underline != 0 {
-        sgrs.push(4);
-    }
-    if prev_cell.attrs.underline != 0 && cell.attrs.underline == 0 {
-        sgrs.push(24);
-    }
-
-    if !prev_cell.attrs.italic && cell.attrs.italic {
-        sgrs.push(3);
-    }
-    if prev_cell.attrs.italic && !cell.attrs.italic {
-        sgrs.push(23);
-    }
-
-    if !prev_cell.attrs.blink && cell.attrs.blink {
-        sgrs.push(5);
-    }
-    if prev_cell.attrs.blink && !cell.attrs.blink {
-        sgrs.push(25);
-    }
-
-    if !prev_cell.attrs.reverse && cell.attrs.reverse {
-        sgrs.push(7);
-    }
-    if prev_cell.attrs.reverse && !cell.attrs.reverse {
-        sgrs.push(27);
-    }
-
-    if !prev_cell.attrs.strike && cell.attrs.strike {
-        sgrs.push(9);
-    }
-    if prev_cell.attrs.strike && !cell.attrs.strike {
-        sgrs.push(29);
-    }
-
-    if prev_cell.attrs.font == 0 && cell.attrs.font != 0 {
-        sgrs.push(10 + cell.attrs.font as isize);
-    }
-    if prev_cell.attrs.font != 0 && cell.attrs.font == 0 {
-        sgrs.push(10);
-    }
+    if !prev_cell.attrs.bold && cell.attrs.bold                    { sgrs.push(1); }
+    if prev_cell.attrs.bold && !cell.attrs.bold                    { sgrs.push(22); }
+    if prev_cell.attrs.underline == 0 && cell.attrs.underline != 0 { sgrs.push(4); }
+    if prev_cell.attrs.underline != 0 && cell.attrs.underline == 0 { sgrs.push(24); }
+    if !prev_cell.attrs.italic && cell.attrs.italic                { sgrs.push(3); }
+    if prev_cell.attrs.italic && !cell.attrs.italic                { sgrs.push(23); }
+    if !prev_cell.attrs.blink && cell.attrs.blink                  { sgrs.push(5); }
+    if prev_cell.attrs.blink && !cell.attrs.blink                  { sgrs.push(25); }
+    if !prev_cell.attrs.reverse && cell.attrs.reverse              { sgrs.push(7); }
+    if prev_cell.attrs.reverse && !cell.attrs.reverse              { sgrs.push(27); }
+    if !prev_cell.attrs.strike && cell.attrs.strike                { sgrs.push(9); }
+    if prev_cell.attrs.strike && !cell.attrs.strike                { sgrs.push(29); }
+    if prev_cell.attrs.font == 0 && cell.attrs.font != 0           { sgrs.push(10 + cell.attrs.font as isize); }
+    if prev_cell.attrs.font != 0 && cell.attrs.font == 0           { sgrs.push(10); }
 
     if prev_cell.fg.red   != cell.fg.red   ||
        prev_cell.fg.green != cell.fg.green ||
        prev_cell.fg.blue  != cell.fg.blue {
+        trace!("changing fg color: prev {} {} {} cell {} {} {}",
+               prev_cell.fg.red,
+               prev_cell.fg.green,
+               prev_cell.fg.blue,
+               prev_cell.bg.red,
+               prev_cell.bg.green,
+               prev_cell.bg.blue);
         let index = color_to_index(state, &cell.fg);
-        if index == -1 {
-            sgrs.push(39);
-        }
-        else if index < 8 {
-            sgrs.push(30 + index);
-        }
-        else if index < 16 {
-            sgrs.push(90 + (index - 8));
-        }
+        if index == -1 { sgrs.push(39); }
+        else if index < 8 { sgrs.push(30 + index); }
+        else if index < 16 { sgrs.push(90 + (index - 8)); }
         else {
             sgrs.push(38);
             sgrs.push(5 | (1<<31));
@@ -181,15 +147,9 @@ fn dump_cell<F: Write>(state: &State, cell: &ScreenCell, prev_cell: &ScreenCell,
        prev_cell.bg.green != cell.bg.green ||
        prev_cell.bg.blue  != cell.bg.blue {
         let index = color_to_index(state, &cell.bg);
-        if index == -1 {
-            sgrs.push(49);
-        }
-        else if index < 8 {
-            sgrs.push(40 + index);
-        }
-        else if index < 16 {
-            sgrs.push(100 + (index - 8));
-        }
+        if index == -1 { sgrs.push(49); }
+        else if index < 8 { sgrs.push(40 + index); }
+        else if index < 16 { sgrs.push(100 + (index - 8)); }
         else {
             sgrs.push(48);
             sgrs.push(5 | (1<<31));
@@ -269,8 +229,8 @@ fn draw_rect<F: Write>(vterm: &mut VTerm, rect: &Rect, io: &mut F) {
         for col in rect.start_col..rect.end_col {
             pos.col = col;
             let cell = vterm.get_screen().get_cell(&pos);
-            dump_cell(&vterm.get_state(), &cell, &prev_cell, io, &pos, &mut cursor_pos);
-            prev_cell = cell
+            draw_cell(&vterm.get_state(), &cell, &prev_cell, io, &pos, &mut cursor_pos);
+            prev_cell = cell;
         }
     }
 
