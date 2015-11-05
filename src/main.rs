@@ -104,7 +104,7 @@ fn color_to_index(state: &State, target: &Color) -> isize {
     -1
 }
 
-fn dump_cell<F: Write>(state: &State, cell: &ScreenCell, prev_cell: &ScreenCell, io: &mut F, pos: &Pos) {
+fn dump_cell<F: Write>(state: &State, cell: &ScreenCell, prev_cell: &ScreenCell, io: &mut F, pos: &Pos, cursor_pos: &mut Pos) {
     let mut sgrs: Vec<isize> = vec!();
 
     if !prev_cell.attrs.bold && cell.attrs.bold {
@@ -215,14 +215,20 @@ fn dump_cell<F: Write>(state: &State, cell: &ScreenCell, prev_cell: &ScreenCell,
         io.write_all(sgr.as_bytes()).unwrap();
     }
 
-    let ti = term::terminfo::TermInfo::from_env().unwrap();
-    let cmd = ti.strings.get("cup").unwrap();
-    let params = [ term::terminfo::parm::Param::Number(pos.row as i16),
-                   term::terminfo::parm::Param::Number(pos.col as i16) ];
-    let s = term::terminfo::parm::expand(&cmd, &params, &mut term::terminfo::parm::Variables::new()).unwrap();
-    io.write_all(&s).unwrap();
+    if pos.row != cursor_pos.row || pos.col != cursor_pos.col {
+        trace!("moving cursor to row {:?} col {:?}", pos.row, pos.col);
+        let ti = term::terminfo::TermInfo::from_env().unwrap();
+        let cmd = ti.strings.get("cup").unwrap();
+        let params = [ term::terminfo::parm::Param::Number(pos.row as i16),
+                       term::terminfo::parm::Param::Number(pos.col as i16) ];
+        let s = term::terminfo::parm::expand(&cmd, &params, &mut term::terminfo::parm::Variables::new()).unwrap();
+        io.write_all(&s).unwrap();
+    }
 
     io.write_all(&cell.chars_as_utf8_bytes()).ok().expect("failed to write");
+
+    cursor_pos.row = pos.row;
+    cursor_pos.col = pos.col + 1;
 }
 
 fn dump_eol<F: Write>(prev_cell: &ScreenCell, io: &mut F) {
@@ -235,6 +241,47 @@ fn dump_eol<F: Write>(prev_cell: &ScreenCell, io: &mut F) {
     io.write_all("\n".as_bytes()).unwrap();
 }
 
+fn draw_rect<F: Write>(vterm: &mut VTerm, rect: &Rect, io: &mut F) {
+    trace!("damage {:?}", rect);
+    let (fg, bg) = vterm.get_state().get_default_colors();
+    let mut prev_cell: ScreenCell = Default::default();
+    prev_cell.fg = fg;
+    prev_cell.bg = bg;
+    let mut pos: Pos = Default::default();
+
+    // turn off cursor
+    let ti = term::terminfo::TermInfo::from_env().unwrap();
+    let cmd = ti.strings.get("civis").unwrap();
+    let s = term::terminfo::parm::expand(&cmd, &[], &mut term::terminfo::parm::Variables::new()).unwrap();
+    io.write_all(&s).unwrap();
+
+    // move cursor to first position
+    let ti = term::terminfo::TermInfo::from_env().unwrap();
+    let cmd = ti.strings.get("cup").unwrap();
+    let params = [ term::terminfo::parm::Param::Number(rect.start_row as i16),
+                   term::terminfo::parm::Param::Number(rect.start_col as i16) ];
+    let s = term::terminfo::parm::expand(&cmd, &params, &mut term::terminfo::parm::Variables::new()).unwrap();
+    io.write_all(&s).unwrap();
+    let mut cursor_pos = Pos { row: rect.start_row, col: rect.start_col };
+
+    for row in rect.start_row..rect.end_row {
+        pos.row = row;
+        for col in rect.start_col..rect.end_col {
+            pos.col = col;
+            let cell = vterm.get_screen().get_cell(&pos);
+            dump_cell(&vterm.get_state(), &cell, &prev_cell, io, &pos, &mut cursor_pos);
+            prev_cell = cell
+        }
+    }
+
+    io.flush().unwrap();
+
+    let ti = term::terminfo::TermInfo::from_env().unwrap();
+    let cmd = ti.strings.get("cvvis").unwrap();
+    let s = term::terminfo::parm::expand(&cmd, &[], &mut term::terminfo::parm::Variables::new()).unwrap();
+    io.write_all(&s).unwrap();
+}
+
 fn draw_with_vterm<F: Write>(bytes: &[u8], vterm: &mut VTerm, io: &mut F, rx: &Receiver<ScreenEvent>) {
     vterm.write(bytes);
     vterm.get_screen().flush_damage();
@@ -242,41 +289,7 @@ fn draw_with_vterm<F: Write>(bytes: &[u8], vterm: &mut VTerm, io: &mut F, rx: &R
     // Handle screen events
     while let Ok(event) = rx.try_recv() {
         match event {
-            ScreenEvent::Damage{rect} => {
-                trace!("damage {:?}", rect);
-                let (fg, bg) = vterm.get_state().get_default_colors();
-                let mut prev_cell: ScreenCell = Default::default();
-                prev_cell.fg = fg;
-                prev_cell.bg = bg;
-                let mut pos: Pos = Default::default();
-
-                // turn off cursor
-                let ti = term::terminfo::TermInfo::from_env().unwrap();
-                let cmd = ti.strings.get("civis").unwrap();
-                let s = term::terminfo::parm::expand(&cmd, &[], &mut term::terminfo::parm::Variables::new()).unwrap();
-                io.write_all(&s).unwrap();
-
-                // keep track of physical cursor position, so I know when to move it manually
-
-                for row in rect.start_row..rect.end_row {
-                    pos.row = row;
-
-                    for col in rect.start_col..rect.end_col {
-                        pos.col = col;
-                        let cell = vterm.get_screen().get_cell(&pos);
-                        dump_cell(&vterm.get_state(), &cell, &prev_cell, io, &pos);
-                        prev_cell = cell
-                    }
-                }
-
-                io.flush().unwrap();
-
-                let ti = term::terminfo::TermInfo::from_env().unwrap();
-                let cmd = ti.strings.get("cvvis").unwrap();
-                let s = term::terminfo::parm::expand(&cmd, &[], &mut term::terminfo::parm::Variables::new()).unwrap();
-                io.write_all(&s).unwrap();
-            },
-
+            ScreenEvent::Damage{rect} => draw_rect(vterm, &rect, io),
             ScreenEvent::SbPushLine{cells} => info!("sb push line"),
             ScreenEvent::SbPopLine{cells} => info!("sb push line"),
             ScreenEvent::MoveRect{dest, src} => info!("move rect dest {:?} src {:?}", dest, src),
