@@ -10,7 +10,6 @@ extern crate docopt;
 extern crate rustc_serialize;
 
 mod window;
-mod terminfo;
 
 use std::ffi::CString;
 use std::fs::File;
@@ -193,16 +192,6 @@ fn draw_cell<F: Write>(state: &State, cell: &ScreenCell, prev_cell: &ScreenCell,
     cursor_pos.col = pos.col + 1;
 }
 
-fn dump_eol<F: Write>(prev_cell: &ScreenCell, io: &mut F) {
-    if prev_cell.attrs.bold || prev_cell.attrs.underline != 0|| prev_cell.attrs.italic ||
-       prev_cell.attrs.blink || prev_cell.attrs.reverse || prev_cell.attrs.strike ||
-       prev_cell.attrs.font != 0 {
-        io.write_all("\x1b[m".as_bytes()).unwrap();
-    }
-
-    io.write_all("\n".as_bytes()).unwrap();
-}
-
 fn draw_rect<F: Write>(vterm: &mut VTerm, rect: &Rect, io: &mut F) {
     trace!("damage {:?}", rect);
     let (fg, bg) = vterm.get_state().get_default_colors();
@@ -252,8 +241,8 @@ fn draw_with_vterm<F: Write>(bytes: &[u8], vterm: &mut VTerm, io: &mut F, rx: &R
     while let Ok(event) = rx.try_recv() {
         match event {
             ScreenEvent::Damage{rect} => draw_rect(vterm, &rect, io),
-            ScreenEvent::SbPushLine{cells} => info!("sb push line"),
-            ScreenEvent::SbPopLine{cells} => info!("sb push line"),
+            ScreenEvent::SbPushLine{cells: _} => info!("sb push line"),
+            ScreenEvent::SbPopLine{cells: _} => info!("sb push line"),
             ScreenEvent::MoveRect{dest, src} => info!("move rect dest {:?} src {:?}", dest, src),
             ScreenEvent::MoveCursor{new, old, is_visible} => info!("move cursor new {:?} old {:?} is_visible {:?}", new, old, is_visible),
             ScreenEvent::Bell => info!("bell"),
@@ -328,7 +317,7 @@ fn main() {
         log4rs::toml::Creator::default()
     ).unwrap();
 
-    let mut args: Args = docopt::Docopt::new(USAGE)
+    let args: Args = docopt::Docopt::new(USAGE)
         .and_then(|d| d.decode())
         .unwrap_or_else(|e| e.exit());
 
