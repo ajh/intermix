@@ -17,7 +17,6 @@ impl Window {
         tty.apply_cap("smcup", &[]).unwrap();
     }
 
-    /// this isn't working for some reason
     pub fn stop(&self) {
         let mut tty = TerminfoTerminal::new(io::stdout()).unwrap();
         tty.apply_cap("rmcup", &[]).unwrap();
