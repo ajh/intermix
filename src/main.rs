@@ -48,9 +48,9 @@ fn fork() -> pty::Child {
     }
 }
 
-fn spawn_stdin_thr(child: &pty::Child) {
+fn spawn_stdin_to_pty_thr(pty: &pty::Child) -> std::thread::JoinHandle<()> {
     // thread for sending stdin to pty
-    let mut pty = child.pty().unwrap().clone();
+    let mut pty = pty.pty().unwrap().clone();
     thread::spawn(move || {
         let mut buf = [0 as u8; 1024];
         info!("starting stdin -> pty thread");
@@ -64,13 +64,22 @@ fn spawn_stdin_thr(child: &pty::Child) {
                         //exit();
                     //}
 
-                    pty.write(&buf[0..num_bytes]);
+                    match pty.write_all(&buf[0..num_bytes]) {
+                        Ok(_) => {},
+                        Err(msg) => {
+                            error!("{}", msg);
+                            break;
+                        },
+                    }
                 },
-                Err(_) => break,
+                Err(msg) => {
+                    error!("{}", msg);
+                    break;
+                },
             }
         }
         info!("ending stdin -> pty thread");
-    });
+    })
 }
 
 fn read_bytes_from_pty<'a, F: Read>(io: &mut F, buf: &'a mut [u8]) -> Result<&'a [u8], String> {
@@ -126,45 +135,64 @@ fn draw_direct<F: Write>(bytes: &[u8], io: &mut F) {
     io.flush();
 }
 
+fn spawn_pty_to_stdout_thr(pty: &pty::Child) -> std::thread::JoinHandle<()> {
+    // thread for sending stdin to pty
+    let mut pty = pty.pty().unwrap().clone();
+
+    thread::spawn(move || {
+        let mut buf = [0 as u8; 1024];
+        let mut reader = unsafe { File::from_raw_fd(pty.as_raw_fd()) };
+        let mut reader = BufReader::new(reader);
+
+        let mut current_age: u32 = 0;
+        //let mut vte = tsm_sys::Vte::new(80, 24).unwrap();
+
+        let mut writer = io::stdout();
+        let mut writer = BufWriter::new(writer);
+
+        info!("starting pty -> stdout thread");
+        loop {
+            let result = read_bytes_from_pty(&mut reader, &mut buf);
+            if result.is_err() {
+                error!("{}", result.err().unwrap());
+                break;
+            }
+            let bytes = result.unwrap();
+
+            //if false {
+                //current_age = draw_from_vte(bytes, &mut vte, &writer, current_age);
+            //}
+            //else {
+            draw_direct(bytes, &mut writer);
+            //}
+        }
+        info!("ending pty -> stdout thr");
+    })
+}
+
 fn main() {
     log4rs::init_file(
         &std::env::current_dir().unwrap().join("log4rs.toml"),
         log4rs::toml::Creator::default()
     ).unwrap();
-    info!("starting up");
 
+    info!("starting window");
     let window = window::Window::new();
     window.start();
 
+    info!("forking");
     let vim_process = fork();
-    spawn_stdin_thr(&vim_process);
 
-    let mut buf = [0 as u8, 1024];
-    let mut reader = unsafe { File::from_raw_fd(vim_process.pty().unwrap().as_raw_fd()) };
-    let mut reader = BufReader::new(reader);
+    info!("starting threads");
+    let mut threads = vec!();
+    threads.push(spawn_stdin_to_pty_thr(&vim_process));
+    threads.push(spawn_pty_to_stdout_thr(&vim_process));
 
-    let mut current_age: u32 = 0;
-    //let mut vte = tsm_sys::Vte::new(80, 24).unwrap();
-
-    let mut writer = io::stdout();
-    let mut writer = BufWriter::new(writer);
-
-    info!("starting main loop");
-    loop {
-        let result = read_bytes_from_pty(&mut reader, &mut buf);
-        if result.is_err() {
-            error!("{}", result.err().unwrap());
-            break;
-        }
-        let bytes = result.unwrap();
-
-        //if false {
-            //current_age = draw_from_vte(bytes, &mut vte, &writer, current_age);
-        //}
-        //else {
-        draw_direct(bytes, &mut writer);
-        //}
+    info!("joining threads");
+    for thr in threads {
+        thr.join();
     }
 
+    info!("stopping window");
     window.stop();
 }

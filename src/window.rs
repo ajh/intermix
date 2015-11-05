@@ -17,6 +17,7 @@ impl Window {
         tty.apply_cap("smcup", &[]);
     }
 
+    /// this isn't working for some reason
     pub fn stop(&self) {
         terminfo::set_cooked_mode(0);
         let mut tty = TerminfoTerminal::new(io::stdout()).unwrap();
