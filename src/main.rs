@@ -6,6 +6,8 @@ extern crate termios;
 extern crate libvterm_sys;
 extern crate term;
 extern crate libc;
+extern crate docopt;
+extern crate rustc_serialize;
 
 mod window;
 mod terminfo;
@@ -304,11 +306,33 @@ fn spawn_pty_to_stdout_thr(pty: &pty::Child) -> std::thread::JoinHandle<()> {
     })
 }
 
+const USAGE: &'static str = "
+intermix - a terminal emulator multiplexer
+
+Usage:
+intermix [<command>...]
+intermix -h | --help
+
+Options:
+-h --help      Show this screen
+";
+
+#[derive(Debug, RustcDecodable)]
+struct Args {
+    arg_command: Vec<String>,
+}
+
 fn main() {
     log4rs::init_file(
         &std::env::current_dir().unwrap().join("log4rs.toml"),
         log4rs::toml::Creator::default()
     ).unwrap();
+
+    let mut args: Args = docopt::Docopt::new(USAGE)
+        .and_then(|d| d.decode())
+        .unwrap_or_else(|e| e.exit());
+
+    info!("{:?}", args);
 
     info!("starting window");
     let window = window::Window::new();
