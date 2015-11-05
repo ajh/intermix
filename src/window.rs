@@ -14,13 +14,13 @@ impl Window {
     pub fn start(&self) {
         terminfo::set_raw_mode(0);
         let mut tty = TerminfoTerminal::new(io::stdout()).unwrap();
-        tty.apply_cap("smcup", &[]);
+        tty.apply_cap("smcup", &[]).unwrap();
     }
 
     /// this isn't working for some reason
     pub fn stop(&self) {
-        terminfo::set_cooked_mode(0);
         let mut tty = TerminfoTerminal::new(io::stdout()).unwrap();
-        tty.apply_cap("rmcup", &[]);
+        tty.apply_cap("rmcup", &[]).unwrap();
+        terminfo::set_cooked_mode(0);
     }
 }

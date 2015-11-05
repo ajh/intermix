@@ -1,4 +1,3 @@
-#![feature(unicode)]
 extern crate log4rs;
 #[macro_use]
 extern crate log;
@@ -12,13 +11,11 @@ mod window;
 mod terminfo;
 
 use std::ffi::CString;
-use std::io::{Read, Write, BufReader, BufWriter};
+use std::io::prelude::*;
+use std::io::{BufReader, BufWriter};
 use std::io;
 use std::ptr;
-use std::sync::mpsc::{channel, Sender, Receiver};
-use std::sync::{Arc, Mutex};
 use std::thread;
-use term::terminfo::*;
 use std::fs::File;
 use std::os::unix::io::{AsRawFd, FromRawFd};
 
@@ -131,23 +128,23 @@ fn read_bytes_from_pty<'a, F: Read>(io: &mut F, buf: &'a mut [u8]) -> Result<&'a
 //}
 
 fn draw_direct<F: Write>(bytes: &[u8], io: &mut F) {
-    io.write(bytes);
-    io.flush();
+    io.write_all(bytes).unwrap();
+    io.flush().unwrap();
 }
 
 fn spawn_pty_to_stdout_thr(pty: &pty::Child) -> std::thread::JoinHandle<()> {
     // thread for sending stdin to pty
-    let mut pty = pty.pty().unwrap().clone();
+    let pty = pty.pty().unwrap().clone();
 
     thread::spawn(move || {
         let mut buf = [0 as u8; 1024];
-        let mut reader = unsafe { File::from_raw_fd(pty.as_raw_fd()) };
+        let reader = unsafe { File::from_raw_fd(pty.as_raw_fd()) };
         let mut reader = BufReader::new(reader);
 
-        let mut current_age: u32 = 0;
+        //let mut current_age: u32 = 0;
         //let mut vte = tsm_sys::Vte::new(80, 24).unwrap();
 
-        let mut writer = io::stdout();
+        let writer = io::stdout();
         let mut writer = BufWriter::new(writer);
 
         info!("starting pty -> stdout thread");
@@ -190,7 +187,7 @@ fn main() {
 
     info!("joining threads");
     for thr in threads {
-        thr.join();
+        thr.join().unwrap();
     }
 
     info!("stopping window");
