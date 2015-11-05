@@ -11,4 +11,4 @@ log4rs = "0.3.3"
 pty = "0.1"
 term = "0.2.12"
 termios = "0.2"
-tsm-sys = "0.1"
+libvterm-sys = { path = "../libvterm-sys" }

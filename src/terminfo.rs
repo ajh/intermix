@@ -1,6 +1,5 @@
 extern crate libc;
 extern crate pty;
-extern crate tsm_sys;
 extern crate termios;
 extern crate log4rs;
 extern crate ioctl_rs as ioctl;

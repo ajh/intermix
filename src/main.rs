@@ -4,7 +4,7 @@ extern crate log4rs;
 extern crate log;
 extern crate pty;
 extern crate termios;
-extern crate tsm_sys;
+extern crate libvterm_sys;
 extern crate term;
 extern crate libc;
 
@@ -87,39 +87,39 @@ fn read_bytes_from_pty<'a, F: Read>(io: &mut F, buf: &'a mut [u8]) -> Result<&'a
     }
 }
 
-fn draw_from_vte<F: Write>(bytes: &[u8], vte: &mut tsm_sys::Vte, io: &F, last_age: u32) -> u32 {
+//fn draw_from_vte<F: Write>(bytes: &[u8], vte: &mut tsm_sys::Vte, io: &F, last_age: u32) -> u32 {
 
-    // feed vte
-    vte.input(bytes);
+    //// feed vte
+    //vte.input(bytes);
 
-    // update the screen
-    let age = vte.screen.borrow_mut().draw(|_, ch, _, _, x, y, age| {
-        if last_age >= age {
-            return;
-        }
+    //// update the screen
+    //let age = vte.screen.borrow_mut().draw(|_, ch, _, _, x, y, age| {
+        //if last_age >= age {
+            //return;
+        //}
 
-        if (ch as u32) < 32 {
-            // unprintable
-            return;
-        }
+        //if (ch as u32) < 32 {
+            //// unprintable
+            //return;
+        //}
 
-        // move cursor
-        let params = [ parm::Param::Number(y as i16), parm::Param::Number(x as i16) ];
-        let mut tty = TerminfoTerminal::new(io::stdout()).unwrap();
-        tty.apply_cap("cup", &params);
+        //// move cursor
+        //let params = [ parm::Param::Number(y as i16), parm::Param::Number(x as i16) ];
+        //let mut tty = TerminfoTerminal::new(io::stdout()).unwrap();
+        //tty.apply_cap("cup", &params);
 
-        // write character
-        let mut buf = [0 as u8; 4];
-        match ch.encode_utf8(&mut buf) {
-            Some(num_bytes) => {
-                io::stdout().write(&buf[0..num_bytes]);
-            },
-            None => {}
-        }
-    });
+        //// write character
+        //let mut buf = [0 as u8; 4];
+        //match ch.encode_utf8(&mut buf) {
+            //Some(num_bytes) => {
+                //io::stdout().write(&buf[0..num_bytes]);
+            //},
+            //None => {}
+        //}
+    //});
 
-    age
-}
+    //age
+//}
 
 fn draw_direct<F: Write>(bytes: &[u8], io: &mut F) {
     io.write(bytes);
@@ -144,7 +144,7 @@ fn main() {
     let mut reader = BufReader::new(reader);
 
     let mut current_age: u32 = 0;
-    let mut vte = tsm_sys::Vte::new(80, 24).unwrap();
+    //let mut vte = tsm_sys::Vte::new(80, 24).unwrap();
 
     let mut writer = io::stdout();
     let mut writer = BufWriter::new(writer);
@@ -158,13 +158,12 @@ fn main() {
         }
         let bytes = result.unwrap();
 
-        if false {
-            current_age = draw_from_vte(bytes, &mut vte, &writer, current_age);
-        }
-
-        else {
-            draw_direct(bytes, &mut writer);
-        }
+        //if false {
+            //current_age = draw_from_vte(bytes, &mut vte, &writer, current_age);
+        //}
+        //else {
+        draw_direct(bytes, &mut writer);
+        //}
     }
 
     window.stop();

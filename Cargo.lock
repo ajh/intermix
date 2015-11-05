@@ -4,12 +4,12 @@ version = "0.1.0"
 dependencies = [
  "ioctl-rs 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libvterm-sys 0.0.0",
  "log 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log4rs 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "pty 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "term 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "termios 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "tsm-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -61,6 +61,15 @@ dependencies = [
 name = "libc"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "libvterm-sys"
+version = "0.0.0"
+dependencies = [
+ "gcc 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glob 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "log"
@@ -136,16 +145,6 @@ version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "tsm-sys"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "gcc 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "glob 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
