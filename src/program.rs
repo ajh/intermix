@@ -133,13 +133,13 @@ fn draw_cell<F: Write>(state: &State, cell: &ScreenCell, prev_cell: &ScreenCell,
     if prev_cell.fg.red   != cell.fg.red   ||
        prev_cell.fg.green != cell.fg.green ||
        prev_cell.fg.blue  != cell.fg.blue {
-        trace!("changing fg color: prev {} {} {} cell {} {} {}",
-               prev_cell.fg.red,
-               prev_cell.fg.green,
-               prev_cell.fg.blue,
-               prev_cell.bg.red,
-               prev_cell.bg.green,
-               prev_cell.bg.blue);
+        //trace!("changing fg color: prev {} {} {} cell {} {} {}",
+               //prev_cell.fg.red,
+               //prev_cell.fg.green,
+               //prev_cell.fg.blue,
+               //prev_cell.bg.red,
+               //prev_cell.bg.green,
+               //prev_cell.bg.blue);
         let index = color_to_index(state, &cell.fg);
         if index == -1 { sgrs.push(39); }
         else if index < 8 { sgrs.push(30 + index); }
@@ -184,7 +184,7 @@ fn draw_cell<F: Write>(state: &State, cell: &ScreenCell, prev_cell: &ScreenCell,
     }
 
     if pos.row != cursor_pos.row || pos.col != cursor_pos.col {
-        trace!("moving cursor to row {:?} col {:?}", pos.row, pos.col);
+        //trace!("moving cursor to row {:?} col {:?}", pos.row, pos.col);
         let ti = term::terminfo::TermInfo::from_env().unwrap();
         let cmd = ti.strings.get("cup").unwrap();
         let params = [ term::terminfo::parm::Param::Number(pos.row as i16),
@@ -194,13 +194,14 @@ fn draw_cell<F: Write>(state: &State, cell: &ScreenCell, prev_cell: &ScreenCell,
     }
 
     io.write_all(&cell.chars_as_utf8_bytes()).ok().expect("failed to write");
+    if cell.width > 1 { trace!("cell has width > 1 {:?}", cell) }
 
     cursor_pos.row = pos.row;
     cursor_pos.col = pos.col + 1;
 }
 
 fn draw_rect<F: Write>(vterm: &mut VTerm, rect: &Rect, io: &mut F) {
-    trace!("damage {:?}", rect);
+    //trace!("damage {:?}", rect);
     let (fg, bg) = vterm.get_state().get_default_colors();
     let mut prev_cell: ScreenCell = Default::default();
     prev_cell.fg = fg;
@@ -247,20 +248,23 @@ fn draw_with_vterm<F: Write>(bytes: &[u8], vterm: &mut VTerm, io: &mut F, rx: &R
     // Handle screen events
     while let Ok(event) = rx.try_recv() {
         match event {
-            ScreenEvent::Damage{rect} => draw_rect(vterm, &rect, io),
-            ScreenEvent::SbPushLine{cells: _} => info!("sb push line"),
-            ScreenEvent::SbPopLine{cells: _} => info!("sb push line"),
-            ScreenEvent::MoveRect{dest, src} => info!("move rect dest {:?} src {:?}", dest, src),
-            ScreenEvent::MoveCursor{new, old, is_visible} => info!("move cursor new {:?} old {:?} is_visible {:?}", new, old, is_visible),
             ScreenEvent::Bell => info!("bell"),
+            ScreenEvent::Damage{rect} => draw_rect(vterm, &rect, io),
+            ScreenEvent::MoveCursor{new, old, is_visible} => info!("move cursor new {:?} old {:?} is_visible {:?}", new, old, is_visible),
+            ScreenEvent::MoveRect{dest, src} => info!("move rect dest {:?} src {:?}", dest, src),
             ScreenEvent::Resize{rows, cols} => info!("resize rows {:?} cols {:?}", rows, cols),
+            ScreenEvent::SbPopLine{cells: _} => info!("sb push line"),
+            ScreenEvent::SbPushLine{cells: _} => info!("sb push line"),
+            ScreenEvent::AltScreen{ is_true: _ } => info!("AltScreen"),
+            ScreenEvent::CursorBlink{ is_true: _ } => info!("CursorBlink"),
+            ScreenEvent::CursorShape{ value: _ } => info!("CursorShape"),
+            ScreenEvent::CursorVisible{ is_true: _ } => info!("CursorVisible"),
+            ScreenEvent::IconName{ text: _} => info!("IconName"),
+            ScreenEvent::Mouse{ value: _ } => info!("Mouse"),
+            ScreenEvent::Reverse{ is_true: _ } => info!("Reverse"),
+            ScreenEvent::Title{ text: _} => info!("Title"),
         }
     }
-}
-
-fn draw_direct<F: Write>(bytes: &[u8], io: &mut F) {
-    io.write_all(bytes).unwrap();
-    io.flush().unwrap();
 }
 
 pub fn spawn_pty_to_stdout_thr(pty: &pty::Child) -> thread::JoinHandle<()> {
@@ -289,12 +293,7 @@ pub fn spawn_pty_to_stdout_thr(pty: &pty::Child) -> thread::JoinHandle<()> {
             }
             let bytes = result.unwrap();
 
-            if true {
-                draw_with_vterm(bytes, &mut vterm, &mut writer, &rx);
-            }
-            else {
-                draw_direct(bytes, &mut writer);
-            }
+            draw_with_vterm(bytes, &mut vterm, &mut writer, &rx);
 
             thread::sleep_ms(10);
         }
