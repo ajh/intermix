@@ -9,9 +9,12 @@ extern crate libc;
 extern crate docopt;
 extern crate rustc_serialize;
 
+use std::thread;
+
 mod window;
 mod program;
 mod tty_painter;
+
 
 const USAGE: &'static str = "
 intermix - a terminal emulator multiplexer
@@ -45,16 +48,22 @@ fn main() {
     let window = window::Window::new();
     window.start();
 
-    info!("forking");
-    let chile = program::fork(&args.arg_command);
+    info!("starting program");
+    let (program, attachments) = program::Program::new(&args.arg_command);
 
-    info!("starting threads");
-    let mut threads = vec!();
-    threads.push(program::spawn_stdin_to_pty_thr(&chile));
-    threads.push(program::spawn_pty_to_stdout_thr(&chile));
+    let event_rx = attachments.event_rx;
+    thread::spawn(move || {
+        let mut painter: ::tty_painter::TtyPainter = Default::default();
+
+        loop {
+            match event_rx.recv().unwrap() {
+                program::ProgramEvent::Damage{cells} => painter.draw_cells(&cells, &mut std::io::stdout()),
+            }
+        }
+    });
 
     info!("joining threads");
-    for thr in threads {
+    for thr in attachments.thread_handles {
         thr.join().unwrap();
     }
 

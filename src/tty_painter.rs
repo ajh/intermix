@@ -20,7 +20,20 @@ pub struct TtyPainter {
 
 impl TtyPainter {
     pub fn draw_cells<F: Write>(&self, cells: &Vec<ScreenCell>, io: &mut F) {
+        // turn off cursor
+        let ti = term::terminfo::TermInfo::from_env().unwrap();
+        let cmd = ti.strings.get("civis").unwrap();
+        let s = term::terminfo::parm::expand(&cmd, &[], &mut term::terminfo::parm::Variables::new()).unwrap();
+        io.write_all(&s).unwrap();
+
         for cell in cells { self.draw_cell(cell, io) }
+
+        let ti = term::terminfo::TermInfo::from_env().unwrap();
+        let cmd = ti.strings.get("cvvis").unwrap();
+        let s = term::terminfo::parm::expand(&cmd, &[], &mut term::terminfo::parm::Variables::new()).unwrap();
+        io.write_all(&s).unwrap();
+
+        io.flush().unwrap();
     }
 
     fn draw_cell<F: Write>(&self, cell: &ScreenCell, io: &mut F) {
