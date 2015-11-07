@@ -11,6 +11,7 @@ extern crate rustc_serialize;
 
 mod window;
 mod program;
+mod tty_painter;
 
 const USAGE: &'static str = "
 intermix - a terminal emulator multiplexer
