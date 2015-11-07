@@ -221,12 +221,12 @@ fn draw_rect<F: Write>(vterm: &mut VTerm, rect: &Rect, io: &mut F) {
                    term::terminfo::parm::Param::Number(rect.start_col as i16) ];
     let s = term::terminfo::parm::expand(&cmd, &params, &mut term::terminfo::parm::Variables::new()).unwrap();
     io.write_all(&s).unwrap();
-    let mut cursor_pos = Pos { row: rect.start_row, col: rect.start_col };
+    let mut cursor_pos = Pos { row: rect.start_row as i16, col: rect.start_col as i16};
 
     for row in rect.start_row..rect.end_row {
-        pos.row = row;
+        pos.row = row as i16;
         for col in rect.start_col..rect.end_col {
-            pos.col = col;
+            pos.col = col as i16;
             let cell = vterm.get_screen().get_cell(&pos);
             draw_cell(&vterm.get_state(), &cell, &prev_cell, io, &pos, &mut cursor_pos);
             prev_cell = cell;
