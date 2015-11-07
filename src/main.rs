@@ -15,7 +15,6 @@ mod window;
 mod program;
 mod tty_painter;
 
-
 const USAGE: &'static str = "
 intermix - a terminal emulator multiplexer
 
@@ -49,7 +48,10 @@ fn main() {
     window.start();
 
     info!("starting program");
-    let (program, attachments) = program::Program::new(&args.arg_command);
+    let mut command_and_args = args.arg_command.clone();
+    // TODO: use env to get SHELL variable here
+    if command_and_args.len() == 0 { command_and_args.push("bash".to_string()); }
+    let (program, attachments) = program::Program::new(&command_and_args);
 
     let event_rx = attachments.event_rx;
     thread::spawn(move || {

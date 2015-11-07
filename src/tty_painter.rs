@@ -19,7 +19,7 @@ pub struct TtyPainter {
 }
 
 impl TtyPainter {
-    pub fn draw_cells<F: Write>(&self, cells: &Vec<ScreenCell>, io: &mut F) {
+    pub fn draw_cells<F: Write>(&mut self, cells: &Vec<ScreenCell>, io: &mut F) {
         // turn off cursor
         let ti = term::terminfo::TermInfo::from_env().unwrap();
         let cmd = ti.strings.get("civis").unwrap();
@@ -36,7 +36,7 @@ impl TtyPainter {
         io.flush().unwrap();
     }
 
-    fn draw_cell<F: Write>(&self, cell: &ScreenCell, io: &mut F) {
+    fn draw_cell<F: Write>(&mut self, cell: &ScreenCell, io: &mut F) {
         let mut sgrs: Vec<isize> = vec!();
 
         if !self.pen.attrs.bold && cell.attrs.bold                    { sgrs.push(1); }
