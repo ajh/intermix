@@ -17,25 +17,21 @@ use std::sync::{Arc, Mutex};
 /// For now, we'll setup all the panes first, then call spawn so we don't have to deal with
 /// selecting on a changable list of channel receivers.
 pub struct Window {
-    event_receivers: Vec<Receiver<::program::ProgramEvent>>,
+    pub panes: Vec<::pane::Pane>,
 }
 
 impl Window {
     pub fn new() -> Window {
         Window {
-            event_receivers: vec!(),
+            panes: vec!(),
         }
-    }
-
-    pub fn push_program_event_rx(&mut self, rx: Receiver<::program::ProgramEvent>) {
-      self.event_receivers.push(rx);
     }
 
     // just loop over the one receiver, deal with multiple receivers and changes to what receivers
     // we have later
     pub fn spawn_drawing_thr(&mut self) {
         // assume only one rx for now
-        let rx = self.event_receivers.pop().unwrap();
+        let rx = self.panes.first_mut().unwrap().program_event_rx.take().unwrap();
 
         thread::spawn(move || {
             let mut painter: ::tty_painter::TtyPainter = Default::default();

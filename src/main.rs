@@ -13,6 +13,7 @@ use std::thread;
 
 mod window;
 mod program;
+mod pane;
 mod tty_painter;
 
 const USAGE: &'static str = "
@@ -53,7 +54,9 @@ fn main() {
     if command_and_args.len() == 0 { command_and_args.push("bash".to_string()); }
     let (program, attachments) = program::Program::new(&command_and_args);
 
-    window.push_program_event_rx(attachments.event_rx);
+    let pane = pane::Pane::new(0, 0, attachments.event_rx);
+
+    window.panes.push(pane);
     window.spawn_drawing_thr();
 
     info!("joining threads");
