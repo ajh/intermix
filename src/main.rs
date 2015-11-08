@@ -44,7 +44,7 @@ fn main() {
     info!("{:?}", args);
 
     info!("starting window");
-    let window = window::Window::new();
+    let mut window = window::Window::new();
     window.start();
 
     info!("starting program");
@@ -53,16 +53,8 @@ fn main() {
     if command_and_args.len() == 0 { command_and_args.push("bash".to_string()); }
     let (program, attachments) = program::Program::new(&command_and_args);
 
-    let event_rx = attachments.event_rx;
-    thread::spawn(move || {
-        let mut painter: ::tty_painter::TtyPainter = Default::default();
-
-        loop {
-            match event_rx.recv().unwrap() {
-                program::ProgramEvent::Damage{cells} => painter.draw_cells(&cells, &mut std::io::stdout()),
-            }
-        }
-    });
+    window.push_program_event_rx(attachments.event_rx);
+    window.spawn_drawing_thr();
 
     info!("joining threads");
     for thr in attachments.thread_handles {
