@@ -32,13 +32,14 @@ impl Window {
     pub fn spawn_drawing_thr(&mut self) {
         // assume only one rx for now
         let rx = self.panes.first_mut().unwrap().program_event_rx.take().unwrap();
+        let offset = self.panes.first().unwrap().offset.clone();
 
         thread::spawn(move || {
             let mut painter: ::tty_painter::TtyPainter = Default::default();
 
             loop {
                 match rx.recv().unwrap() {
-                    ::program::ProgramEvent::Damage{cells} => painter.draw_cells(&cells, &mut io::stdout()),
+                    ::program::ProgramEvent::Damage{cells} => painter.draw_cells(&cells, &mut io::stdout(), &offset),
                 }
             }
         });
@@ -73,11 +74,5 @@ impl Window {
         t.c_oflag |= termios::OPOST;
         t.c_lflag |= termios::ECHO|termios::ECHOE|termios::ECHOK|termios::ECHONL|termios::ICANON|termios::ISIG|termios::IEXTEN;
         termios::tcsetattr(fd, termios::TCSANOW, &t).unwrap();
-    }
-}
-
-fn handle_event(event: ::program::ProgramEvent, painter: &mut ::tty_painter::TtyPainter) {
-    match event {
-        ::program::ProgramEvent::Damage{cells} => painter.draw_cells(&cells, &mut io::stdout()),
     }
 }

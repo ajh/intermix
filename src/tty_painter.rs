@@ -19,14 +19,14 @@ pub struct TtyPainter {
 }
 
 impl TtyPainter {
-    pub fn draw_cells<F: Write>(&mut self, cells: &Vec<ScreenCell>, io: &mut F) {
+    pub fn draw_cells<F: Write>(&mut self, cells: &Vec<ScreenCell>, io: &mut F, offset: &Pos) {
         // turn off cursor
         let ti = term::terminfo::TermInfo::from_env().unwrap();
         let cmd = ti.strings.get("civis").unwrap();
         let s = term::terminfo::parm::expand(&cmd, &[], &mut term::terminfo::parm::Variables::new()).unwrap();
         io.write_all(&s).unwrap();
 
-        for cell in cells { self.draw_cell(cell, io) }
+        for cell in cells { self.draw_cell(cell, io, offset) }
 
         let ti = term::terminfo::TermInfo::from_env().unwrap();
         let cmd = ti.strings.get("cvvis").unwrap();
@@ -36,7 +36,7 @@ impl TtyPainter {
         io.flush().unwrap();
     }
 
-    fn draw_cell<F: Write>(&mut self, cell: &ScreenCell, io: &mut F) {
+    fn draw_cell<F: Write>(&mut self, cell: &ScreenCell, io: &mut F, offset: &Pos) {
         let mut sgrs: Vec<isize> = vec!();
 
         if !self.pen.attrs.bold && cell.attrs.bold                    { sgrs.push(1); }
@@ -107,12 +107,17 @@ impl TtyPainter {
             io.write_all(sgr.as_bytes()).unwrap();
         }
 
-        if cell.pos.row != self.pen.pos.row || cell.pos.col != self.pen.pos.col {
+        let pos = Pos {
+            row: cell.pos.row + offset.row,
+            col: cell.pos.col + offset.col,
+        };
+
+        if pos.row != self.pen.pos.row || pos.col != self.pen.pos.col {
             //trace!("moving cursor to row {:?} col {:?}", cell.pos.row, cell.pos.col);
             let ti = term::terminfo::TermInfo::from_env().unwrap();
             let cmd = ti.strings.get("cup").unwrap();
-            let params = [ term::terminfo::parm::Param::Number(cell.pos.row as i16),
-                           term::terminfo::parm::Param::Number(cell.pos.col as i16) ];
+            let params = [ term::terminfo::parm::Param::Number(pos.row as i16),
+                           term::terminfo::parm::Param::Number(pos.col as i16) ];
             let s = term::terminfo::parm::expand(&cmd, &params, &mut term::terminfo::parm::Variables::new()).unwrap();
             io.write_all(&s).unwrap();
         }

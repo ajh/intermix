@@ -54,7 +54,7 @@ fn main() {
     if command_and_args.len() == 0 { command_and_args.push("bash".to_string()); }
     let (program, attachments) = program::Program::new(&command_and_args);
 
-    let pane = pane::Pane::new(0, 0, attachments.event_rx);
+    let pane = pane::Pane::new(libvterm_sys::Pos {row: 20, col: 20}, attachments.event_rx);
 
     window.panes.push(pane);
     window.spawn_drawing_thr();
