@@ -5,16 +5,27 @@ extern crate log4rs;
 extern crate ioctl_rs as ioctl;
 
 use std::os::unix::io::RawFd;
+use std::io::prelude::*;
 use std::io;
 use term::terminfo::*;
+use std::thread;
+use std::sync::mpsc::*;
+use std::sync::{Arc, Mutex};
 
 pub struct Window {
-    something: bool,
+    event_receivers: Vec<Receiver<::program::ProgramEvent>>,
 }
 
 impl Window {
     pub fn new() -> Window {
-        Window { something: true }
+        Window {
+            event_receivers: vec!(),
+        }
+    }
+
+    // just loop over the one receiver, deal with multiple receivers and changes to what receivers
+    // we have later
+    pub fn spawn_thr(&self) {
     }
 
     pub fn start(&self) {
@@ -46,5 +57,11 @@ impl Window {
         t.c_oflag |= termios::OPOST;
         t.c_lflag |= termios::ECHO|termios::ECHOE|termios::ECHOK|termios::ECHONL|termios::ICANON|termios::ISIG|termios::IEXTEN;
         termios::tcsetattr(fd, termios::TCSANOW, &t).unwrap();
+    }
+}
+
+fn handle_event(event: ::program::ProgramEvent, painter: &mut ::tty_painter::TtyPainter) {
+    match event {
+        ::program::ProgramEvent::Damage{cells} => painter.draw_cells(&cells, &mut io::stdout()),
     }
 }
