@@ -50,19 +50,19 @@ fn main() {
     let mut threads: Vec<thread::JoinHandle<()>> = vec!();
 
     info!("starting window");
-    let (mut window, mut more_threads) = window::Window::new();
+    let (window, mut more_threads) = window::Window::new();
     threads.append(&mut more_threads);
-    window.start();
+    window.lock().unwrap().start();
 
     info!("starting program");
     let mut command_and_args = args.arg_command.clone();
     // TODO: use env to get SHELL variable here
     if command_and_args.len() == 0 { command_and_args.push("bash".to_string()); }
-    let (program, mut more_threads) = program::Program::new(&command_and_args, window.tx.clone());
+    let (program, mut more_threads) = program::Program::new(&command_and_args, window.lock().unwrap().tx.clone());
     threads.append(&mut more_threads);
 
-    let pane = pane::Pane::new(&libvterm_sys::Pos {row: 20, col: 20});
-    window.panes.push(pane);
+    let pane = pane::Pane::new(&libvterm_sys::Pos {row: 20, col: 0}, &program.id);
+    window.lock().unwrap().panes.push(pane);
 
     info!("joining threads");
     for thr in threads {
@@ -72,5 +72,5 @@ fn main() {
     info!("stopping window");
     // This doesn't really reset the terminal when using direct draw, because the program being run
     // will have done whatever random stuff to it
-    window.stop();
+    window.lock().unwrap().stop();
 }

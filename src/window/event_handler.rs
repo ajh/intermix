@@ -13,15 +13,20 @@ use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Arc, Mutex};
 use ::program::ProgramEvent;
+use super::*;
 
 pub struct EventHandler {
+    window: Arc<Mutex<Window>>,
     // deal with Program Events for now, until we have window events implemented
     pub receivers: Vec<Box<Receiver<ProgramEvent>>>,
 }
 
 impl EventHandler {
-    pub fn new() -> EventHandler {
-        EventHandler {receivers: vec!()}
+    pub fn new(window: Arc<Mutex<Window>>) -> EventHandler {
+        EventHandler {
+            window: window,
+            receivers: vec!(),
+        }
     }
 
     // just loop over the one receiver, deal with multiple receivers and changes to what receivers
@@ -51,8 +56,17 @@ impl EventHandler {
 
                 match handle.recv() {
                     Ok(event) => match event {
-                        ProgramEvent::Damage{program_id: _, cells} => {
-                            painter.draw_cells(&cells, &mut io::stdout(), &libvterm_sys::Pos { row: 10, col: 5 });
+                        ProgramEvent::Damage{program_id: program_id, cells} => {
+                            let offset = {
+                                let window = self.window.lock().unwrap();
+                                let pane = window.panes.iter().find(|p| p.program_id == program_id);
+                                match pane {
+                                    Some(p) => p.offset.clone(),
+                                    None => libvterm_sys::Pos { row: 10, col: 5 },
+                                }
+                            };
+
+                            painter.draw_cells(&cells, &mut io::stdout(), &offset);
                         },
                         ProgramEvent::AddProgram{program_id: _, rx: rx} => {
                             info!("add program");

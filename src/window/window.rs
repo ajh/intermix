@@ -24,18 +24,18 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new() -> (Window, Vec<thread::JoinHandle<()>>) {
+    pub fn new() -> (Arc<Mutex<Window>>, Vec<thread::JoinHandle<()>>) {
         let (tx, rx) = mpsc::channel();
         let mut threads = vec!();
 
-        let mut event_handler = EventHandler::new();
-        event_handler.receivers.push(Box::new(rx));
-        threads.push(event_handler.spawn());
-
-        let window = Window {
+        let window = Arc::new(Mutex::new(Window {
             panes: vec!(),
             tx: tx,
-        };
+        }));
+
+        let mut event_handler = EventHandler::new(window.clone());
+        event_handler.receivers.push(Box::new(rx));
+        threads.push(event_handler.spawn());
 
         (window, threads)
     }

@@ -21,9 +21,9 @@ use libvterm_sys::*;
 use super::*;
 
 pub struct Program {
-    child_pid: i32,
-    id: String,
-    tx: mpsc::Sender<ProgramEvent>,
+    pub child_pid: i32,
+    pub id: String,
+    pub tx: mpsc::Sender<ProgramEvent>,
 }
 
 impl Program {
