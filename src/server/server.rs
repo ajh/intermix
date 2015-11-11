@@ -12,6 +12,7 @@ extern crate uuid;
 use std::thread;
 use libvterm_sys::*;
 use std::sync::{Arc, Mutex};
+use std::os::unix::prelude::*;
 
 pub struct Server {
     windows: Vec<Arc<Mutex<::Window>>>,
@@ -54,5 +55,10 @@ impl Server {
         self.programs.push(program);
 
         threads
+    }
+
+    /// modes will generalize how this works
+    pub fn first_program_pty_fd(&self) -> RawFd {
+        (&self.programs).first().unwrap().pty
     }
 }

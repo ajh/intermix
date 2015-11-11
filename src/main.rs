@@ -20,6 +20,7 @@ mod program;
 mod pane;
 mod tty_painter;
 mod server;
+mod user_input;
 
 pub use window::Window;
 pub use program::Program;
@@ -71,6 +72,8 @@ fn main() {
     info!("starting another program");
     let mut more_threads = server.start_program_in_new_pane(&vec!("bash".to_string()), &screen_size, &Pos { row: 24, col: 0 });
     threads.append(&mut more_threads);
+
+    user_input::spawn_stdin_to_pty_thr(server.first_program_pty_fd());
 
     info!("joining threads");
     for thr in threads {

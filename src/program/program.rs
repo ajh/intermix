@@ -10,20 +10,20 @@ extern crate uuid;
 
 use std::ffi::CString;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io;
-use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::ptr;
 use std::sync::mpsc;
 use std::thread;
 use libvterm_sys::*;
 use super::*;
+use std::os::unix::prelude::*;
 
 pub struct Program {
     pub child_pid: i32,
     pub id: String,
     pub tx: mpsc::Sender<ProgramEvent>,
     pub size: ScreenSize,
+    pub pty: RawFd,
 }
 
 impl Program {
@@ -33,23 +33,21 @@ impl Program {
 
         let (program_event_tx, program_event_rx) = mpsc::channel::<ProgramEvent>();
 
-        info!("spawning threads");
-        let mut threads = vec!();
-        // this should be somewhere else
-        threads.push(spawn_stdin_to_pty_thr(&child));
-
         info!("program started");
+
+        let fd = child.pty().unwrap().as_raw_fd();
 
         let program = Program {
             child_pid: child.pid(),
             id: uuid::Uuid::new_v4().to_simple_string(),
             tx: program_event_tx.clone(),
             size: size.clone(), // todo: resize pty with this info
+            pty: fd,
         };
 
+        let mut threads = vec!();
         {
-            let pty = child.pty().unwrap().clone();
-            let io = unsafe { File::from_raw_fd(pty.as_raw_fd()) };
+            let io = unsafe { File::from_raw_fd(fd) };
             let event_handler = EventHandler::new(&program.id, io, program_event_tx.clone());
             threads.push(event_handler.spawn());
         }
@@ -92,39 +90,4 @@ fn fork(command_and_args: &Vec<String>) -> pty::Child {
             panic!("pty::fork error: {}", e);
         }
     }
-}
-
-/// This thread should really read from a receiver, not from stdin
-fn spawn_stdin_to_pty_thr(pty: &pty::Child) -> thread::JoinHandle<()> {
-    // thread for sending stdin to pty
-    let mut pty = pty.pty().unwrap().clone();
-    thread::spawn(move || {
-        let mut buf = [0 as u8; 4096];
-        info!("starting stdin -> pty thread");
-        loop {
-            match io::stdin().read(&mut buf) {
-                Ok(num_bytes) => {
-                    if num_bytes == 0 { break };
-
-                    //if buf.iter().find(|&x| *x == terminfo::CTRL_C).is_some() {
-                        //info!("CTRL_C detected");
-                        //exit();
-                    //}
-
-                    match pty.write_all(&buf[0..num_bytes]) {
-                        Ok(_) => {},
-                        Err(msg) => {
-                            error!("{}", msg);
-                            break;
-                        },
-                    }
-                },
-                Err(msg) => {
-                    error!("{}", msg);
-                    break;
-                },
-            }
-        }
-        info!("ending stdin -> pty thread");
-    })
 }
