@@ -24,10 +24,11 @@ pub struct Program {
     pub child_pid: i32,
     pub id: String,
     pub tx: mpsc::Sender<ProgramEvent>,
+    pub size: ScreenSize,
 }
 
 impl Program {
-    pub fn new(command_and_args: &Vec<String>, tx: mpsc::Sender<ProgramEvent>) -> (Program, Vec<thread::JoinHandle<()>>) {
+    pub fn new(command_and_args: &Vec<String>, tx: mpsc::Sender<ProgramEvent>, size: &ScreenSize) -> (Program, Vec<thread::JoinHandle<()>>) {
         info!("forking");
         let child = fork(command_and_args);
 
@@ -44,6 +45,7 @@ impl Program {
             child_pid: child.pid(),
             id: uuid::Uuid::new_v4().to_simple_string(),
             tx: program_event_tx.clone(),
+            size: size.clone(), // todo: resize pty with this info
         };
 
         {

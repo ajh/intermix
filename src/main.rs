@@ -13,6 +13,7 @@ extern crate termios;
 extern crate uuid;
 
 use std::thread;
+use libvterm_sys::*;
 
 mod window;
 mod program;
@@ -55,13 +56,14 @@ fn main() {
     window.lock().unwrap().start();
 
     info!("starting program");
+    let screen_size = ScreenSize { rows: 24, cols: 80 };
     let mut command_and_args = args.arg_command.clone();
     // TODO: use env to get SHELL variable here
     if command_and_args.len() == 0 { command_and_args.push("bash".to_string()); }
-    let (program, mut more_threads) = program::Program::new(&command_and_args, window.lock().unwrap().tx.clone());
+    let (program, mut more_threads) = program::Program::new(&command_and_args, window.lock().unwrap().tx.clone(), &screen_size);
     threads.append(&mut more_threads);
 
-    let pane = pane::Pane::new(&libvterm_sys::Pos {row: 20, col: 0}, &program.id);
+    let pane = pane::Pane::new(&screen_size, &Pos {row: 20, col: 0}, &program.id);
     window.lock().unwrap().panes.push(pane);
 
     info!("joining threads");
