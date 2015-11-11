@@ -1,3 +1,5 @@
+#![feature(mpsc_select)]
+
 extern crate docopt;
 extern crate libc;
 extern crate libvterm_sys;
@@ -45,24 +47,25 @@ fn main() {
 
     info!("{:?}", args);
 
+    let mut threads: Vec<thread::JoinHandle<()>> = vec!();
+
     info!("starting window");
-    let mut window = window::Window::new();
+    let (mut window, mut more_threads) = window::Window::new();
+    threads.append(&mut more_threads);
     window.start();
 
     info!("starting program");
     let mut command_and_args = args.arg_command.clone();
     // TODO: use env to get SHELL variable here
     if command_and_args.len() == 0 { command_and_args.push("bash".to_string()); }
-    let (program, attachments) = program::Program::new(&command_and_args);
+    let (program, mut more_threads) = program::Program::new(&command_and_args, window.tx.clone());
+    threads.append(&mut more_threads);
 
     let pane = pane::Pane::new(&libvterm_sys::Pos {row: 20, col: 20});
     window.panes.push(pane);
 
-    let eh = window::EventHandler::new(attachments.event_rx);
-    eh.spawn();
-
     info!("joining threads");
-    for thr in attachments.thread_handles {
+    for thr in threads {
         thr.join().unwrap();
     }
 

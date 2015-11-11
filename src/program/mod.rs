@@ -28,11 +28,6 @@ pub enum ProgramEvent {
     AddProgram { program_id: String, rx: mpsc::Receiver<ProgramEvent> }
 }
 
-pub struct ProgramAttachments {
-    pub thread_handles: Vec<thread::JoinHandle<()>>,
-    pub event_rx: mpsc::Receiver<ProgramEvent>,
-}
-
 pub struct Program {
     child_pid: i32,
     id: String,
@@ -40,7 +35,7 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(command_and_args: &Vec<String>) -> (Program, ProgramAttachments) {
+    pub fn new(command_and_args: &Vec<String>, tx: mpsc::Sender<ProgramEvent>) -> (Program, Vec<thread::JoinHandle<()>>) {
         info!("forking");
         let child = fork(command_and_args);
 
@@ -55,23 +50,25 @@ impl Program {
             let pty = child.pty().unwrap().clone();
             let io = unsafe { File::from_raw_fd(pty.as_raw_fd()) };
             let event_handler = EventHandler::new(io, program_event_tx.clone());
-            event_handler.spawn();
+            threads.push(event_handler.spawn());
         }
 
         info!("program started");
 
-        let attachments = ProgramAttachments {
-            thread_handles: threads,
-            event_rx: program_event_rx,
-        };
-
         let program = Program {
             child_pid: child.pid(),
             id: uuid::Uuid::new_v4().to_simple_string(),
-            tx: program_event_tx,
+            tx: program_event_tx.clone(),
         };
 
-        (program, attachments)
+        tx.send(
+            ProgramEvent::AddProgram {
+                program_id: program.id.clone(),
+                rx: program_event_rx,
+            }
+        );
+
+        (program, threads)
     }
 }
 

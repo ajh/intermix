@@ -34,6 +34,7 @@ impl EventHandler {
     }
 
     pub fn spawn(self) -> thread::JoinHandle<()> {
+        info!("spawning event handler");
         thread::spawn(move || {
             let mut buf = [0 as u8; 4096];
             //let reader = unsafe { File::from_raw_fd(self.pty.as_raw_fd()) };

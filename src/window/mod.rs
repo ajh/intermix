@@ -11,7 +11,7 @@ use std::io::prelude::*;
 use std::io;
 use term::terminfo::*;
 use std::thread;
-use std::sync::mpsc::*;
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 
 pub use self::event_handler::*;
@@ -22,13 +22,25 @@ pub use self::event_handler::*;
 /// selecting on a changable list of channel receivers.
 pub struct Window {
     pub panes: Vec<::pane::Pane>,
+    // This'll be WindowEvents at some point
+    pub tx: mpsc::Sender<::program::ProgramEvent>,
 }
 
 impl Window {
-    pub fn new() -> Window {
-        Window {
+    pub fn new() -> (Window, Vec<thread::JoinHandle<()>>) {
+        let (tx, rx) = mpsc::channel();
+        let mut threads = vec!();
+
+        let mut event_handler = EventHandler::new();
+        event_handler.receivers.push(Box::new(rx));
+        threads.push(event_handler.spawn());
+
+        let window = Window {
             panes: vec!(),
-        }
+            tx: tx,
+        };
+
+        (window, threads)
     }
 
     pub fn start(&self) {
