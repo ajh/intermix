@@ -12,6 +12,7 @@ extern crate rustc_serialize;
 use std::thread;
 
 mod window;
+mod window_event_handler;
 mod program;
 mod pane;
 mod tty_painter;
@@ -57,7 +58,9 @@ fn main() {
     let pane = pane::Pane::new(libvterm_sys::Pos {row: 20, col: 20}, attachments.event_rx);
 
     window.panes.push(pane);
-    window.spawn_drawing_thr();
+    let rx = window.panes.first_mut().unwrap().program_event_rx.take().unwrap();
+    let eh = window_event_handler::WindowEventHandler::new(rx);
+    eh.spawn();
 
     info!("joining threads");
     for thr in attachments.thread_handles {

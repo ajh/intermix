@@ -27,24 +27,6 @@ impl Window {
         }
     }
 
-    // just loop over the one receiver, deal with multiple receivers and changes to what receivers
-    // we have later
-    pub fn spawn_drawing_thr(&mut self) {
-        // assume only one rx for now
-        let rx = self.panes.first_mut().unwrap().program_event_rx.take().unwrap();
-        let offset = self.panes.first().unwrap().offset.clone();
-
-        thread::spawn(move || {
-            let mut painter: ::tty_painter::TtyPainter = Default::default();
-
-            loop {
-                match rx.recv().unwrap() {
-                    ::program::ProgramEvent::Damage{cells} => painter.draw_cells(&cells, &mut io::stdout(), &offset),
-                }
-            }
-        });
-    }
-
     pub fn start(&self) {
         self.set_raw_mode(0);
         let mut tty = TerminfoTerminal::new(io::stdout()).unwrap();
