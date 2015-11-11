@@ -1,13 +1,14 @@
-extern crate log4rs;
+extern crate docopt;
+extern crate libc;
+extern crate libvterm_sys;
 #[macro_use]
 extern crate log;
+extern crate log4rs;
 extern crate pty;
-extern crate termios;
-extern crate libvterm_sys;
-extern crate term;
-extern crate libc;
-extern crate docopt;
 extern crate rustc_serialize;
+extern crate term;
+extern crate termios;
+extern crate uuid;
 
 use std::thread;
 
@@ -55,11 +56,10 @@ fn main() {
     if command_and_args.len() == 0 { command_and_args.push("bash".to_string()); }
     let (program, attachments) = program::Program::new(&command_and_args);
 
-    let pane = pane::Pane::new(libvterm_sys::Pos {row: 20, col: 20}, attachments.event_rx);
-
+    let pane = pane::Pane::new(&libvterm_sys::Pos {row: 20, col: 20});
     window.panes.push(pane);
-    let rx = window.panes.first_mut().unwrap().program_event_rx.take().unwrap();
-    let eh = window_event_handler::WindowEventHandler::new(rx);
+
+    let eh = window_event_handler::WindowEventHandler::new(attachments.event_rx);
     eh.spawn();
 
     info!("joining threads");

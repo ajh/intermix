@@ -6,6 +6,7 @@ extern crate term;
 extern crate libc;
 extern crate docopt;
 extern crate rustc_serialize;
+extern crate uuid;
 
 use std::ffi::CString;
 use std::fs::File;
@@ -19,17 +20,19 @@ use std::thread;
 use libvterm_sys::*;
 
 pub enum ProgramEvent {
-    Damage { cells: Vec<ScreenCell> },
+    Damage { program_id: String, cells: Vec<ScreenCell> },
+    AddProgram { program_id: String, rx: mpsc::Receiver<ProgramEvent> }
 }
 
 pub struct ProgramAttachments {
     pub thread_handles: Vec<thread::JoinHandle<()>>,
     pub event_rx: mpsc::Receiver<ProgramEvent>,
-    pub child_pid: i32,
 }
 
 pub struct Program {
     child_pid: i32,
+    id: String,
+    tx: mpsc::Sender<ProgramEvent>,
 }
 
 impl Program {
@@ -42,18 +45,19 @@ impl Program {
         info!("spawning threads");
         let mut threads = vec!();
         threads.push(spawn_stdin_to_pty_thr(&child));
-        threads.push(spawn_pty_reader(&child, program_event_tx));
+        threads.push(spawn_pty_reader(&child, program_event_tx.clone()));
 
         info!("program started");
 
         let attachments = ProgramAttachments {
             thread_handles: threads,
             event_rx: program_event_rx,
-            child_pid: child.pid(),
         };
 
         let program = Program {
             child_pid: child.pid(),
+            id: uuid::Uuid::new_v4().to_simple_string(),
+            tx: program_event_tx,
         };
 
         (program, attachments)
@@ -204,6 +208,6 @@ fn send_program_damage_event(vterm: &mut VTerm, rect: &Rect, tx: &mpsc::Sender<P
         }
     }
 
-    let event = ProgramEvent::Damage { cells: cells };
+    let event = ProgramEvent::Damage { program_id: "not implemented".to_string(), cells: cells };
     tx.send(event).unwrap();
 }

@@ -36,7 +36,8 @@ impl WindowEventHandler {
 
             loop {
                 match self.rx.recv().unwrap() {
-                    ::program::ProgramEvent::Damage{cells} => painter.draw_cells(&cells, &mut io::stdout(), &libvterm_sys::Pos { row: 10, col: 5 }),
+                    ::program::ProgramEvent::Damage{program_id: _, cells} => painter.draw_cells(&cells, &mut io::stdout(), &libvterm_sys::Pos { row: 10, col: 5 }),
+                    ::program::ProgramEvent::AddProgram{program_id: _, rx: _} => info!("add program"),
                 }
             }
         });

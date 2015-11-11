@@ -20,14 +20,10 @@ use std::sync::{Arc, Mutex};
 pub struct Pane {
     // offset within its window
     pub offset: libvterm_sys::Pos,
-    pub program_event_rx: Option<Receiver<::program::ProgramEvent>>,
 }
 
 impl Pane {
-    pub fn new(offset: libvterm_sys::Pos, rx: Receiver<::program::ProgramEvent>) -> Pane {
-        Pane {
-            offset: offset,
-            program_event_rx: Some(rx)
-        }
+    pub fn new(offset: &libvterm_sys::Pos) -> Pane {
+        Pane { offset: offset.clone() }
     }
 }
