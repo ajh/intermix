@@ -13,7 +13,6 @@ extern crate uuid;
 use std::thread;
 
 mod window;
-mod window_event_handler;
 mod program;
 mod pane;
 mod tty_painter;
@@ -59,7 +58,7 @@ fn main() {
     let pane = pane::Pane::new(&libvterm_sys::Pos {row: 20, col: 20});
     window.panes.push(pane);
 
-    let eh = window_event_handler::WindowEventHandler::new(attachments.event_rx);
+    let eh = window::EventHandler::new(attachments.event_rx);
     eh.spawn();
 
     info!("joining threads");

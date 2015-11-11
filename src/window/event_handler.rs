@@ -13,18 +13,14 @@ use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Arc, Mutex};
 
-/// A window has panes, each of which can have a program
-///
-/// For now, we'll setup all the panes first, then call spawn so we don't have to deal with
-/// selecting on a changable list of channel receivers.
-pub struct WindowEventHandler {
+pub struct EventHandler {
     // deal with Program Events for now, until we have window events implemented
     rx: Receiver<::program::ProgramEvent>
 }
 
-impl WindowEventHandler {
-    pub fn new(rx: Receiver<::program::ProgramEvent>) -> WindowEventHandler {
-        WindowEventHandler {rx: rx}
+impl EventHandler {
+    pub fn new(rx: Receiver<::program::ProgramEvent>) -> EventHandler {
+        EventHandler {rx: rx}
     }
 
     // just loop over the one receiver, deal with multiple receivers and changes to what receivers

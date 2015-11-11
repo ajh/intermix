@@ -4,6 +4,8 @@ extern crate termios;
 extern crate log4rs;
 extern crate ioctl_rs as ioctl;
 
+mod event_handler;
+
 use std::os::unix::io::RawFd;
 use std::io::prelude::*;
 use std::io;
@@ -11,6 +13,8 @@ use term::terminfo::*;
 use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Arc, Mutex};
+
+pub use self::event_handler::*;
 
 /// A window has panes, each of which can have a program
 ///
