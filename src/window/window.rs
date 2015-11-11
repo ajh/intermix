@@ -5,7 +5,6 @@ extern crate log4rs;
 extern crate ioctl_rs as ioctl;
 
 use std::os::unix::io::RawFd;
-use std::io::prelude::*;
 use std::io;
 use term::terminfo::*;
 use std::thread;

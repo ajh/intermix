@@ -1,17 +1,5 @@
-extern crate libc;
-extern crate pty;
-extern crate termios;
-extern crate log4rs;
-extern crate ioctl_rs as ioctl;
 extern crate libvterm_sys;
 
-use std::os::unix::io::RawFd;
-use std::io::prelude::*;
-use std::io;
-use term::terminfo::*;
-use std::thread;
-use std::sync::mpsc::*;
-use std::sync::{Arc, Mutex};
 use libvterm_sys::*;
 
 /// A window has panes, each of which can have a program

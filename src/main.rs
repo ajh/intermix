@@ -14,7 +14,6 @@ extern crate uuid;
 
 use std::thread;
 use libvterm_sys::*;
-use std::sync::{Arc, Mutex};
 
 mod window;
 mod program;
@@ -40,17 +39,6 @@ Options:
 #[derive(Debug, RustcDecodable)]
 struct Args {
     arg_command: Vec<String>,
-}
-
-/// Start program in a new pane
-fn start_program_in_new_pane(command_and_args: &Vec<String>, window: &Arc<Mutex<window::Window>>, size: &ScreenSize, offset: &Pos) -> Vec<thread::JoinHandle<()>> {
-    info!("starting program");
-    let (program, threads) = program::Program::new(command_and_args, window.lock().unwrap().tx.clone(), size);
-
-    let pane = pane::Pane::new(size, offset, &program.id);
-    window.lock().unwrap().panes.push(pane);
-
-    threads
 }
 
 fn main() {

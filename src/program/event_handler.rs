@@ -8,13 +8,9 @@ extern crate docopt;
 extern crate rustc_serialize;
 extern crate uuid;
 
-use std::ffi::CString;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{BufReader};
-use std::io;
-use std::os::unix::io::{AsRawFd, FromRawFd};
-use std::ptr;
 use std::sync::mpsc;
 use std::thread;
 use libvterm_sys::*;

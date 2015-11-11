@@ -5,10 +5,7 @@ extern crate log4rs;
 extern crate ioctl_rs as ioctl;
 extern crate libvterm_sys;
 
-use std::os::unix::io::RawFd;
-use std::io::prelude::*;
 use std::io;
-use term::terminfo::*;
 use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Weak, Mutex};
@@ -56,7 +53,7 @@ impl EventHandler {
 
                 match handle.recv() {
                     Ok(event) => match event {
-                        ProgramEvent::Damage{program_id: program_id, cells} => {
+                        ProgramEvent::Damage{program_id, cells} => {
                             let offset = {
                                 let window_arc = self.window.upgrade().unwrap();
                                 let window = window_arc.lock().unwrap();
@@ -69,7 +66,7 @@ impl EventHandler {
 
                             painter.draw_cells(&cells, &mut io::stdout(), &offset);
                         },
-                        ProgramEvent::AddProgram{program_id: _, rx: rx} => {
+                        ProgramEvent::AddProgram{program_id: _, rx} => {
                             info!("add program");
                             self.receivers.push(Box::new(rx));
                             let rx = unsafe { & *(&**self.receivers.last().unwrap() as *const _) };
