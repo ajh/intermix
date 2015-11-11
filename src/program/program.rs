@@ -20,11 +20,6 @@ use std::thread;
 use libvterm_sys::*;
 use super::*;
 
-pub enum ProgramEvent {
-    Damage { program_id: String, cells: Vec<ScreenCell> },
-    AddProgram { program_id: String, rx: mpsc::Receiver<ProgramEvent> }
-}
-
 pub struct Program {
     child_pid: i32,
     id: String,
