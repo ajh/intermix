@@ -20,6 +20,11 @@ mod window;
 mod program;
 mod pane;
 mod tty_painter;
+mod server;
+
+pub use window::Window;
+pub use program::Program;
+pub use server::Server;
 
 const USAGE: &'static str = "
 intermix - a terminal emulator multiplexer
@@ -62,10 +67,9 @@ fn main() {
 
     let mut threads: Vec<thread::JoinHandle<()>> = vec!();
 
-    info!("starting window");
-    let (window, mut more_threads) = window::Window::new();
-    threads.append(&mut more_threads);
-    window.lock().unwrap().start();
+    let mut server = Server::new();
+    let mut thrs = server.start_new_window();
+    threads.append(&mut thrs);
 
     let screen_size = ScreenSize { rows: 24, cols: 80 };
 
@@ -73,11 +77,11 @@ fn main() {
     let mut command_and_args = args.arg_command.clone();
     // TODO: use env to get SHELL variable here
     if command_and_args.len() == 0 { command_and_args.push("bash".to_string()); }
-    let mut more_threads = start_program_in_new_pane(&command_and_args, &window, &screen_size, &Pos { row: 0, col: 0 });
+    let mut more_threads = server.start_program_in_new_pane(&command_and_args, &screen_size, &Pos { row: 0, col: 0 });
     threads.append(&mut more_threads);
 
     info!("starting another program");
-    let mut more_threads = start_program_in_new_pane(&vec!("bash".to_string()), &window, &screen_size, &Pos { row: 24, col: 0 });
+    let mut more_threads = server.start_program_in_new_pane(&vec!("bash".to_string()), &screen_size, &Pos { row: 24, col: 0 });
     threads.append(&mut more_threads);
 
     info!("joining threads");
@@ -85,8 +89,5 @@ fn main() {
         thr.join().unwrap();
     }
 
-    info!("stopping window");
-    // This doesn't really reset the terminal when using direct draw, because the program being run
-    // will have done whatever random stuff to it
-    window.lock().unwrap().stop();
+    server.stop();
 }
