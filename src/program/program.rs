@@ -43,13 +43,6 @@ impl Program {
         // this should be somewhere else
         threads.push(spawn_stdin_to_pty_thr(&child));
 
-        {
-            let pty = child.pty().unwrap().clone();
-            let io = unsafe { File::from_raw_fd(pty.as_raw_fd()) };
-            let event_handler = EventHandler::new(io, program_event_tx.clone());
-            threads.push(event_handler.spawn());
-        }
-
         info!("program started");
 
         let program = Program {
@@ -57,6 +50,13 @@ impl Program {
             id: uuid::Uuid::new_v4().to_simple_string(),
             tx: program_event_tx.clone(),
         };
+
+        {
+            let pty = child.pty().unwrap().clone();
+            let io = unsafe { File::from_raw_fd(pty.as_raw_fd()) };
+            let event_handler = EventHandler::new(&program.id, io, program_event_tx.clone());
+            threads.push(event_handler.spawn());
+        }
 
         tx.send(
             ProgramEvent::AddProgram {

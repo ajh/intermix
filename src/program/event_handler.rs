@@ -23,13 +23,15 @@ use libvterm_sys::*;
 pub struct EventHandler {
     pty: File,
     tx: mpsc::Sender<super::ProgramEvent>,
+    program_id: String,
 }
 
 impl EventHandler {
-    pub fn new(io: File, tx: mpsc::Sender<super::ProgramEvent>) -> EventHandler {
+    pub fn new(id: &str, io: File, tx: mpsc::Sender<super::ProgramEvent>) -> EventHandler {
         EventHandler {
             pty: io,
             tx: tx,
+            program_id: id.to_string(),
         }
     }
 
@@ -111,7 +113,7 @@ impl EventHandler {
             }
         }
 
-        let event = super::ProgramEvent::Damage { program_id: "not implemented".to_string(), cells: cells };
+        let event = super::ProgramEvent::Damage { program_id: self.program_id.clone(), cells: cells };
         self.tx.send(event).unwrap();
     }
 }
