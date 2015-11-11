@@ -14,6 +14,7 @@ extern crate uuid;
 
 use std::thread;
 use libvterm_sys::*;
+use std::sync::{Arc, Mutex};
 
 mod window;
 mod program;
@@ -36,6 +37,17 @@ struct Args {
     arg_command: Vec<String>,
 }
 
+/// Start program in a new pane
+fn start_program_in_new_pane(command_and_args: &Vec<String>, window: &Arc<Mutex<window::Window>>, size: &ScreenSize, offset: &Pos) -> Vec<thread::JoinHandle<()>> {
+    info!("starting program");
+    let (program, threads) = program::Program::new(command_and_args, window.lock().unwrap().tx.clone(), size);
+
+    let pane = pane::Pane::new(size, offset, &program.id);
+    window.lock().unwrap().panes.push(pane);
+
+    threads
+}
+
 fn main() {
     log4rs::init_file(
         &std::env::current_dir().unwrap().join("log4rs.toml"),
@@ -55,16 +67,18 @@ fn main() {
     threads.append(&mut more_threads);
     window.lock().unwrap().start();
 
-    info!("starting program");
     let screen_size = ScreenSize { rows: 24, cols: 80 };
+
+    info!("starting program");
     let mut command_and_args = args.arg_command.clone();
     // TODO: use env to get SHELL variable here
     if command_and_args.len() == 0 { command_and_args.push("bash".to_string()); }
-    let (program, mut more_threads) = program::Program::new(&command_and_args, window.lock().unwrap().tx.clone(), &screen_size);
+    let mut more_threads = start_program_in_new_pane(&command_and_args, &window, &screen_size, &Pos { row: 0, col: 0 });
     threads.append(&mut more_threads);
 
-    let pane = pane::Pane::new(&screen_size, &Pos {row: 20, col: 0}, &program.id);
-    window.lock().unwrap().panes.push(pane);
+    info!("starting another program");
+    let mut more_threads = start_program_in_new_pane(&vec!("bash".to_string()), &window, &screen_size, &Pos { row: 24, col: 0 });
+    threads.append(&mut more_threads);
 
     info!("joining threads");
     for thr in threads {
