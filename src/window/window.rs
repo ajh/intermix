@@ -33,7 +33,7 @@ impl Window {
             tx: tx,
         }));
 
-        let mut event_handler = EventHandler::new(window.clone());
+        let mut event_handler = EventHandler::new(Arc::downgrade(&window.clone()));
         event_handler.receivers.push(Box::new(rx));
         threads.push(event_handler.spawn());
 

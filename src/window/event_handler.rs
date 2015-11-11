@@ -11,18 +11,18 @@ use std::io;
 use term::terminfo::*;
 use std::thread;
 use std::sync::mpsc::*;
-use std::sync::{Arc, Mutex};
+use std::sync::{Weak, Mutex};
 use ::program::ProgramEvent;
 use super::*;
 
 pub struct EventHandler {
-    window: Arc<Mutex<Window>>,
+    window: Weak<Mutex<Window>>,
     // deal with Program Events for now, until we have window events implemented
     pub receivers: Vec<Box<Receiver<ProgramEvent>>>,
 }
 
 impl EventHandler {
-    pub fn new(window: Arc<Mutex<Window>>) -> EventHandler {
+    pub fn new(window: Weak<Mutex<Window>>) -> EventHandler {
         EventHandler {
             window: window,
             receivers: vec!(),
@@ -58,7 +58,8 @@ impl EventHandler {
                     Ok(event) => match event {
                         ProgramEvent::Damage{program_id: program_id, cells} => {
                             let offset = {
-                                let window = self.window.lock().unwrap();
+                                let window_arc = self.window.upgrade().unwrap();
+                                let window = window_arc.lock().unwrap();
                                 let pane = window.panes.iter().find(|p| p.program_id == program_id);
                                 match pane {
                                     Some(p) => p.offset.clone(),
