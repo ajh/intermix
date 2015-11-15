@@ -39,7 +39,7 @@ impl EventHandler {
             let mut reader = BufReader::new(&self.pty);
 
             // create vterm instance.
-            let mut vterm = VTerm::new(24, 80);
+            let mut vterm = VTerm::new(ScreenSize { rows: 24, cols: 80 });
             vterm.set_utf8(true);
             let vterm_event_rx = vterm.receive_screen_events();
 

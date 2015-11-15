@@ -19,6 +19,8 @@ pub struct TtyPainter {
 }
 
 impl TtyPainter {
+    /// TODO: make this take &self not &mut self because changing the pen is just an implementation
+    /// detail. Use Cell or whatever for interior mutability.
     pub fn draw_cells<F: Write>(&mut self, cells: &Vec<ScreenCell>, io: &mut F, offset: &Pos) {
         // turn off cursor
         let ti = term::terminfo::TermInfo::from_env().unwrap();
@@ -132,9 +134,107 @@ mod tests {
 
     use libvterm_sys::*;
     use super::*;
+    use std::io::prelude::*;
+    use std::io;
+
+    struct CaptureIO {
+        pub cursor: usize,
+        pub bytes:  Vec<u8>
+    }
+
+    impl CaptureIO {
+        fn new() -> CaptureIO {
+            CaptureIO { cursor: 0, bytes: vec!() }
+        }
+
+        fn slice(&self) -> &[u8] {
+            &self.bytes
+        }
+    }
+
+    impl Write for CaptureIO {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            for byte in buf {
+                self.bytes.push(*byte);
+            }
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    struct CellsIterator<'a> {
+        pos: Pos,
+        vterm: &'a VTerm,
+        size: ScreenSize,
+    }
+
+    impl<'a> CellsIterator<'a> {
+        pub fn new(vterm: &'a VTerm) -> CellsIterator<'a> {
+            CellsIterator {
+                pos: Default::default(),
+                vterm: vterm,
+                size: vterm.get_size(),
+            }
+        }
+
+        fn advance(&mut self) {
+            if ((self.pos.col + 1) as u16) < self.size.cols {
+                self.pos.col += 1;
+            }
+            else {
+                self.pos.col = 0;
+                self.pos.row += 1;
+            }
+        }
+    }
+
+    impl<'a> Iterator for CellsIterator<'a> {
+        type Item = ScreenCell;
+
+        fn next(&mut self) -> Option<ScreenCell> {
+            let cell: Option<ScreenCell>;
+
+            if (self.pos.col as u16) < self.size.cols && (self.pos.row as u16) < self.size.rows {
+                cell = Some(self.vterm.screen.get_cell(&self.pos));
+                self.advance();
+            }
+            else {
+                cell = None;
+            }
+
+            cell
+        }
+    }
 
     #[test]
-    fn true_is_true() {
-        assert!(true);
+    fn it_can_paint_something_simple() {
+        let mut painter: TtyPainter = Default::default();
+        let mut io = CaptureIO::new();
+
+        // create some ScreenCells with stuff
+        let cells = vec!(
+            ScreenCell { pos: Pos { row: 0, col: 0 }, chars: vec!('h'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 0, col: 1 }, chars: vec!('i'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 1, col: 0 }, chars: vec!('h'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 1, col: 1 }, chars: vec!('o'), width: 1, .. Default::default() },
+        );
+
+        // paint them into libvterm
+        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+
+        let mut vterm = VTerm::new(ScreenSize{ rows: 2, cols: 2 });
+        vterm.write(&io.bytes);
+
+        // get all damaged cells
+        let iterator = CellsIterator::new(&vterm);
+        let actual_cells: Vec<ScreenCell> = iterator.collect();
+
+        // compare actual with expected
+        let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
+        let actual: Vec<char>   = actual_cells.iter().flat_map(|c| c.chars.clone()).collect();
+        assert_eq!(expected, actual);
     }
 }
