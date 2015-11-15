@@ -209,6 +209,14 @@ mod tests {
         }
     }
 
+    fn drawn_cells(io: &CaptureIO, size: ScreenSize) -> Vec<ScreenCell> {
+        let mut vterm = VTerm::new(size);
+        vterm.write(&io.bytes);
+
+        let iterator = CellsIterator::new(&vterm);
+        iterator.collect()
+    }
+
     #[test]
     fn it_can_paint_something_simple() {
         let mut painter: TtyPainter = Default::default();
@@ -225,16 +233,12 @@ mod tests {
         // paint them into libvterm
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
-        let mut vterm = VTerm::new(ScreenSize{ rows: 2, cols: 2 });
-        vterm.write(&io.bytes);
-
-        // get all damaged cells
-        let iterator = CellsIterator::new(&vterm);
-        let actual_cells: Vec<ScreenCell> = iterator.collect();
-
-        // compare actual with expected
         let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char>   = actual_cells.iter().flat_map(|c| c.chars.clone()).collect();
+        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 2, rows: 2})
+            .iter()
+            .flat_map(|c| c.chars.clone())
+            .collect();
+
         assert_eq!(expected, actual);
     }
 }
