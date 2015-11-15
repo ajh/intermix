@@ -42,7 +42,6 @@ impl EventHandler {
             let mut vterm = VTerm::new(24, 80);
             vterm.set_utf8(true);
             let vterm_event_rx = vterm.receive_screen_events();
-            vterm.get_screen().reset(true); // boilerplate to avoid segfault
 
             info!("starting pty -> stdout thread");
             loop {
@@ -62,7 +61,7 @@ impl EventHandler {
                 };
 
                 vterm.write(bytes);
-                vterm.get_screen().flush_damage();
+                vterm.screen.flush_damage();
 
                 self.handle_screen_events(&mut vterm, &vterm_event_rx);
 
@@ -105,7 +104,7 @@ impl EventHandler {
             pos.row = row as i16;
             for col in rect.start_col..rect.end_col {
                 pos.col = col as i16;
-                cells.push(vterm.get_screen().get_cell(&pos));
+                cells.push(vterm.screen.get_cell(&pos));
             }
         }
 

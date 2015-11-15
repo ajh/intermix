@@ -126,3 +126,15 @@ impl TtyPainter {
         if cell.width > 1 { trace!("cell has width > 1 {:?}", cell) }
     }
 }
+
+mod tests {
+    extern crate libvterm_sys;
+
+    use libvterm_sys::*;
+    use super::*;
+
+    #[test]
+    fn true_is_true() {
+        assert!(true);
+    }
+}
