@@ -218,16 +218,16 @@ mod tests {
     }
 
     #[test]
-    fn it_can_paint_something_simple() {
+    fn it_correctly_draws_empty_screen() {
         let mut painter: TtyPainter = Default::default();
         let mut io = CaptureIO::new();
 
         // create some ScreenCells with stuff
         let cells = vec!(
-            ScreenCell { pos: Pos { row: 0, col: 0 }, chars: vec!('h'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 0, col: 1 }, chars: vec!('i'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 1, col: 0 }, chars: vec!('h'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 1, col: 1 }, chars: vec!('o'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 0, col: 0 }, .. Default::default() },
+            ScreenCell { pos: Pos { row: 0, col: 1 }, .. Default::default() },
+            ScreenCell { pos: Pos { row: 1, col: 0 }, .. Default::default() },
+            ScreenCell { pos: Pos { row: 1, col: 1 }, .. Default::default() },
         );
 
         // paint them into libvterm
@@ -235,6 +235,93 @@ mod tests {
 
         let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
         let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 2, rows: 2})
+            .iter()
+            .flat_map(|c| c.chars.clone())
+            .collect();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn it_correctly_draws_position_of_chars() {
+        let mut painter: TtyPainter = Default::default();
+        let mut io = CaptureIO::new();
+
+        let cells = vec!(
+            ScreenCell { pos: Pos { row: 0, col: 0 }, chars: vec!('y'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 1, col: 1 }, chars: vec!('o'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 2, col: 2 }, chars: vec!('!'), width: 1, .. Default::default() },
+        );
+        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+
+        let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
+        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3})
+            .iter()
+            .flat_map(|c| c.chars.clone())
+            .collect();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn it_draws_consecutive_chars() {
+        let mut painter: TtyPainter = Default::default();
+        let mut io = CaptureIO::new();
+
+        let cells = vec!(
+            ScreenCell { pos: Pos { row: 1, col: 0 }, chars: vec!('y'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 1, col: 1 }, chars: vec!('o'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 1, col: 2 }, chars: vec!('!'), width: 1, .. Default::default() },
+        );
+        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+
+        let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
+        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3})
+            .iter()
+            .flat_map(|c| c.chars.clone())
+            .collect();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn it_draws_chars_with_gaps() {
+        let mut painter: TtyPainter = Default::default();
+        let mut io = CaptureIO::new();
+
+        let cells = vec!(
+            ScreenCell { pos: Pos { row: 0, col: 0 }, chars: vec!('a'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 0, col: 2 }, chars: vec!('b'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 1, col: 0 }, chars: vec!('c'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 1, col: 2 }, chars: vec!('d'), width: 1, .. Default::default() },
+        );
+        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+
+        let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
+        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3})
+            .iter()
+            .flat_map(|c| c.chars.clone())
+            .collect();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn it_draws_vertical_chars() {
+        let mut painter: TtyPainter = Default::default();
+        let mut io = CaptureIO::new();
+
+        let cells = vec!(
+            ScreenCell { pos: Pos { row: 0, col: 1 }, chars: vec!('a'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 1, col: 1 }, chars: vec!('b'), width: 1, .. Default::default() },
+            ScreenCell { pos: Pos { row: 2, col: 1 }, chars: vec!('c'), width: 1, .. Default::default() },
+        );
+
+        // paint them into libvterm
+        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+
+        let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
+        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3})
             .iter()
             .flat_map(|c| c.chars.clone())
             .collect();
