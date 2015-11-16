@@ -25,83 +25,117 @@ impl TtyPainter {
         // turn off cursor
         let ti = term::terminfo::TermInfo::from_env().unwrap();
         let cmd = ti.strings.get("civis").unwrap();
-        let s = term::terminfo::parm::expand(&cmd, &[], &mut term::terminfo::parm::Variables::new()).unwrap();
+        let s = term::terminfo::parm::expand(&cmd,
+                                             &[],
+                                             &mut term::terminfo::parm::Variables::new())
+                    .unwrap();
         io.write_all(&s).unwrap();
 
-        for cell in cells { self.draw_cell(cell, io, offset) }
+        for cell in cells {
+            self.draw_cell(cell, io, offset)
+        }
 
         let ti = term::terminfo::TermInfo::from_env().unwrap();
         let cmd = ti.strings.get("cvvis").unwrap();
-        let s = term::terminfo::parm::expand(&cmd, &[], &mut term::terminfo::parm::Variables::new()).unwrap();
+        let s = term::terminfo::parm::expand(&cmd,
+                                             &[],
+                                             &mut term::terminfo::parm::Variables::new())
+                    .unwrap();
         io.write_all(&s).unwrap();
 
         io.flush().unwrap();
     }
 
     fn draw_cell<F: Write>(&mut self, cell: &ScreenCell, io: &mut F, offset: &Pos) {
-        let mut sgrs: Vec<isize> = vec!();
+        let mut sgrs: Vec<isize> = vec![];
 
-        if !self.pen.attrs.bold && cell.attrs.bold                    { sgrs.push(1); }
-        if self.pen.attrs.bold && !cell.attrs.bold                    { sgrs.push(22); }
-        if self.pen.attrs.underline == 0 && cell.attrs.underline != 0 { sgrs.push(4); }
-        if self.pen.attrs.underline != 0 && cell.attrs.underline == 0 { sgrs.push(24); }
-        if !self.pen.attrs.italic && cell.attrs.italic                { sgrs.push(3); }
-        if self.pen.attrs.italic && !cell.attrs.italic                { sgrs.push(23); }
-        if !self.pen.attrs.blink && cell.attrs.blink                  { sgrs.push(5); }
-        if self.pen.attrs.blink && !cell.attrs.blink                  { sgrs.push(25); }
-        if !self.pen.attrs.reverse && cell.attrs.reverse              { sgrs.push(7); }
-        if self.pen.attrs.reverse && !cell.attrs.reverse              { sgrs.push(27); }
-        if !self.pen.attrs.strike && cell.attrs.strike                { sgrs.push(9); }
-        if self.pen.attrs.strike && !cell.attrs.strike                { sgrs.push(29); }
-        if self.pen.attrs.font == 0 && cell.attrs.font != 0           { sgrs.push(10 + cell.attrs.font as isize); }
-        if self.pen.attrs.font != 0 && cell.attrs.font == 0           { sgrs.push(10); }
+        if !self.pen.attrs.bold && cell.attrs.bold {
+            sgrs.push(1);
+        }
+        if self.pen.attrs.bold && !cell.attrs.bold {
+            sgrs.push(22);
+        }
+        if self.pen.attrs.underline == 0 && cell.attrs.underline != 0 {
+            sgrs.push(4);
+        }
+        if self.pen.attrs.underline != 0 && cell.attrs.underline == 0 {
+            sgrs.push(24);
+        }
+        if !self.pen.attrs.italic && cell.attrs.italic {
+            sgrs.push(3);
+        }
+        if self.pen.attrs.italic && !cell.attrs.italic {
+            sgrs.push(23);
+        }
+        if !self.pen.attrs.blink && cell.attrs.blink {
+            sgrs.push(5);
+        }
+        if self.pen.attrs.blink && !cell.attrs.blink {
+            sgrs.push(25);
+        }
+        if !self.pen.attrs.reverse && cell.attrs.reverse {
+            sgrs.push(7);
+        }
+        if self.pen.attrs.reverse && !cell.attrs.reverse {
+            sgrs.push(27);
+        }
+        if !self.pen.attrs.strike && cell.attrs.strike {
+            sgrs.push(9);
+        }
+        if self.pen.attrs.strike && !cell.attrs.strike {
+            sgrs.push(29);
+        }
+        if self.pen.attrs.font == 0 && cell.attrs.font != 0 {
+            sgrs.push(10 + cell.attrs.font as isize);
+        }
+        if self.pen.attrs.font != 0 && cell.attrs.font == 0 {
+            sgrs.push(10);
+        }
 
-        //if self.pen.fg.red   != cell.fg.red   ||
-           //self.pen.fg.green != cell.fg.green ||
-           //self.pen.fg.blue  != cell.fg.blue {
-            ////trace!("changing fg color: prev {} {} {} cell {} {} {}",
-                   ////self.pen.fg.red,
-                   ////self.pen.fg.green,
-                   ////self.pen.fg.blue,
-                   ////self.pen.bg.red,
-                   ////self.pen.bg.green,
-                   ////self.pen.bg.blue);
-            //let index = color_to_index(state, &cell.fg);
-            //if index == -1 { sgrs.push(39); }
-            //else if index < 8 { sgrs.push(30 + index); }
-            //else if index < 16 { sgrs.push(90 + (index - 8)); }
-            //else {
-                //sgrs.push(38);
-                //sgrs.push(5 | (1<<31));
-                //sgrs.push(index | (1<<31));
-            //}
-        //}
+        // if self.pen.fg.red   != cell.fg.red   ||
+        // self.pen.fg.green != cell.fg.green ||
+        // self.pen.fg.blue  != cell.fg.blue {
+        // /trace!("changing fg color: prev {} {} {} cell {} {} {}",
+        // /self.pen.fg.red,
+        // /self.pen.fg.green,
+        // /self.pen.fg.blue,
+        // /self.pen.bg.red,
+        // /self.pen.bg.green,
+        // /self.pen.bg.blue);
+        // let index = color_to_index(state, &cell.fg);
+        // if index == -1 { sgrs.push(39); }
+        // else if index < 8 { sgrs.push(30 + index); }
+        // else if index < 16 { sgrs.push(90 + (index - 8)); }
+        // else {
+        // sgrs.push(38);
+        // sgrs.push(5 | (1<<31));
+        // sgrs.push(index | (1<<31));
+        // }
+        // }
 
-        //if self.pen.bg.red   != cell.bg.red   ||
-           //self.pen.bg.green != cell.bg.green ||
-           //self.pen.bg.blue  != cell.bg.blue {
-            //let index = color_to_index(state, &cell.bg);
-            //if index == -1 { sgrs.push(49); }
-            //else if index < 8 { sgrs.push(40 + index); }
-            //else if index < 16 { sgrs.push(100 + (index - 8)); }
-            //else {
-                //sgrs.push(48);
-                //sgrs.push(5 | (1<<31));
-                //sgrs.push(index | (1<<31));
-            //}
-        //}
+        // if self.pen.bg.red   != cell.bg.red   ||
+        // self.pen.bg.green != cell.bg.green ||
+        // self.pen.bg.blue  != cell.bg.blue {
+        // let index = color_to_index(state, &cell.bg);
+        // if index == -1 { sgrs.push(49); }
+        // else if index < 8 { sgrs.push(40 + index); }
+        // else if index < 16 { sgrs.push(100 + (index - 8)); }
+        // else {
+        // sgrs.push(48);
+        // sgrs.push(5 | (1<<31));
+        // sgrs.push(index | (1<<31));
+        // }
+        // }
 
         if sgrs.len() != 0 {
             let mut sgr = "\x1b[".to_string();
             for (i, val) in sgrs.iter().enumerate() {
-                let bare_val = val & !(1<<31);
+                let bare_val = val & !(1 << 31);
                 if i == 0 {
                     sgr.push_str(&format!("{}", bare_val));
-                }
-                else if val & (1<<31) != 0 {
+                } else if val & (1 << 31) != 0 {
                     sgr.push_str(&format!(":{}", bare_val));
-                }
-                else {
+                } else {
                     sgr.push_str(&format!(";{}", bare_val));
                 }
             }
@@ -115,17 +149,22 @@ impl TtyPainter {
         };
 
         if pos.row != self.pen.pos.row || pos.col != self.pen.pos.col {
-            //trace!("moving cursor to row {:?} col {:?}", cell.pos.row, cell.pos.col);
+            // trace!("moving cursor to row {:?} col {:?}", cell.pos.row, cell.pos.col);
             let ti = term::terminfo::TermInfo::from_env().unwrap();
             let cmd = ti.strings.get("cup").unwrap();
-            let params = [ term::terminfo::parm::Param::Number(pos.row as i16),
-                           term::terminfo::parm::Param::Number(pos.col as i16) ];
-            let s = term::terminfo::parm::expand(&cmd, &params, &mut term::terminfo::parm::Variables::new()).unwrap();
+            let params = [term::terminfo::parm::Param::Number(pos.row as i16),
+                          term::terminfo::parm::Param::Number(pos.col as i16)];
+            let s = term::terminfo::parm::expand(&cmd,
+                                                 &params,
+                                                 &mut term::terminfo::parm::Variables::new())
+                        .unwrap();
             io.write_all(&s).unwrap();
         }
 
         io.write_all(&cell.chars_as_utf8_bytes()).ok().expect("failed to write");
-        if cell.width > 1 { trace!("cell has width > 1 {:?}", cell) }
+        if cell.width > 1 {
+            trace!("cell has width > 1 {:?}", cell)
+        }
     }
 }
 
@@ -139,12 +178,15 @@ mod tests {
 
     struct CaptureIO {
         pub cursor: usize,
-        pub bytes:  Vec<u8>
+        pub bytes: Vec<u8>,
     }
 
     impl CaptureIO {
         fn new() -> CaptureIO {
-            CaptureIO { cursor: 0, bytes: vec!() }
+            CaptureIO {
+                cursor: 0,
+                bytes: vec![],
+            }
         }
 
         fn slice(&self) -> &[u8] {
@@ -183,8 +225,7 @@ mod tests {
         fn advance(&mut self) {
             if ((self.pos.col + 1) as u16) < self.size.cols {
                 self.pos.col += 1;
-            }
-            else {
+            } else {
                 self.pos.col = 0;
                 self.pos.row += 1;
             }
@@ -200,8 +241,7 @@ mod tests {
             if (self.pos.col as u16) < self.size.cols && (self.pos.row as u16) < self.size.rows {
                 cell = Some(self.vterm.screen.get_cell(&self.pos));
                 self.advance();
-            }
-            else {
+            } else {
                 cell = None;
             }
 
@@ -234,10 +274,10 @@ mod tests {
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
         let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 2, rows: 2})
-            .iter()
-            .flat_map(|c| c.chars.clone())
-            .collect();
+        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 2, rows: 2 })
+                                    .iter()
+                                    .flat_map(|c| c.chars.clone())
+                                    .collect();
 
         assert_eq!(expected, actual);
     }
@@ -255,10 +295,10 @@ mod tests {
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
         let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3})
-            .iter()
-            .flat_map(|c| c.chars.clone())
-            .collect();
+        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3 })
+                                    .iter()
+                                    .flat_map(|c| c.chars.clone())
+                                    .collect();
 
         assert_eq!(expected, actual);
     }
@@ -276,10 +316,10 @@ mod tests {
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
         let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3})
-            .iter()
-            .flat_map(|c| c.chars.clone())
-            .collect();
+        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3 })
+                                    .iter()
+                                    .flat_map(|c| c.chars.clone())
+                                    .collect();
 
         assert_eq!(expected, actual);
     }
@@ -298,10 +338,10 @@ mod tests {
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
         let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3})
-            .iter()
-            .flat_map(|c| c.chars.clone())
-            .collect();
+        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3 })
+                                    .iter()
+                                    .flat_map(|c| c.chars.clone())
+                                    .collect();
 
         assert_eq!(expected, actual);
     }
@@ -321,10 +361,10 @@ mod tests {
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
         let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3})
-            .iter()
-            .flat_map(|c| c.chars.clone())
-            .collect();
+        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3 })
+                                    .iter()
+                                    .flat_map(|c| c.chars.clone())
+                                    .collect();
 
         assert_eq!(expected, actual);
     }

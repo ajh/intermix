@@ -10,7 +10,7 @@ extern crate uuid;
 
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::{BufReader};
+use std::io::BufReader;
 use std::sync::mpsc;
 use std::thread;
 use libvterm_sys::*;
@@ -35,11 +35,14 @@ impl EventHandler {
         info!("spawning event handler");
         thread::spawn(move || {
             let mut buf = [0 as u8; 4096];
-            //let reader = unsafe { File::from_raw_fd(self.pty.as_raw_fd()) };
+            // let reader = unsafe { File::from_raw_fd(self.pty.as_raw_fd()) };
             let mut reader = BufReader::new(&self.pty);
 
             // create vterm instance.
-            let mut vterm = VTerm::new(ScreenSize { rows: 24, cols: 80 });
+            let mut vterm = VTerm::new(ScreenSize {
+                rows: 24,
+                cols: 80,
+            });
             vterm.set_utf8(true);
             let vterm_event_rx = vterm.receive_screen_events();
 
@@ -53,7 +56,7 @@ impl EventHandler {
                             break;
                         }
                         &buf[0..num_bytes]
-                    },
+                    }
                     Err(_) => {
                         error!("error reading from pty");
                         break;
@@ -77,8 +80,13 @@ impl EventHandler {
             match event {
                 ScreenEvent::Bell => info!("bell"),
                 ScreenEvent::Damage{rect} => self.send_program_damage_event(vterm, &rect),
-                ScreenEvent::MoveCursor{new, old, is_visible} => info!("move cursor new {:?} old {:?} is_visible {:?}", new, old, is_visible),
-                ScreenEvent::MoveRect{dest, src} => info!("move rect dest {:?} src {:?}", dest, src),
+                ScreenEvent::MoveCursor{new, old, is_visible} =>
+                    info!("move cursor new {:?} old {:?} is_visible {:?}",
+                          new,
+                          old,
+                          is_visible),
+                ScreenEvent::MoveRect{dest, src} =>
+                    info!("move rect dest {:?} src {:?}", dest, src),
                 ScreenEvent::Resize{rows, cols} => info!("resize rows {:?} cols {:?}", rows, cols),
                 ScreenEvent::SbPopLine{cells: _} => info!("sb push line"),
                 ScreenEvent::SbPushLine{cells: _} => info!("sb push line"),
@@ -95,7 +103,7 @@ impl EventHandler {
     }
 
     fn send_program_damage_event(&self, vterm: &mut VTerm, rect: &Rect) {
-        //trace!("damage {:?}", rect);
+        // trace!("damage {:?}", rect);
         let mut pos: Pos = Default::default();
 
         let mut cells: Vec<ScreenCell> = Vec::new(); // capacity is known here FYI
@@ -108,7 +116,10 @@ impl EventHandler {
             }
         }
 
-        let event = super::ProgramEvent::Damage { program_id: self.program_id.clone(), cells: cells };
+        let event = super::ProgramEvent::Damage {
+            program_id: self.program_id.clone(),
+            cells: cells,
+        };
         self.tx.send(event).unwrap();
     }
 }

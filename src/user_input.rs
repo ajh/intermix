@@ -24,25 +24,27 @@ pub fn spawn_stdin_to_pty_thr(pty: RawFd) -> thread::JoinHandle<()> {
         loop {
             match io::stdin().read(&mut buf) {
                 Ok(num_bytes) => {
-                    if num_bytes == 0 { break };
+                    if num_bytes == 0 {
+                        break;
+                    };
 
-                    //if buf.iter().find(|&x| *x == terminfo::CTRL_C).is_some() {
-                        //info!("CTRL_C detected");
-                        //exit();
-                    //}
+                    // if buf.iter().find(|&x| *x == terminfo::CTRL_C).is_some() {
+                    // info!("CTRL_C detected");
+                    // exit();
+                    // }
 
                     match file.write_all(&buf[0..num_bytes]) {
-                        Ok(_) => {},
+                        Ok(_) => {}
                         Err(msg) => {
                             error!("{}", msg);
                             break;
-                        },
+                        }
                     }
-                },
+                }
                 Err(msg) => {
                     error!("{}", msg);
                     break;
-                },
+                }
             }
         }
         info!("ending stdin -> pty thread");

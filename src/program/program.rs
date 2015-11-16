@@ -27,7 +27,10 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(command_and_args: &Vec<String>, tx: mpsc::Sender<ProgramEvent>, size: &ScreenSize) -> (Program, Vec<thread::JoinHandle<()>>) {
+    pub fn new(command_and_args: &Vec<String>,
+               tx: mpsc::Sender<ProgramEvent>,
+               size: &ScreenSize)
+               -> (Program, Vec<thread::JoinHandle<()>>) {
         info!("forking");
         let child = fork(command_and_args);
 
@@ -45,19 +48,17 @@ impl Program {
             pty: fd,
         };
 
-        let mut threads = vec!();
+        let mut threads = vec![];
         {
             let io = unsafe { File::from_raw_fd(fd) };
             let event_handler = EventHandler::new(&program.id, io, program_event_tx.clone());
             threads.push(event_handler.spawn());
         }
 
-        tx.send(
-            ProgramEvent::AddProgram {
-                program_id: program.id.clone(),
-                rx: program_event_rx,
-            }
-        );
+        tx.send(ProgramEvent::AddProgram {
+            program_id: program.id.clone(),
+            rx: program_event_rx,
+        });
 
         (program, threads)
     }
@@ -67,25 +68,27 @@ fn fork(command_and_args: &Vec<String>) -> pty::Child {
     match pty::fork() {
         Ok(child) => {
             if child.pid() == 0 {
-                let cstrings: Vec<CString> = command_and_args.iter().map(|s| {
-                    let bytes = s.clone().into_bytes();
-                    CString::new(bytes).unwrap()
-                }).collect();
+                let cstrings: Vec<CString> = command_and_args.iter()
+                                                             .map(|s| {
+                                                                 let bytes = s.clone().into_bytes();
+                                                                 CString::new(bytes).unwrap()
+                                                             })
+                                                             .collect();
 
-                let mut ptrs: Vec<*const libc::c_char> = (&cstrings).iter()
-                    .map(|s| s.as_ptr())
-                    .collect();
+                let mut ptrs: Vec<*const libc::c_char> = (&cstrings)
+                                                             .iter()
+                                                             .map(|s| s.as_ptr())
+                                                             .collect();
 
                 ptrs.push(ptr::null());
 
                 let ret = unsafe { libc::execvp(*ptrs.as_ptr(), ptrs.as_mut_ptr()) };
                 panic!("error {} in execvp {}", ret, io::Error::last_os_error());
-            }
-            else {
+            } else {
                 info!("got vim child process");
                 child
             }
-        },
+        }
         Err(e) => {
             panic!("pty::fork error: {}", e);
         }

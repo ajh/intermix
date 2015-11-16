@@ -25,10 +25,10 @@ pub struct Window {
 impl Window {
     pub fn new() -> (Arc<Mutex<Window>>, Vec<thread::JoinHandle<()>>) {
         let (tx, rx) = mpsc::channel();
-        let mut threads = vec!();
+        let mut threads = vec![];
 
         let window = Arc::new(Mutex::new(Window {
-            panes: vec!(),
+            panes: vec![],
             tx: tx,
         }));
 
@@ -54,19 +54,23 @@ impl Window {
     // https://github.com/ruby/ruby/blob/trunk/ext/io/console/console.c
     fn set_raw_mode(&self, fd: RawFd) {
         let mut t = termios::Termios::from_fd(fd).unwrap();
-        t.c_iflag &= !(termios::IGNBRK|termios::BRKINT|termios::PARMRK|termios::ISTRIP|termios::INLCR|termios::IGNCR|termios::ICRNL|termios::IXON);
+        t.c_iflag &= !(termios::IGNBRK | termios::BRKINT | termios::PARMRK | termios::ISTRIP |
+                       termios::INLCR |
+                       termios::IGNCR | termios::ICRNL | termios::IXON);
         t.c_oflag &= !termios::OPOST;
-        t.c_lflag &= !(termios::ECHO|termios::ECHOE|termios::ECHOK|termios::ECHONL|termios::ICANON|termios::ISIG|termios::IEXTEN);
-        t.c_cflag &= !(termios::CSIZE|termios::PARENB);
+        t.c_lflag &= !(termios::ECHO | termios::ECHOE | termios::ECHOK | termios::ECHONL |
+                       termios::ICANON | termios::ISIG | termios::IEXTEN);
+        t.c_cflag &= !(termios::CSIZE | termios::PARENB);
         t.c_cflag |= termios::CS8;
         termios::tcsetattr(fd, termios::TCSANOW, &t).unwrap();
     }
 
     fn set_cooked_mode(&self, fd: RawFd) {
         let mut t = termios::Termios::from_fd(fd).unwrap();
-        t.c_iflag |= termios::BRKINT|termios::ISTRIP|termios::ICRNL|termios::IXON;
+        t.c_iflag |= termios::BRKINT | termios::ISTRIP | termios::ICRNL | termios::IXON;
         t.c_oflag |= termios::OPOST;
-        t.c_lflag |= termios::ECHO|termios::ECHOE|termios::ECHOK|termios::ECHONL|termios::ICANON|termios::ISIG|termios::IEXTEN;
+        t.c_lflag |= termios::ECHO | termios::ECHOE | termios::ECHOK | termios::ECHONL |
+                     termios::ICANON | termios::ISIG | termios::IEXTEN;
         termios::tcsetattr(fd, termios::TCSANOW, &t).unwrap();
     }
 }

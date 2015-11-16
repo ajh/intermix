@@ -9,7 +9,7 @@ use std::io;
 use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Weak, Mutex};
-use ::program::ProgramEvent;
+use program::ProgramEvent;
 use super::*;
 
 pub struct EventHandler {
@@ -22,7 +22,7 @@ impl EventHandler {
     pub fn new(window: Weak<Mutex<Window>>) -> EventHandler {
         EventHandler {
             window: window,
-            receivers: vec!(),
+            receivers: vec![],
         }
     }
 
@@ -32,21 +32,23 @@ impl EventHandler {
         info!("spawning event handler");
         thread::spawn(move || {
             let select = Select::new();
-            let mut handles: Vec<Box<Handle<_>>> = vec!();
+            let mut handles: Vec<Box<Handle<_>>> = vec![];
 
             let mut painter: ::tty_painter::TtyPainter = Default::default();
 
             // add initial receivers
             for rx in &self.receivers {
                 // lose ownership info
-                let rx = unsafe { & *((&**rx) as *const _) };
+                let rx = unsafe { &*((&**rx) as *const _) };
                 handles.push(Box::new(select.handle(rx)));
-                unsafe { handles.last_mut().unwrap().add(); }
+                unsafe {
+                    handles.last_mut().unwrap().add();
+                }
             }
 
             while handles.len() > 0 {
                 let id = select.wait();
-                let handle = match handles.iter_mut().find(|h| { h.id() == id } ) {
+                let handle = match handles.iter_mut().find(|h| h.id() == id) {
                     Some(mut h) => unsafe { &mut *((&mut **h) as *mut Handle<_>) },
                     None => panic!("error: handle for id {} not found", id),
                 };
@@ -65,13 +67,15 @@ impl EventHandler {
                             };
 
                             painter.draw_cells(&cells, &mut io::stdout(), &offset);
-                        },
+                        }
                         ProgramEvent::AddProgram{program_id: _, rx} => {
                             info!("add program");
                             self.receivers.push(Box::new(rx));
-                            let rx = unsafe { & *(&**self.receivers.last().unwrap() as *const _) };
+                            let rx = unsafe { &*(&**self.receivers.last().unwrap() as *const _) };
                             handles.push(Box::new(select.handle(rx)));
-                            unsafe { handles.last_mut().unwrap().add(); }
+                            unsafe {
+                                handles.last_mut().unwrap().add();
+                            }
                         }
                     },
                     Err(_) => {
@@ -80,7 +84,7 @@ impl EventHandler {
                             Some(i) => handles.remove(i),
                             None => panic!("can't remove handle, not in vec"),
                         };
-                    },
+                    }
                 };
             }
         })

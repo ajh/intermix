@@ -20,6 +20,10 @@ pub struct Pane {
 
 impl Pane {
     pub fn new(size: &ScreenSize, offset: &Pos, program_id: &str) -> Pane {
-        Pane { size: size.clone(), offset: offset.clone(), program_id: program_id.to_string() }
+        Pane {
+            size: size.clone(),
+            offset: offset.clone(),
+            program_id: program_id.to_string(),
+        }
     }
 }

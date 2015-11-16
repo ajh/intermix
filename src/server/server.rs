@@ -23,8 +23,8 @@ impl Server {
     pub fn new() -> Server {
         info!("starting server");
         Server {
-            windows: vec!(),
-            programs: vec!(),
+            windows: vec![],
+            programs: vec![],
         }
     }
 
@@ -43,10 +43,16 @@ impl Server {
     }
 
     /// Start program in a new pane
-    pub fn start_program_in_new_pane(&mut self, command_and_args: &Vec<String>, size: &ScreenSize, offset: &Pos) -> Vec<thread::JoinHandle<()>> {
+    pub fn start_program_in_new_pane(&mut self,
+                                     command_and_args: &Vec<String>,
+                                     size: &ScreenSize,
+                                     offset: &Pos)
+                                     -> Vec<thread::JoinHandle<()>> {
         info!("starting program");
         let window = self.windows.first().unwrap();
-        let (program, threads) = ::Program::new(command_and_args, window.lock().unwrap().tx.clone(), size);
+        let (program, threads) = ::Program::new(command_and_args,
+                                                window.lock().unwrap().tx.clone(),
+                                                size);
 
         // use window to create the pane?
         let pane = ::pane::Pane::new(size, offset, &program.id);
