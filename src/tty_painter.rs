@@ -3,6 +3,7 @@ extern crate term;
 
 use libvterm_sys::*;
 use std::io::prelude::*;
+use ::pane::Pane;
 
 #[derive(Debug, Default)]
 pub struct Pen {
@@ -249,7 +250,7 @@ impl TtyPainter {
         if bytes.len() > 0 {
             io.write_all(&bytes).ok().expect("failed to write");
         } else {
-            // Not sure this is the correct thing to do
+            // like tmux's tty_repeat_space
             io.write_all(&[b'\x20']).ok().expect("failed to write"); // space
         }
 
@@ -261,11 +262,12 @@ impl TtyPainter {
         }
     }
 
+    /// TODO: take a offset from the pane
     pub fn move_cursor<F: Write>(&mut self, pos: Pos, is_visible: bool, io: &mut F) {
         let ti = term::terminfo::TermInfo::from_env().unwrap();
 
         if pos != self.pen.pos {
-            trace!("move_cursor to {:?}", pos);
+            //trace!("move_cursor to {:?}", pos);
             self.pen.pos = pos;
 
             let cmd = ti.strings.get("cup").unwrap();
@@ -279,7 +281,7 @@ impl TtyPainter {
         }
 
         if is_visible != self.pen.is_visible {
-            trace!("move_cursor visible? {:?}", is_visible);
+            //trace!("move_cursor visible? {:?}", is_visible);
             self.pen.is_visible = is_visible;
 
             let cap = if self.pen.is_visible { "cnorm" } else { "civis" };
@@ -293,6 +295,21 @@ impl TtyPainter {
 
         io.flush().unwrap();
     }
+
+    /// Implemented like tmux's tty_redraw_region
+    ///
+    /// If the pane is the full width of the physical terminal this can be optimized by using
+    /// scroll regions, but that isn't implemented.
+    ///
+    /// Tmux also has an optimization where it'll no-op this if the effected region is >= 50% of
+    /// the pane, but will instead schedule a "pane redraw". That is also not implemented.
+    pub fn insert_line<F: Write>(&mut self, scroll_region_size: &ScreenSize, scroll_region_pos: &Pos, io: &mut F) {
+        // I'd like to iterate through all the cells in the pane. Can I get access to this?
+    }
+
+    //pub fn delete_line<F: Write>(&mut self, pane: &Pane, io: &mut F) {
+        ////deleteLine: CSR(top, bottom) + CUP(y, 0) + DL(1) + CSR(0, height)
+    //}
 }
 
 // TODO:

@@ -18,6 +18,10 @@ pub enum ProgramEvent {
         old: Pos,
         is_visible: bool,
     },
+    SbPushLine {
+        program_id: String,
+        cells: Vec<ScreenCell>,
+    },
     AddProgram {
         program_id: String,
         rx: Receiver<ProgramEvent>,

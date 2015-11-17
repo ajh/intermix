@@ -80,7 +80,10 @@ impl EventHandler {
         while let Ok(event) = rx.try_recv() {
             match event {
                 ScreenEvent::Bell => info!("bell"),
-                ScreenEvent::Damage{rect} => self.send_program_damage_event(vterm, &rect),
+                ScreenEvent::Damage{rect} => {
+                    // TODO: change this to build_damage_event then explicitly sent it
+                    self.send_program_damage_event(vterm, &rect);
+                }
                 ScreenEvent::MoveCursor{new, old, is_visible} => {
                     let event = ProgramEvent::MoveCursor {
                         program_id: self.program_id.clone(),
@@ -91,10 +94,17 @@ impl EventHandler {
                     self.tx.send(event).unwrap();
                 },
                 ScreenEvent::MoveRect{dest, src} =>
-                    info!("move rect dest {:?} src {:?}", dest, src),
-                ScreenEvent::Resize{rows, cols} => info!("resize rows {:?} cols {:?}", rows, cols),
-                ScreenEvent::SbPopLine{cells: _} => info!("sb push line"),
-                ScreenEvent::SbPushLine{cells: _} => info!("sb push line"),
+                    info!("MoveRect: dest={:?} src={:?}", dest, src),
+                ScreenEvent::Resize{rows, cols} => info!("Resize: rows={:?} cols={:?}", rows, cols),
+                ScreenEvent::SbPopLine{cells: _} => info!("SbPopLine"),
+                ScreenEvent::SbPushLine{cells: cells} => {
+                    info!("SbPushLine");
+                    let event = ProgramEvent::SbPushLine {
+                        program_id: self.program_id.clone(),
+                        cells: cells,
+                    };
+                    self.tx.send(event).unwrap();
+                },
                 ScreenEvent::AltScreen{ is_true: _ } => info!("AltScreen"),
                 ScreenEvent::CursorBlink{ is_true: _ } => info!("CursorBlink"),
                 ScreenEvent::CursorShape{ value: _ } => info!("CursorShape"),

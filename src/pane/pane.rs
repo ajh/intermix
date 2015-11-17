@@ -6,6 +6,7 @@ use libvterm_sys::*;
 ///
 /// For now, we'll setup all the panes first, then call spawn so we don't have to deal with
 /// selecting on a changable list of channel receivers.
+#[derive(Debug, Default, PartialEq, Clone)]
 pub struct Pane {
     // The size of this pane
     pub size: ScreenSize,

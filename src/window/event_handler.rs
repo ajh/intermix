@@ -10,6 +10,7 @@ use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Weak, Mutex};
 use program::ProgramEvent;
+use pane::Pane;
 use super::*;
 
 pub struct EventHandler {
@@ -70,8 +71,19 @@ impl EventHandler {
                             painter.draw_cells(&cells, &mut io::stdout(), &offset);
                         }
                         ProgramEvent::MoveCursor{program_id: _, new: new, old: _, is_visible: is_visible} => {
+                            // TODO: apply offset here
                             painter.move_cursor(new, is_visible, &mut io::stdout());
                         },
+                        ProgramEvent::SbPushLine{program_id, cells} => {
+                            let (size, pos) = {
+                                let window_arc = self.window.upgrade().unwrap();
+                                let window = window_arc.lock().unwrap();
+                                let pane = window.panes.iter().find(|p| p.program_id == program_id).unwrap();
+                                (pane.size.clone(), pane.offset.clone())
+                            };
+                            painter.insert_line(&size, &pos, &mut io::stdout());
+                            painter.draw_cells(&cells, &mut io::stdout(), &pos);
+                        }
                         ProgramEvent::AddProgram{program_id: _, rx} => {
                             info!("add program");
                             self.receivers.push(Box::new(rx));
