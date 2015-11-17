@@ -49,47 +49,67 @@ impl TtyPainter {
     fn draw_cell<F: Write>(&mut self, cell: &ScreenCell, io: &mut F, offset: &Pos) {
         let mut sgrs: Vec<isize> = vec![];
 
-        if !self.pen.attrs.bold && cell.attrs.bold {
-            sgrs.push(1);
+        if self.pen.attrs.bold != cell.attrs.bold {
+            if cell.attrs.bold {
+                sgrs.push(1);
+            } else  {
+                sgrs.push(22);
+            }
+            self.pen.attrs.bold = cell.attrs.bold;
         }
-        if self.pen.attrs.bold && !cell.attrs.bold {
-            sgrs.push(22);
+
+        if self.pen.attrs.underline != cell.attrs.underline {
+            if cell.attrs.underline != 0 {
+                sgrs.push(4);
+            } else {
+                sgrs.push(24);
+            }
+            self.pen.attrs.underline = cell.attrs.underline;
         }
-        if self.pen.attrs.underline == 0 && cell.attrs.underline != 0 {
-            sgrs.push(4);
+
+        if self.pen.attrs.italic != cell.attrs.italic {
+            if cell.attrs.italic {
+                sgrs.push(3);
+            } else {
+                sgrs.push(23);
+            }
+            self.pen.attrs.italic = cell.attrs.italic;
         }
-        if self.pen.attrs.underline != 0 && cell.attrs.underline == 0 {
-            sgrs.push(24);
+
+        if self.pen.attrs.blink != cell.attrs.blink {
+            if cell.attrs.blink {
+                sgrs.push(5);
+            } else {
+                sgrs.push(25);
+            }
+            self.pen.attrs.blink = cell.attrs.blink;
         }
-        if !self.pen.attrs.italic && cell.attrs.italic {
-            sgrs.push(3);
+
+        if self.pen.attrs.reverse != cell.attrs.reverse {
+            if cell.attrs.reverse {
+                sgrs.push(7);
+            } else {
+                sgrs.push(27);
+            }
+            self.pen.attrs.reverse = cell.attrs.reverse;
         }
-        if self.pen.attrs.italic && !cell.attrs.italic {
-            sgrs.push(23);
+
+        if self.pen.attrs.strike != cell.attrs.strike {
+            if cell.attrs.strike {
+                sgrs.push(9);
+            } else {
+                sgrs.push(29);
+            }
+            self.pen.attrs.strike = cell.attrs.strike;
         }
-        if !self.pen.attrs.blink && cell.attrs.blink {
-            sgrs.push(5);
-        }
-        if self.pen.attrs.blink && !cell.attrs.blink {
-            sgrs.push(25);
-        }
-        if !self.pen.attrs.reverse && cell.attrs.reverse {
-            sgrs.push(7);
-        }
-        if self.pen.attrs.reverse && !cell.attrs.reverse {
-            sgrs.push(27);
-        }
-        if !self.pen.attrs.strike && cell.attrs.strike {
-            sgrs.push(9);
-        }
-        if self.pen.attrs.strike && !cell.attrs.strike {
-            sgrs.push(29);
-        }
-        if self.pen.attrs.font == 0 && cell.attrs.font != 0 {
-            sgrs.push(10 + cell.attrs.font as isize);
-        }
-        if self.pen.attrs.font != 0 && cell.attrs.font == 0 {
-            sgrs.push(10);
+
+        if self.pen.attrs.font != cell.attrs.font {
+            if cell.attrs.font != 0 {
+                sgrs.push(10 + cell.attrs.font as isize);
+            } else {
+                sgrs.push(10);
+            }
+            self.pen.attrs.font = cell.attrs.font;
         }
 
         // if self.pen.fg.red   != cell.fg.red   ||
@@ -143,13 +163,13 @@ impl TtyPainter {
             io.write_all(sgr.as_bytes()).unwrap();
         }
 
+        // apply offset
         let pos = Pos {
             row: cell.pos.row + offset.row,
             col: cell.pos.col + offset.col,
         };
 
-        // if pos.row != self.pen.pos.row || pos.col != self.pen.pos.col {
-        if true {
+         if pos.row != self.pen.pos.row || pos.col != self.pen.pos.col {
             // trace!("moving cursor to row {:?} col {:?}", cell.pos.row, cell.pos.col);
             let ti = term::terminfo::TermInfo::from_env().unwrap();
             let cmd = ti.strings.get("cup").unwrap();
@@ -164,11 +184,16 @@ impl TtyPainter {
 
         let bytes = cell.chars_as_utf8_bytes();
 
+        // See tmux's tty.c:1155 function `tty_cell`
         if bytes.len() > 0 {
             io.write_all(&bytes).ok().expect("failed to write");
         } else {
+            // Not sure this is the correct thing to do
             io.write_all(&[b'\x20']).ok().expect("failed to write"); // space
         }
+
+        // This is wrong. Really I need to know the user's screen size to know when wrap.
+        self.pen.pos.col += 1;
 
         if cell.width > 1 {
             trace!("cell has width > 1 {:?}", cell)
