@@ -14,16 +14,17 @@ use std::io::BufReader;
 use std::sync::mpsc;
 use std::thread;
 use libvterm_sys::*;
+use super::*;
 
 /// Handles reads on the pty, passes the input to libvter, and generates ProgramEvents
 pub struct EventHandler {
     pty: File,
-    tx: mpsc::Sender<super::ProgramEvent>,
+    tx: mpsc::Sender<ProgramEvent>,
     program_id: String,
 }
 
 impl EventHandler {
-    pub fn new(id: &str, io: File, tx: mpsc::Sender<super::ProgramEvent>) -> EventHandler {
+    pub fn new(id: &str, io: File, tx: mpsc::Sender<ProgramEvent>) -> EventHandler {
         EventHandler {
             pty: io,
             tx: tx,
@@ -80,11 +81,15 @@ impl EventHandler {
             match event {
                 ScreenEvent::Bell => info!("bell"),
                 ScreenEvent::Damage{rect} => self.send_program_damage_event(vterm, &rect),
-                ScreenEvent::MoveCursor{new, old, is_visible} =>
-                    info!("move cursor new {:?} old {:?} is_visible {:?}",
-                          new,
-                          old,
-                          is_visible),
+                ScreenEvent::MoveCursor{new, old, is_visible} => {
+                    let event = ProgramEvent::MoveCursor {
+                        program_id: self.program_id.clone(),
+                        new: new,
+                        old: old,
+                        is_visible: is_visible,
+                    };
+                    self.tx.send(event).unwrap();
+                },
                 ScreenEvent::MoveRect{dest, src} =>
                     info!("move rect dest {:?} src {:?}", dest, src),
                 ScreenEvent::Resize{rows, cols} => info!("resize rows {:?} cols {:?}", rows, cols),
@@ -102,6 +107,7 @@ impl EventHandler {
         }
     }
 
+    /// find cells that are damanged and send them as part of the program event
     fn send_program_damage_event(&self, vterm: &mut VTerm, rect: &Rect) {
         // trace!("damage {:?}", rect);
         let mut pos: Pos = Default::default();
@@ -116,7 +122,7 @@ impl EventHandler {
             }
         }
 
-        let event = super::ProgramEvent::Damage {
+        let event = ProgramEvent::Damage {
             program_id: self.program_id.clone(),
             cells: cells,
         };

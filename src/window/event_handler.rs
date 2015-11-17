@@ -35,6 +35,7 @@ impl EventHandler {
             let mut handles: Vec<Box<Handle<_>>> = vec![];
 
             let mut painter: ::tty_painter::TtyPainter = Default::default();
+            painter.reset(&mut io::stdout());
 
             // add initial receivers
             for rx in &self.receivers {
@@ -68,6 +69,9 @@ impl EventHandler {
 
                             painter.draw_cells(&cells, &mut io::stdout(), &offset);
                         }
+                        ProgramEvent::MoveCursor{program_id: _, new: new, old: _, is_visible: is_visible} => {
+                            painter.move_cursor(new, is_visible, &mut io::stdout());
+                        },
                         ProgramEvent::AddProgram{program_id: _, rx} => {
                             info!("add program");
                             self.receivers.push(Box::new(rx));

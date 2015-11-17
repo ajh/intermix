@@ -10,6 +10,7 @@ pub struct Pen {
     fg: Color,
     bg: Color,
     pos: Pos,
+    is_visible: bool,
 }
 
 #[derive(Debug, Default)]
@@ -19,10 +20,77 @@ pub struct TtyPainter {
 }
 
 impl TtyPainter {
+    /// Sync physical terminal state with pen state
+    ///
+    /// TODO: DRY with draw_cell
+    pub fn reset<F: Write>(&mut self, io: &mut F) {
+        let mut sgrs: Vec<isize> = vec![];
+
+        if self.pen.attrs.bold {
+            sgrs.push(1);
+        } else  {
+            sgrs.push(22);
+        }
+
+        if self.pen.attrs.underline != 0 {
+            sgrs.push(4);
+        } else {
+            sgrs.push(24);
+        }
+
+        if self.pen.attrs.italic {
+            sgrs.push(3);
+        } else {
+            sgrs.push(23);
+        }
+
+        if self.pen.attrs.blink {
+            sgrs.push(5);
+        } else {
+            sgrs.push(25);
+        }
+
+        if self.pen.attrs.reverse {
+            sgrs.push(7);
+        } else {
+            sgrs.push(27);
+        }
+
+        if self.pen.attrs.strike {
+            sgrs.push(9);
+        } else {
+            sgrs.push(29);
+        }
+
+        if self.pen.attrs.font != 0 {
+            sgrs.push(10 + self.pen.attrs.font as isize);
+        } else {
+            sgrs.push(10);
+        }
+
+        if sgrs.len() != 0 {
+            let mut sgr = "\x1b[".to_string();
+            for (i, val) in sgrs.iter().enumerate() {
+                let bare_val = val & !(1 << 31);
+                if i == 0 {
+                    sgr.push_str(&format!("{}", bare_val));
+                } else if val & (1 << 31) != 0 {
+                    sgr.push_str(&format!(":{}", bare_val));
+                } else {
+                    sgr.push_str(&format!(";{}", bare_val));
+                }
+            }
+            sgr.push_str("m");
+            io.write_all(sgr.as_bytes()).unwrap();
+        }
+
+        io.flush().unwrap();
+    }
+
     /// TODO: make this take &self not &mut self because changing the pen is just an implementation
     /// detail. Use Cell or whatever for interior mutability.
     pub fn draw_cells<F: Write>(&mut self, cells: &Vec<ScreenCell>, io: &mut F, offset: &Pos) {
-        // turn off cursor
+        // make cursor invisible
         let ti = term::terminfo::TermInfo::from_env().unwrap();
         let cmd = ti.strings.get("civis").unwrap();
         let s = term::terminfo::parm::expand(&cmd,
@@ -30,18 +98,11 @@ impl TtyPainter {
                                              &mut term::terminfo::parm::Variables::new())
                     .unwrap();
         io.write_all(&s).unwrap();
+        self.pen.is_visible = false;
 
         for cell in cells {
             self.draw_cell(cell, io, offset)
         }
-
-        let ti = term::terminfo::TermInfo::from_env().unwrap();
-        let cmd = ti.strings.get("cvvis").unwrap();
-        let s = term::terminfo::parm::expand(&cmd,
-                                             &[],
-                                             &mut term::terminfo::parm::Variables::new())
-                    .unwrap();
-        io.write_all(&s).unwrap();
 
         io.flush().unwrap();
     }
@@ -198,6 +259,39 @@ impl TtyPainter {
         if cell.width > 1 {
             trace!("cell has width > 1 {:?}", cell)
         }
+    }
+
+    pub fn move_cursor<F: Write>(&mut self, pos: Pos, is_visible: bool, io: &mut F) {
+        let ti = term::terminfo::TermInfo::from_env().unwrap();
+
+        if pos != self.pen.pos {
+            trace!("move_cursor to {:?}", pos);
+            self.pen.pos = pos;
+
+            let cmd = ti.strings.get("cup").unwrap();
+            let params = [term::terminfo::parm::Param::Number(self.pen.pos.row as i16),
+            term::terminfo::parm::Param::Number(self.pen.pos.col as i16)];
+            let s = term::terminfo::parm::expand(&cmd,
+                                                 &params,
+                                                 &mut term::terminfo::parm::Variables::new())
+                .unwrap();
+            io.write_all(&s).unwrap();
+        }
+
+        if is_visible != self.pen.is_visible {
+            trace!("move_cursor visible? {:?}", is_visible);
+            self.pen.is_visible = is_visible;
+
+            let cap = if self.pen.is_visible { "cnorm" } else { "civis" };
+            let cmd = ti.strings.get(cap).unwrap();
+            let s = term::terminfo::parm::expand(&cmd,
+                                                 &[],
+                                                 &mut term::terminfo::parm::Variables::new())
+                        .unwrap();
+            io.write_all(&s).unwrap();
+        }
+
+        io.flush().unwrap();
     }
 }
 
