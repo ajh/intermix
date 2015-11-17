@@ -148,7 +148,8 @@ impl TtyPainter {
             col: cell.pos.col + offset.col,
         };
 
-        if pos.row != self.pen.pos.row || pos.col != self.pen.pos.col {
+        // if pos.row != self.pen.pos.row || pos.col != self.pen.pos.col {
+        if true {
             // trace!("moving cursor to row {:?} col {:?}", cell.pos.row, cell.pos.col);
             let ti = term::terminfo::TermInfo::from_env().unwrap();
             let cmd = ti.strings.get("cup").unwrap();
@@ -161,13 +162,25 @@ impl TtyPainter {
             io.write_all(&s).unwrap();
         }
 
-        io.write_all(&cell.chars_as_utf8_bytes()).ok().expect("failed to write");
+        let bytes = cell.chars_as_utf8_bytes();
+
+        if bytes.len() > 0 {
+            io.write_all(&bytes).ok().expect("failed to write");
+        } else {
+            io.write_all(&[b'\x20']).ok().expect("failed to write"); // space
+        }
+
         if cell.width > 1 {
             trace!("cell has width > 1 {:?}", cell)
         }
     }
 }
 
+// TODO:
+//
+// * move these to `tests` directory, but first need to split out lib and bin
+// * Move helper stuff to a helper file
+// * more tests
 mod tests {
     extern crate libvterm_sys;
 
@@ -277,9 +290,11 @@ mod tests {
             for row in 0..self.size.rows {
                 for col in 0..self.size.cols {
                     let mut cell = ScreenCell { pos: Pos { row: row as i16, col: col as i16 }, .. Default::default() };
-                    if self.chars.len() > row as usize && self.chars[row as usize].len() > col as usize {
-                        cell.chars.push(self.chars[row as usize][col as usize]);
-                    }
+
+                    let is_char_defined = self.chars.len() > row as usize && self.chars[row as usize].len() > col as usize;
+                    let ch = if is_char_defined { self.chars[row as usize][col as usize] } else { ' ' };
+                    cell.chars.push(ch);
+
                     cells.push(cell);
                 }
             }
@@ -374,5 +389,25 @@ mod tests {
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
         assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 3, rows: 3}));
+    }
+
+    #[test]
+    fn it_clears_chars() {
+        let mut painter: TtyPainter = Default::default();
+        let mut io = CaptureIO::new();
+
+        let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 2, cols: 2 })
+            .chars(vec![vec!['a', 'b'],
+                        vec!['c', 'd']])
+            .finalize();
+        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+
+        let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 2, cols: 2 })
+            .chars(vec![vec!['h', ' '],
+                        vec![' ', 'i']])
+            .finalize();
+        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+
+        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 2, rows: 2}));
     }
 }
