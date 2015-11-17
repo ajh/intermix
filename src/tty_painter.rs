@@ -249,8 +249,50 @@ mod tests {
         }
     }
 
+    struct ScreenCellBuilder {
+        size: ScreenSize,
+        chars: Vec<Vec<char>>,
+    }
+
+    impl ScreenCellBuilder {
+        fn new(size: ScreenSize) -> ScreenCellBuilder {
+            ScreenCellBuilder {
+                size: size,
+                chars: vec!(vec!()),
+            }
+        }
+
+        fn chars(&mut self, chars: Vec<Vec<char>>) -> &mut ScreenCellBuilder {
+            if chars.len() != self.size.rows as usize {
+                panic!("wrong number of rows. Expected {} got {}", self.size.rows, chars.len());
+            }
+            //TODO: check cols too
+            self.chars = chars.clone();
+
+            self
+        }
+
+        fn finalize(&self) -> Vec<ScreenCell> {
+            let mut cells: Vec<ScreenCell> = vec![];
+            for row in 0..self.size.rows {
+                for col in 0..self.size.cols {
+                    let mut cell = ScreenCell { pos: Pos { row: row as i16, col: col as i16 }, .. Default::default() };
+                    if self.chars.len() > row as usize && self.chars[row as usize].len() > col as usize {
+                        cell.chars.push(self.chars[row as usize][col as usize]);
+                    }
+                    cells.push(cell);
+                }
+            }
+
+            cells
+        }
+    }
+
     fn drawn_cells(io: &CaptureIO, size: ScreenSize) -> Vec<ScreenCell> {
         let mut vterm = VTerm::new(size);
+        vterm.state.set_default_colors(Color { red: 230, green: 230, blue: 230 },
+                                       Color { red: 5, green: 5, blue: 5 });
+        vterm.state.reset(true);
         vterm.write(&io.bytes);
 
         let iterator = CellsIterator::new(&vterm);
@@ -262,24 +304,12 @@ mod tests {
         let mut painter: TtyPainter = Default::default();
         let mut io = CaptureIO::new();
 
-        // create some ScreenCells with stuff
-        let cells = vec!(
-            ScreenCell { pos: Pos { row: 0, col: 0 }, .. Default::default() },
-            ScreenCell { pos: Pos { row: 0, col: 1 }, .. Default::default() },
-            ScreenCell { pos: Pos { row: 1, col: 0 }, .. Default::default() },
-            ScreenCell { pos: Pos { row: 1, col: 1 }, .. Default::default() },
-        );
+        let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 2, cols: 2 }).finalize();
 
         // paint them into libvterm
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
-        let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 2, rows: 2 })
-                                    .iter()
-                                    .flat_map(|c| c.chars.clone())
-                                    .collect();
-
-        assert_eq!(expected, actual);
+        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 2, rows: 2}));
     }
 
     #[test]
@@ -287,20 +317,15 @@ mod tests {
         let mut painter: TtyPainter = Default::default();
         let mut io = CaptureIO::new();
 
-        let cells = vec!(
-            ScreenCell { pos: Pos { row: 0, col: 0 }, chars: vec!('y'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 1, col: 1 }, chars: vec!('o'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 2, col: 2 }, chars: vec!('!'), width: 1, .. Default::default() },
-        );
+        let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
+            .chars(vec![vec!['y', ' ', ' '],
+                        vec![' ', 'o', ' '],
+                        vec![' ', ' ', '!']])
+            .finalize();
+
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
-        let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3 })
-                                    .iter()
-                                    .flat_map(|c| c.chars.clone())
-                                    .collect();
-
-        assert_eq!(expected, actual);
+        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 3, rows: 3}));
     }
 
     #[test]
@@ -308,20 +333,15 @@ mod tests {
         let mut painter: TtyPainter = Default::default();
         let mut io = CaptureIO::new();
 
-        let cells = vec!(
-            ScreenCell { pos: Pos { row: 1, col: 0 }, chars: vec!('y'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 1, col: 1 }, chars: vec!('o'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 1, col: 2 }, chars: vec!('!'), width: 1, .. Default::default() },
-        );
+        let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
+            .chars(vec![vec!['y', 'o', '!'],
+                        vec![' ', ' ', ' '],
+                        vec![' ', ' ', ' ']])
+            .finalize();
+
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
-        let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3 })
-                                    .iter()
-                                    .flat_map(|c| c.chars.clone())
-                                    .collect();
-
-        assert_eq!(expected, actual);
+        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 3, rows: 3}));
     }
 
     #[test]
@@ -329,21 +349,15 @@ mod tests {
         let mut painter: TtyPainter = Default::default();
         let mut io = CaptureIO::new();
 
-        let cells = vec!(
-            ScreenCell { pos: Pos { row: 0, col: 0 }, chars: vec!('a'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 0, col: 2 }, chars: vec!('b'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 1, col: 0 }, chars: vec!('c'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 1, col: 2 }, chars: vec!('d'), width: 1, .. Default::default() },
-        );
+        let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
+            .chars(vec![vec!['a', ' ', 'b'],
+                        vec!['c', ' ', 'd'],
+                        vec!['e', ' ', 'f']])
+            .finalize();
+
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
-        let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3 })
-                                    .iter()
-                                    .flat_map(|c| c.chars.clone())
-                                    .collect();
-
-        assert_eq!(expected, actual);
+        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 3, rows: 3}));
     }
 
     #[test]
@@ -351,21 +365,14 @@ mod tests {
         let mut painter: TtyPainter = Default::default();
         let mut io = CaptureIO::new();
 
-        let cells = vec!(
-            ScreenCell { pos: Pos { row: 0, col: 1 }, chars: vec!('a'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 1, col: 1 }, chars: vec!('b'), width: 1, .. Default::default() },
-            ScreenCell { pos: Pos { row: 2, col: 1 }, chars: vec!('c'), width: 1, .. Default::default() },
-        );
+        let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
+            .chars(vec![vec![' ', 'y', ' '],
+                        vec![' ', 'o', ' '],
+                        vec![' ', '!', ' ']])
+            .finalize();
 
-        // paint them into libvterm
         painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
 
-        let expected: Vec<char> = cells.iter().flat_map(|c| c.chars.clone()).collect();
-        let actual: Vec<char> = drawn_cells(&io, ScreenSize { cols: 3, rows: 3 })
-                                    .iter()
-                                    .flat_map(|c| c.chars.clone())
-                                    .collect();
-
-        assert_eq!(expected, actual);
+        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 3, rows: 3}));
     }
 }
