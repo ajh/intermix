@@ -1,4 +1,5 @@
 #![feature(mpsc_select)]
+#![feature(convert)]
 
 extern crate docopt;
 extern crate libc;

@@ -19,7 +19,7 @@ use super::*;
 pub struct Window {
     pub panes: Vec<::pane::Pane>,
     // This'll be WindowEvents at some point
-    pub tx: mpsc::Sender<::program::ProgramEvent>,
+    pub tx: mpsc::Sender<WindowMsg>,
 }
 
 impl Window {

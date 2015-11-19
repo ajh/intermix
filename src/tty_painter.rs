@@ -3,7 +3,6 @@ extern crate term;
 
 use libvterm_sys::*;
 use std::io::prelude::*;
-use ::pane::Pane;
 
 #[derive(Debug, Default)]
 pub struct Pen {
@@ -336,10 +335,6 @@ mod tests {
                 cursor: 0,
                 bytes: vec![],
             }
-        }
-
-        fn slice(&self) -> &[u8] {
-            &self.bytes
         }
     }
 

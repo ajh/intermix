@@ -8,33 +8,34 @@ extern crate docopt;
 extern crate rustc_serialize;
 extern crate uuid;
 
+use ::window::WindowMsg;
+use libvterm_sys::*;
 use std::ffi::CString;
 use std::fs::File;
 use std::io;
+use std::os::unix::prelude::*;
 use std::ptr;
 use std::sync::mpsc;
 use std::thread;
-use libvterm_sys::*;
 use super::*;
-use std::os::unix::prelude::*;
 
 pub struct Program {
     pub child_pid: i32,
     pub id: String,
-    pub tx: mpsc::Sender<ProgramEvent>,
+    pub tx: mpsc::Sender<WindowMsg>,
     pub size: ScreenSize,
     pub pty: RawFd,
 }
 
 impl Program {
     pub fn new(command_and_args: &Vec<String>,
-               tx: mpsc::Sender<ProgramEvent>,
+               tx: mpsc::Sender<WindowMsg>,
                size: &ScreenSize)
                -> (Program, Vec<thread::JoinHandle<()>>) {
         info!("forking");
         let child = fork(command_and_args);
 
-        let (program_event_tx, program_event_rx) = mpsc::channel::<ProgramEvent>();
+        let (program_event_tx, program_event_rx) = mpsc::channel::<WindowMsg>();
 
         info!("program started");
 
@@ -49,16 +50,20 @@ impl Program {
         };
 
         let mut threads = vec![];
-        {
-            let io = unsafe { File::from_raw_fd(fd) };
-            let event_handler = EventHandler::new(&program.id, io, program_event_tx.clone());
-            threads.push(event_handler.spawn());
-        }
 
-        tx.send(ProgramEvent::AddProgram {
+        let event_handler = EventHandler::new(&program.id, program_event_tx.clone());
+        let event_handler_tx = event_handler.tx.clone();
+        threads.push(event_handler.spawn());
+
+        let io = unsafe { File::from_raw_fd(fd) };
+        let pty_reader = super::pty_reader::PtyReader::new(io, event_handler_tx);
+        threads.push(pty_reader.spawn());
+
+        // let the window know we exist
+        tx.send(WindowMsg::AddProgram {
             program_id: program.id.clone(),
             rx: program_event_rx,
-        });
+        }).unwrap();
 
         (program, threads)
     }

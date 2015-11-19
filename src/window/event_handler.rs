@@ -9,14 +9,12 @@ use std::io;
 use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Weak, Mutex};
-use program::ProgramEvent;
-use pane::Pane;
 use super::*;
 
 pub struct EventHandler {
     window: Weak<Mutex<Window>>,
     // deal with Program Events for now, until we have window events implemented
-    pub receivers: Vec<Box<Receiver<ProgramEvent>>>,
+    pub receivers: Vec<Box<Receiver<WindowMsg>>>,
 }
 
 impl EventHandler {
@@ -57,7 +55,7 @@ impl EventHandler {
 
                 match handle.recv() {
                     Ok(event) => match event {
-                        ProgramEvent::Damage{program_id, cells} => {
+                        WindowMsg::Damage{program_id, cells} => {
                             let offset = {
                                 let window_arc = self.window.upgrade().unwrap();
                                 let window = window_arc.lock().unwrap();
@@ -70,11 +68,11 @@ impl EventHandler {
 
                             painter.draw_cells(&cells, &mut io::stdout(), &offset);
                         }
-                        ProgramEvent::MoveCursor{program_id: _, new: new, old: _, is_visible: is_visible} => {
+                        WindowMsg::MoveCursor{program_id: _, new, old: _, is_visible} => {
                             // TODO: apply offset here
                             painter.move_cursor(new, is_visible, &mut io::stdout());
                         },
-                        ProgramEvent::SbPushLine{program_id, cells} => {
+                        WindowMsg::SbPushLine{program_id, cells} => {
                             let (size, pos) = {
                                 let window_arc = self.window.upgrade().unwrap();
                                 let window = window_arc.lock().unwrap();
@@ -84,7 +82,7 @@ impl EventHandler {
                             painter.insert_line(&size, &pos, &mut io::stdout());
                             painter.draw_cells(&cells, &mut io::stdout(), &pos);
                         }
-                        ProgramEvent::AddProgram{program_id: _, rx} => {
+                        WindowMsg::AddProgram{program_id: _, rx} => {
                             info!("add program");
                             self.receivers.push(Box::new(rx));
                             let rx = unsafe { &*(&**self.receivers.last().unwrap() as *const _) };
