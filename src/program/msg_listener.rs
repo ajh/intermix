@@ -46,6 +46,8 @@ impl MsgListener {
                 cols: 80,
             });
             vterm.set_utf8(true);
+            vterm.screen.set_damage_merge(ffi::VTermDamageSize::VTermDamageRow);
+
             let vterm_event_rx = vterm.receive_screen_events();
 
             info!("starting event handler");
@@ -63,12 +65,17 @@ impl MsgListener {
 
     fn handle_screen_event(&self, event: ScreenEvent, vterm: &mut VTerm) {
         match event {
-            ScreenEvent::Bell => info!("bell"),
+            ScreenEvent::Bell => info!("Bell"),
             ScreenEvent::Damage{rect} => {
-                // TODO: change this to build_damage_event then explicitly sent it
-                self.send_program_damage_event(vterm, &rect);
+                info!("Damage: rect={:?}", rect);
+                let event = WindowMsg::Damage {
+                    program_id: self.program_id.clone(),
+                    cells: self.get_cells_in_rect(vterm, &rect),
+                };
+                self.window_tx.send(event).unwrap();
             }
             ScreenEvent::MoveCursor{new, old, is_visible} => {
+                info!("MoveCursor: new={:?} old={:?} is_visible={:?}", new, old, is_visible);
                 let event = WindowMsg::MoveCursor {
                     program_id: self.program_id.clone(),
                     new: new,
@@ -77,8 +84,14 @@ impl MsgListener {
                 };
                 self.window_tx.send(event).unwrap();
             },
-            ScreenEvent::MoveRect{dest, src} =>
-                info!("MoveRect: dest={:?} src={:?}", dest, src),
+            ScreenEvent::MoveRect{dest, src} => {
+                info!("MoveRect: dest={:?} src={:?}", dest, src);
+                let event = WindowMsg::Damage {
+                    program_id: self.program_id.clone(),
+                    cells: self.get_cells_in_rect(vterm, &dest),
+                };
+                self.window_tx.send(event).unwrap();
+            }
             ScreenEvent::Resize{rows, cols} => info!("Resize: rows={:?} cols={:?}", rows, cols),
             ScreenEvent::SbPopLine{cells: _} => info!("SbPopLine"),
             ScreenEvent::SbPushLine{cells} => {
@@ -89,14 +102,14 @@ impl MsgListener {
                 };
                 self.window_tx.send(event).unwrap();
             },
-            ScreenEvent::AltScreen{ is_true: _ } => info!("AltScreen"),
-            ScreenEvent::CursorBlink{ is_true: _ } => info!("CursorBlink"),
-            ScreenEvent::CursorShape{ value: _ } => info!("CursorShape"),
-            ScreenEvent::CursorVisible{ is_true: _ } => info!("CursorVisible"),
-            ScreenEvent::IconName{ text: _} => info!("IconName"),
-            ScreenEvent::Mouse{ value: _ } => info!("Mouse"),
-            ScreenEvent::Reverse{ is_true: _ } => info!("Reverse"),
-            ScreenEvent::Title{ text: _} => info!("Title"),
+            ScreenEvent::AltScreen{ is_true } => info!("AltScreen: is_true={:?}", is_true),
+            ScreenEvent::CursorBlink{ is_true } => info!("CursorBlink: is_true={:?}", is_true),
+            ScreenEvent::CursorShape{ value } => info!("CursorShape: value={:?}", value),
+            ScreenEvent::CursorVisible{ is_true } => info!("CursorVisible: is_true={:?}", is_true),
+            ScreenEvent::IconName{ text } => info!("IconName: text={:?}", text),
+            ScreenEvent::Mouse{ value } => info!("Mouse: value={:?}", value),
+            ScreenEvent::Reverse{ is_true } => info!("Reverse: is_true={:?}", is_true),
+            ScreenEvent::Title{ text } => info!("Title: text={:?}", text),
         }
     }
 
@@ -106,18 +119,18 @@ impl MsgListener {
                 vterm.write(bytes.as_slice());
                 vterm.screen.flush_damage();
             },
-            ProgramMsg::PtyReadZero => error!("got read zero bytes event"),
-            ProgramMsg::PtyReadError => error!("got read error event"),
+            ProgramMsg::PtyReadZero => error!("got PtyReadZero"),
+            ProgramMsg::PtyReadError => error!("got PtyReadError"),
+            ProgramMsg::RequestRedrawRect{rect: _} => info!("got RequestRedrawRect msg"),
         }
     }
 
-    /// find cells that are damanged and send them as part of the program event
-    fn send_program_damage_event(&self, vterm: &mut VTerm, rect: &Rect) {
-        // trace!("damage {:?}", rect);
+    /// TODO: move this to libvterm, since it seems useful
+    fn get_cells_in_rect(&self, vterm: &VTerm, rect: &Rect) -> Vec<ScreenCell> {
         let mut pos: Pos = Default::default();
-
         let mut cells: Vec<ScreenCell> = Vec::new(); // capacity is known here FYI
 
+        // could fancy functional iterator stuff be used here?
         for row in rect.start_row..rect.end_row {
             pos.row = row as i16;
             for col in rect.start_col..rect.end_col {
@@ -126,10 +139,6 @@ impl MsgListener {
             }
         }
 
-        let event = WindowMsg::Damage {
-            program_id: self.program_id.clone(),
-            cells: cells,
-        };
-        self.window_tx.send(event).unwrap();
+        cells
     }
 }

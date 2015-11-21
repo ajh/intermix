@@ -4,7 +4,7 @@ extern crate term;
 use libvterm_sys::*;
 use std::io::prelude::*;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Pen {
     attrs: ScreenCellAttr,
     fg: Color,
@@ -90,18 +90,48 @@ impl TtyPainter {
     /// TODO: make this take &self not &mut self because changing the pen is just an implementation
     /// detail. Use Cell or whatever for interior mutability.
     pub fn draw_cells<F: Write>(&mut self, cells: &Vec<ScreenCell>, io: &mut F, offset: &Pos) {
-        // make cursor invisible
-        let ti = term::terminfo::TermInfo::from_env().unwrap();
-        let cmd = ti.strings.get("civis").unwrap();
-        let s = term::terminfo::parm::expand(&cmd,
-                                             &[],
-                                             &mut term::terminfo::parm::Variables::new())
-                    .unwrap();
-        io.write_all(&s).unwrap();
-        self.pen.is_visible = false;
+        let restore_pen = self.pen.clone();
+
+        if self.pen.is_visible {
+            self.pen.is_visible = false;
+            // make cursor invisible
+            let ti = term::terminfo::TermInfo::from_env().unwrap();
+            let cmd = ti.strings.get("civis").unwrap();
+            let s = term::terminfo::parm::expand(&cmd,
+                                                 &[],
+                                                 &mut term::terminfo::parm::Variables::new())
+                        .unwrap();
+            io.write_all(&s).unwrap();
+        }
 
         for cell in cells {
             self.draw_cell(cell, io, offset)
+        }
+
+        if restore_pen.is_visible {
+            self.pen.is_visible = true;
+            // make it visible again
+            let ti = term::terminfo::TermInfo::from_env().unwrap();
+            let cmd = ti.strings.get("cnorm").unwrap();
+            let s = term::terminfo::parm::expand(&cmd,
+                                                 &[],
+                                                 &mut term::terminfo::parm::Variables::new())
+                        .unwrap();
+            io.write_all(&s).unwrap();
+        }
+
+        if restore_pen.pos != self.pen.pos {
+            self.pen.pos = restore_pen.pos.clone();
+
+            let ti = term::terminfo::TermInfo::from_env().unwrap();
+            let cmd = ti.strings.get("cup").unwrap();
+            let params = [term::terminfo::parm::Param::Number(self.pen.pos.row as i16),
+                          term::terminfo::parm::Param::Number(self.pen.pos.col as i16)];
+            let s = term::terminfo::parm::expand(&cmd,
+                                                 &params,
+                                                 &mut term::terminfo::parm::Variables::new())
+                        .unwrap();
+            io.write_all(&s).unwrap();
         }
 
         io.flush().unwrap();

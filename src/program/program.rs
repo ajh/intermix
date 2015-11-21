@@ -45,7 +45,7 @@ impl Program {
         let mut threads = vec![];
 
         let program_id = uuid::Uuid::new_v4().to_simple_string();
-        let msg_listener = MsgListener::new(&program_id, listener_tx.clone());
+        let msg_listener = super::msg_listener::MsgListener::new(&program_id, listener_tx.clone());
         let msg_listener_tx = msg_listener.tx.clone();
         threads.push(msg_listener.spawn());
 

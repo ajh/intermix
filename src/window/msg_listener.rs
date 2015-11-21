@@ -10,6 +10,8 @@ use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Weak, Mutex};
 use super::*;
+use libvterm_sys::*;
+use ::program::*;
 
 pub struct MsgListener {
     window: Weak<Mutex<Window>>,
@@ -73,15 +75,18 @@ impl MsgListener {
                             painter.move_cursor(new, is_visible, &mut io::stdout());
                         },
                         WindowMsg::SbPushLine{program_id, cells} => {
-                            let (size, pos) = {
+                            let offset = {
                                 let window_arc = self.window.upgrade().unwrap();
                                 let window = window_arc.lock().unwrap();
-                                let pane = window.panes.iter().find(|p| p.program_id == program_id).unwrap();
-                                (pane.size.clone(), pane.offset.clone())
+                                let pane = window.panes.iter().find(|p| p.program_id == program_id);
+                                match pane {
+                                    Some(p) => p.offset.clone(),
+                                    None => libvterm_sys::Pos { row: 10, col: 5 },
+                                }
                             };
-                            painter.insert_line(&size, &pos, &mut io::stdout());
-                            painter.draw_cells(&cells, &mut io::stdout(), &pos);
-                        }
+
+                            painter.draw_cells(&cells, &mut io::stdout(), &offset);
+                        },
                         WindowMsg::AddProgram{program_id: _, rx} => {
                             info!("add program");
                             self.receivers.push(Box::new(rx));
