@@ -1,8 +1,8 @@
-mod event_handler;
+mod msg_listener;
 mod program;
 mod pty_reader;
 
-pub use self::event_handler::*;
+pub use self::msg_listener::*;
 pub use self::program::*;
 
 pub enum ProgramMsg {

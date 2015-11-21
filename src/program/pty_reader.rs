@@ -56,8 +56,8 @@ impl PtyReader {
                 let mut bytes_vec: Vec<u8> = vec!();
                 // TODO: fix this lameness
                 for byte in bytes { bytes_vec.push(byte.clone()) };
-                let event = ProgramMsg::PtyRead { bytes: bytes_vec };
-                self.tx.send(event).unwrap();
+                let msg = ProgramMsg::PtyRead { bytes: bytes_vec };
+                self.tx.send(msg).unwrap();
             }
             info!("ending pty -> stdout thr");
         })

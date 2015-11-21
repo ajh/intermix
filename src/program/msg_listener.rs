@@ -16,7 +16,7 @@ use super::*;
 use ::window::WindowMsg;
 
 /// Handles reads on the pty, passes the input to libvter, and generates ProgramEvents
-pub struct EventHandler {
+pub struct MsgListener {
     /// Sends events to this handler
     pub tx: mpsc::Sender<ProgramMsg>,
 
@@ -25,11 +25,11 @@ pub struct EventHandler {
     program_id: String,
 }
 
-impl EventHandler {
-    pub fn new(id: &str, window_tx: mpsc::Sender<WindowMsg>) -> EventHandler {
+impl MsgListener {
+    pub fn new(id: &str, window_tx: mpsc::Sender<WindowMsg>) -> MsgListener {
         let (tx, rx) = mpsc::channel::<ProgramMsg>();
 
-        EventHandler {
+        MsgListener {
             program_id: id.to_string(),
             rx: rx,
             tx: tx,

@@ -59,7 +59,7 @@ impl Server {
             size: size.clone(),
             offset: offset.clone(),
             program_id: program.id.clone(),
-            program_msg_tx: program.event_handler_tx.clone(),
+            program_msg_tx: program.msg_listener_tx.clone(),
         };
         window.lock().unwrap().panes.push(pane);
 

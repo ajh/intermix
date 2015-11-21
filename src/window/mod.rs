@@ -1,7 +1,7 @@
-mod event_handler;
+mod msg_listener;
 mod window;
 
-pub use self::event_handler::*;
+pub use self::msg_listener::*;
 pub use self::window::*;
 
 use libvterm_sys::*;

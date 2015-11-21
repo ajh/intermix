@@ -11,15 +11,15 @@ use std::sync::mpsc::*;
 use std::sync::{Weak, Mutex};
 use super::*;
 
-pub struct EventHandler {
+pub struct MsgListener {
     window: Weak<Mutex<Window>>,
     // deal with Program Events for now, until we have window events implemented
     pub receivers: Vec<Box<Receiver<WindowMsg>>>,
 }
 
-impl EventHandler {
-    pub fn new(window: Weak<Mutex<Window>>) -> EventHandler {
-        EventHandler {
+impl MsgListener {
+    pub fn new(window: Weak<Mutex<Window>>) -> MsgListener {
+        MsgListener {
             window: window,
             receivers: vec![],
         }

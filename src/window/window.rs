@@ -32,9 +32,9 @@ impl Window {
             tx: tx,
         }));
 
-        let mut event_handler = EventHandler::new(Arc::downgrade(&window.clone()));
-        event_handler.receivers.push(Box::new(rx));
-        threads.push(event_handler.spawn());
+        let mut msg_listener = MsgListener::new(Arc::downgrade(&window.clone()));
+        msg_listener.receivers.push(Box::new(rx));
+        threads.push(msg_listener.spawn());
 
         (window, threads)
     }
