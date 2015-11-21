@@ -23,6 +23,7 @@ pub struct Program {
     pub child_pid: i32,
     pub id: String,
     pub tx: mpsc::Sender<WindowMsg>,
+    pub event_handler_tx: mpsc::Sender<ProgramMsg>,
     pub size: ScreenSize,
     pub pty: RawFd,
 }
@@ -41,29 +42,31 @@ impl Program {
 
         let fd = child.pty().unwrap().as_raw_fd();
 
-        let program = Program {
-            child_pid: child.pid(),
-            id: uuid::Uuid::new_v4().to_simple_string(),
-            tx: program_event_tx.clone(),
-            size: size.clone(), // todo: resize pty with this info
-            pty: fd,
-        };
-
         let mut threads = vec![];
 
-        let event_handler = EventHandler::new(&program.id, program_event_tx.clone());
+        let program_id = uuid::Uuid::new_v4().to_simple_string();
+        let event_handler = EventHandler::new(&program_id, program_event_tx.clone());
         let event_handler_tx = event_handler.tx.clone();
         threads.push(event_handler.spawn());
 
         let io = unsafe { File::from_raw_fd(fd) };
-        let pty_reader = super::pty_reader::PtyReader::new(io, event_handler_tx);
+        let pty_reader = super::pty_reader::PtyReader::new(io, event_handler_tx.clone());
         threads.push(pty_reader.spawn());
 
         // let the window know we exist
         tx.send(WindowMsg::AddProgram {
-            program_id: program.id.clone(),
+            program_id: program_id.clone(),
             rx: program_event_rx,
         }).unwrap();
+
+        let program = Program {
+            child_pid: child.pid(),
+            id: program_id,
+            tx: program_event_tx.clone(),
+            size: size.clone(), // todo: resize pty with this info
+            pty: fd,
+            event_handler_tx: event_handler_tx,
+        };
 
         (program, threads)
     }

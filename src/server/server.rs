@@ -55,7 +55,12 @@ impl Server {
                                                 size);
 
         // use window to create the pane?
-        let pane = ::pane::Pane::new(size, offset, &program.id);
+        let pane = ::pane::Pane {
+            size: size.clone(),
+            offset: offset.clone(),
+            program_id: program.id.clone(),
+            program_msg_tx: program.event_handler_tx.clone(),
+        };
         window.lock().unwrap().panes.push(pane);
 
         self.programs.push(program);

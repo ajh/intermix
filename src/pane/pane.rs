@@ -1,12 +1,13 @@
 extern crate libvterm_sys;
 
 use libvterm_sys::*;
+use std::sync::mpsc;
+use ::program::*;
 
 /// A window has panes, each of which can have a program
 ///
 /// For now, we'll setup all the panes first, then call spawn so we don't have to deal with
 /// selecting on a changable list of channel receivers.
-#[derive(Debug, Default, PartialEq, Clone)]
 pub struct Pane {
     // The size of this pane
     pub size: ScreenSize,
@@ -17,14 +18,6 @@ pub struct Pane {
 
     /// This is temporary, really it should have a reference to the program
     pub program_id: String,
-}
 
-impl Pane {
-    pub fn new(size: &ScreenSize, offset: &Pos, program_id: &str) -> Pane {
-        Pane {
-            size: size.clone(),
-            offset: offset.clone(),
-            program_id: program_id.to_string(),
-        }
-    }
+    pub program_msg_tx: mpsc::Sender<ProgramMsg>,
 }
