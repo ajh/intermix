@@ -11,7 +11,7 @@ use std::sync::mpsc::*;
 use std::sync::{Weak, Mutex};
 use super::*;
 use libvterm_sys::*;
-use ::program::*;
+use ::client::tty_painter::*;
 
 pub struct MsgListener {
     window: Weak<Mutex<Window>>,
@@ -35,7 +35,7 @@ impl MsgListener {
             let select = Select::new();
             let mut handles: Vec<Box<Handle<_>>> = vec![];
 
-            let mut painter: ::tty_painter::TtyPainter = Default::default();
+            let mut painter: TtyPainter = Default::default();
             painter.reset(&mut io::stdout());
 
             // add initial receivers

@@ -10,14 +10,41 @@ use term::terminfo::*;
 use std::thread;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
-use super::*;
+use ::client::pane::*;
 
+use self::msg_listener::*;
+
+use libvterm_sys::*;
+use std::sync::mpsc::Receiver;
+
+mod msg_listener;
+
+pub enum WindowMsg {
+    Damage {
+        program_id: String,
+        cells: Vec<ScreenCell>,
+    },
+    MoveCursor {
+        program_id: String,
+        new: Pos,
+        old: Pos,
+        is_visible: bool,
+    },
+    SbPushLine {
+        program_id: String,
+        cells: Vec<ScreenCell>,
+    },
+    AddProgram {
+        program_id: String,
+        rx: Receiver<WindowMsg>,
+    },
+}
 /// A window has panes, each of which can have a program
 ///
 /// For now, we'll setup all the panes first, then call spawn so we don't have to deal with
 /// selecting on a changable list of channel receivers.
 pub struct Window {
-    pub panes: Vec<::pane::Pane>,
+    pub panes: Vec<Pane>,
     // This'll be WindowEvents at some point
     pub tx: mpsc::Sender<WindowMsg>,
 }
@@ -32,7 +59,7 @@ impl Window {
             tx: tx,
         }));
 
-        let mut msg_listener = super::msg_listener::MsgListener::new(Arc::downgrade(&window.clone()));
+        let mut msg_listener = msg_listener::MsgListener::new(Arc::downgrade(&window.clone()));
         msg_listener.receivers.push(Box::new(rx));
         threads.push(msg_listener.spawn());
 

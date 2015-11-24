@@ -13,7 +13,7 @@ use std::sync::mpsc;
 use std::thread;
 use libvterm_sys::*;
 use super::*;
-use ::window::WindowMsg;
+use ::client::window::WindowMsg;
 
 /// Handles reads on the pty, passes the input to libvter, and generates ProgramEvents
 pub struct MsgListener {

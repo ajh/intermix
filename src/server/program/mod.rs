@@ -1,3 +1,6 @@
+mod msg_listener;
+mod pty_reader;
+
 extern crate log;
 extern crate pty;
 extern crate termios;
@@ -8,8 +11,9 @@ extern crate docopt;
 extern crate rustc_serialize;
 extern crate uuid;
 
-use ::window::WindowMsg;
+use ::client::window::WindowMsg;
 use libvterm_sys::*;
+use self::msg_listener::*;
 use std::ffi::CString;
 use std::fs::File;
 use std::io;
@@ -17,7 +21,13 @@ use std::os::unix::prelude::*;
 use std::ptr;
 use std::sync::mpsc;
 use std::thread;
-use super::*;
+
+pub enum ProgramMsg {
+    PtyRead { bytes: Vec<u8> },
+    PtyReadError,
+    PtyReadZero,
+    RequestRedrawRect { rect: Rect },
+}
 
 pub struct Program {
     pub child_pid: i32,
@@ -45,12 +55,12 @@ impl Program {
         let mut threads = vec![];
 
         let program_id = uuid::Uuid::new_v4().to_simple_string();
-        let msg_listener = super::msg_listener::MsgListener::new(&program_id, listener_tx.clone());
+        let msg_listener = msg_listener::MsgListener::new(&program_id, listener_tx.clone());
         let msg_listener_tx = msg_listener.tx.clone();
         threads.push(msg_listener.spawn());
 
         let io = unsafe { File::from_raw_fd(fd) };
-        let pty_reader = super::pty_reader::PtyReader::new(io, msg_listener_tx.clone());
+        let pty_reader = pty_reader::PtyReader::new(io, msg_listener_tx.clone());
         threads.push(pty_reader.spawn());
 
         // let the window know we exist

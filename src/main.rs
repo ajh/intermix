@@ -16,16 +16,13 @@ extern crate uuid;
 use std::thread;
 use libvterm_sys::*;
 
-mod window;
-mod program;
-mod pane;
-mod tty_painter;
+mod client;
 mod server;
-mod user_input;
 
-pub use window::Window;
-pub use program::Program;
-pub use server::Server;
+pub use client::window::Window;
+pub use server::program::Program;
+pub use server::*;
+pub use client::user_input::*;
 
 const USAGE: &'static str = "
 intermix - a terminal emulator multiplexer
@@ -82,7 +79,7 @@ fn main() {
                                                             &Pos { row: 24, col: 0 });
     threads.append(&mut more_threads);
 
-    user_input::spawn_stdin_to_pty_thr(server.first_program_pty_fd());
+    spawn_stdin_to_pty_thr(server.first_program_pty_fd());
 
     info!("joining threads");
     for thr in threads {

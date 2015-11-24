@@ -2,7 +2,7 @@ extern crate libvterm_sys;
 
 use libvterm_sys::*;
 use std::sync::mpsc;
-use ::program::*;
+use ::server::program::*;
 
 /// A window has panes, each of which can have a program
 ///
