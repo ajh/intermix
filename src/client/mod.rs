@@ -1,6 +1,6 @@
 mod draw_worker;
 mod input_worker;
-mod state;
+pub mod state;
 mod stdin_read_worker;
 mod tty_painter;
 
@@ -15,26 +15,25 @@ use std::thread::{self, JoinHandle};
 pub enum ClientMsg {
     Quit,
 
-    StateWindowAdd { window: Window },
-    StateWindowUpdate { window: Window },
-    StateWindowRemove { window_id: String },
+    WindowAdd { window: Window },
+    WindowUpdate { window: Window },
+    WindowRemove { window_id: String },
 
-    StatePaneAdd { window_id: String, pane: Pane },
-    StatePaneUpdate { window_id: String, pane: Pane },
-    StatePaneRemove { window_id: String, pane_id: String },
+    PaneAdd { window_id: String, pane: Pane },
+    PaneUpdate { window_id: String, pane: Pane },
+    PaneRemove { window_id: String, pane_id: String },
 
-    StateServerAdd { server: Server },
-    StateServerUpdate { server: Server },
-    StateServerRemove { server_id: String },
+    ServerAdd { server: Server },
+    ServerUpdate { server: Server },
+    ServerRemove { server_id: String },
 
-    StateProgramAdd { server_id: String, program: Program },
-    StateProgramUpdate { server_id: String, program: Window },
-    StateProgramRemove { server_id: String, program_id: String },
-
-    InputBytes { bytes: Vec<u8> },
-
+    ProgramAdd { server_id: String, program: Program },
+    ProgramUpdate { server_id: String, program: Window },
+    ProgramRemove { server_id: String, program_id: String },
     ProgramDamage { program_id: String, cells: Vec<libvterm_sys::ScreenCell> },
     ProgramMoveCursor { program_id: String, new: libvterm_sys::Pos, old: libvterm_sys::Pos, is_visible: bool },
+
+    InputBytes { bytes: Vec<u8> },
 }
 
 pub struct Client {
@@ -48,19 +47,22 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn spawn() -> JoinHandle<()> {
+    pub fn spawn() -> (Sender<ClientMsg>, JoinHandle<()>) {
+        let (tx, rx) = channel::<ClientMsg>();
+        let tx_clone = tx.clone();
+
         info!("spawning client");
-        thread::spawn(move || {
-            let mut client = Client::new();
+        let handle = thread::spawn(move || {
+            let mut client = Client::new(tx, rx);
             client.spawn_workers();
             client.enter_listener_loop();
             info!("exiting client");
-        })
+        });
+
+        (tx_clone, handle)
     }
 
-    fn new() -> Client {
-        let (tx, rx) = channel::<ClientMsg>();
-
+    fn new(tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>) -> Client {
         Client {
             rx: rx,
             tx: tx,

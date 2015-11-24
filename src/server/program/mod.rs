@@ -1,4 +1,4 @@
-mod msg_listener;
+mod vte_worker;
 mod pty_reader;
 
 extern crate log;
@@ -11,18 +11,19 @@ extern crate docopt;
 extern crate rustc_serialize;
 extern crate uuid;
 
-use ::client::window::WindowMsg;
 use libvterm_sys::*;
-use self::msg_listener::*;
+use self::vte_worker::*;
+use self::pty_reader::*;
 use std::ffi::CString;
 use std::fs::File;
 use std::io;
 use std::os::unix::prelude::*;
 use std::ptr;
-use std::sync::mpsc;
+use std::sync::mpsc::*;
 use std::thread;
+use super::*;
 
-pub enum ProgramMsg {
+pub enum VteWorkerMsg {
     PtyRead { bytes: Vec<u8> },
     PtyReadError,
     PtyReadZero,
@@ -32,50 +33,37 @@ pub enum ProgramMsg {
 pub struct Program {
     pub child_pid: i32,
     pub id: String,
-    pub tx: mpsc::Sender<WindowMsg>,
-    pub msg_listener_tx: mpsc::Sender<ProgramMsg>,
     pub size: ScreenSize,
     pub pty: RawFd,
 }
 
 impl Program {
     pub fn new(command_and_args: &Vec<String>,
-               tx: mpsc::Sender<WindowMsg>,
+               server_tx: Sender<ServerMsg>,
                size: &ScreenSize)
                -> (Program, Vec<thread::JoinHandle<()>>) {
+
         info!("forking");
         let child = fork(command_and_args);
-
-        let (listener_tx, listener_rx) = mpsc::channel::<WindowMsg>();
-
         info!("program started");
-
-        let fd = child.pty().unwrap().as_raw_fd();
 
         let mut threads = vec![];
 
         let program_id = uuid::Uuid::new_v4().to_simple_string();
-        let msg_listener = msg_listener::MsgListener::new(&program_id, listener_tx.clone());
-        let msg_listener_tx = msg_listener.tx.clone();
-        threads.push(msg_listener.spawn());
 
+        let (vte_tx, handle) = VteWorker::spawn(server_tx.clone(), program_id.clone());
+        threads.push(handle);
+
+        let fd = child.pty().unwrap().as_raw_fd();
         let io = unsafe { File::from_raw_fd(fd) };
-        let pty_reader = pty_reader::PtyReader::new(io, msg_listener_tx.clone());
-        threads.push(pty_reader.spawn());
-
-        // let the window know we exist
-        tx.send(WindowMsg::AddProgram {
-            program_id: program_id.clone(),
-            rx: listener_rx,
-        }).unwrap();
+        let handle = PtyReader::spawn(io, vte_tx.clone());
+        threads.push(handle);
 
         let program = Program {
             child_pid: child.pid(),
             id: program_id,
-            tx: listener_tx.clone(),
             size: size.clone(), // todo: resize pty with this info
             pty: fd,
-            msg_listener_tx: msg_listener_tx,
         };
 
         (program, threads)

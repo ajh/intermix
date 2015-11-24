@@ -1,42 +1,48 @@
-use std::rc::*;
-use libvterm_sys::{ScreenSize, Pos};
+use libvterm_sys;
+use std::sync::mpsc::*;
 
 /// Represents the state of the client. Each thread will maintain their own representation which
 /// will stay in sync through message passing.
 #[derive(Default)]
 pub struct State {
-    windows: Vec<Window>,
-    servers: Vec<Server>,
-    mode_name: String,
+    pub windows: Vec<Window>,
+    pub servers: Vec<Server>,
+    pub mode_name: String,
 }
 
 /// The window or tty that the user sees
+#[derive(Default)]
 pub struct Window {
-    id: String,
-    panes: Vec<Pane>,
-    size: ScreenSize,
+    pub id: String,
+    pub panes: Vec<Pane>,
+    pub size: libvterm_sys::ScreenSize,
 }
 
 /// a rectange within the window that displays output from a program
+#[derive(Default)]
 pub struct Pane {
-    id: String,
-    size: ScreenSize,
-    offset: Pos,
-    program_id: String,
+    pub id: String,
+    pub size: libvterm_sys::ScreenSize,
+    pub offset: libvterm_sys::Pos,
+    pub program_id: String,
 }
 
 /// A connection to an intermix server
 pub struct Server {
-    id: String,
-    programs: Vec<Program>,
+    pub id: String,
+    pub programs: Vec<Program>,
+
+    /// replace with with cap'n proto or whatever
+    pub tx: Sender<::server::ServerMsg>,
 }
 
 /// A program running on the server
+#[derive(Default)]
 pub struct Program {
-    id: String,
+    pub id: String,
     /// Whether the client is interested in msgs about this program. If its not visible, the answer
     /// is probably no.
-    is_subscribed: bool
+    pub is_subscribed: bool
 }
 
 mod tests {

@@ -17,12 +17,7 @@ use std::thread;
 use libvterm_sys::*;
 
 mod client;
-//mod server;
-
-//pub use client::window::Window;
-//pub use server::program::Program;
-//pub use server::*;
-//pub use client::user_input::*;
+mod server;
 
 const USAGE: &'static str = "
 intermix - a terminal emulator multiplexer
@@ -59,40 +54,26 @@ fn main() {
     setup_logging();
     let args: Args = parse_args();
 
-    let mut threads: Vec<thread::JoinHandle<()>> = vec![];
+    let (server_tx, server_handle) = server::Server::spawn();
+    let (client_tx, client_handle) = client::Client::spawn();
 
-    //let mut server = Server::new();
-    //let mut thrs = server.start_new_window();
-    //threads.append(&mut thrs);
+    client_tx.send(client::ClientMsg::ServerAdd {
+        server: ::client::state::Server {
+            id: "todo".to_string(),
+            tx: server_tx.clone(),
+            programs: vec![],
+        }
+    });
 
-    //let screen_size = ScreenSize {
-        //rows: 24,
-        //cols: 80,
-    //};
+    server_tx.send(server::ServerMsg::ClientAdd {
+        client: ::server::Client {
+            id: "todo".to_string(),
+            tx: client_tx,
+        }
+    });
 
-    //info!("starting program");
-    //let mut command_and_args = args.arg_command.clone();
-    //// TODO: use env to get SHELL variable here
-    //if command_and_args.len() == 0 {
-        //command_and_args.push("bash".to_string());
-    //}
-    //let mut more_threads = server.start_program_in_new_pane(&command_and_args,
-                                                            //&screen_size,
-                                                            //&Pos { row: 0, col: 0 });
-    //threads.append(&mut more_threads);
-
-    //info!("starting another program");
-    //let mut more_threads = server.start_program_in_new_pane(&vec!["bash".to_string()],
-                                                            //&screen_size,
-                                                            //&Pos { row: 24, col: 0 });
-    //threads.append(&mut more_threads);
-
-    //spawn_stdin_to_pty_thr(server.first_program_pty_fd());
-
-    //info!("joining threads");
-    //for thr in threads {
-        //thr.join().unwrap();
-    //}
-
-    //server.stop();
+    let threads = vec![server_handle, client_handle];
+    for thr in threads {
+        thr.join().unwrap();
+    }
 }
