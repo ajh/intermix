@@ -43,9 +43,7 @@ impl Program {
                size: &ScreenSize)
                -> (Program, Vec<thread::JoinHandle<()>>) {
 
-        info!("forking");
         let child = fork(command_and_args);
-        info!("program started");
 
         let mut threads = vec![];
 
@@ -71,6 +69,8 @@ impl Program {
 }
 
 fn fork(command_and_args: &Vec<String>) -> pty::Child {
+    info!("forking program");
+
     match pty::fork() {
         Ok(child) => {
             if child.pid() == 0 {
@@ -91,7 +91,6 @@ fn fork(command_and_args: &Vec<String>) -> pty::Child {
                 let ret = unsafe { libc::execvp(*ptrs.as_ptr(), ptrs.as_mut_ptr()) };
                 panic!("error {} in execvp {}", ret, io::Error::last_os_error());
             } else {
-                info!("got vim child process");
                 child
             }
         }

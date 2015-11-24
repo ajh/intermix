@@ -3,27 +3,15 @@ refresh_rate = 30
 [appender.root]
 kind = "file"
 path = "log/intermix.log"
-pattern = "%d - %m"
+pattern = "%d %l - %m (%f)"
 
-[appender.program]
+[appender.client]
 kind = "file"
-path = "log/program.log"
-pattern = "%d - %m"
+path = "log/client.log"
 
-[appender.window]
+[appender.server]
 kind = "file"
-path = "log/window.log"
-pattern = "%d - %m"
-
-[appender.pane]
-kind = "file"
-path = "log/pane.log"
-pattern = "%d - %m"
-
-[appender.tty_painter]
-kind = "file"
-path = "log/tty_painter.log"
-pattern = "%d - %m"
+path = "log/server.log"
 
 [root]
 appenders = ["root"]
@@ -31,24 +19,12 @@ level = "trace"
 
 [[logger]]
 additive = false
-appenders = ["program"]
+appenders = ["client"]
 level = "trace"
-name = "intermix::program"
+name = "intermix::client"
 
 [[logger]]
 additive = false
-appenders = ["window"]
+appenders = ["server"]
 level = "trace"
-name = "intermix::window"
-
-[[logger]]
-additive = false
-appenders = ["pane"]
-level = "trace"
-name = "intermix::pane"
-
-[[logger]]
-additive = false
-appenders = ["tty_painter"]
-level = "trace"
-name = "intermix::tty_painter"
+name = "intermix::server"

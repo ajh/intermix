@@ -64,7 +64,6 @@ impl Server {
     }
 
     fn new(tx: Sender<ServerMsg>, rx: Receiver<ServerMsg>) -> Server {
-        info!("starting server");
         Server {
             tx: tx,
             rx: rx,

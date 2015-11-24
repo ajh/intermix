@@ -44,7 +44,6 @@ impl PtyReader {
         let mut buf = [0 as u8; 4096];
         let mut reader = BufReader::new(&self.pty);
 
-        info!("starting pty -> stdout thread");
         loop {
             // block until read
             let bytes = match reader.read(&mut buf) {

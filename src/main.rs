@@ -42,12 +42,8 @@ fn setup_logging() {
 }
 
 fn parse_args() -> Args {
-    let args: Args = docopt::Docopt::new(USAGE)
-                         .and_then(|d| d.decode())
-                         .unwrap_or_else(|e| e.exit());
-
-    info!("{:?}", args);
-    args
+    docopt::Docopt::new(USAGE).and_then(|d| d.decode())
+                              .unwrap_or_else(|e| e.exit())
 }
 
 fn main() {

@@ -28,7 +28,7 @@ impl StdinReadWorker {
                 client_tx: tx,
             };
             worker.enter_read_loop();
-            info!("stopping stdin reader thread");
+            info!("exiting stdin reader thread");
         })
     }
 
@@ -63,6 +63,5 @@ impl StdinReadWorker {
                 }
             }
         }
-        info!("ending stdin reader thread");
     }
 }
