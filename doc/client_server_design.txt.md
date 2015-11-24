@@ -41,3 +41,10 @@ different things can happen. Assuming that a program is in focus, keys
 will be sent to the server. The client will be listening for messages
 from the server. If the messages is about new screen buffer content, the
 client will draw to the pane and window of the program.
+
+# Technology choices
+
+I'm thinking that unix domain sockets would be a good choice. That
+solves the security question because the socket will be owned by a unix
+user. Remove access can potentially happen through ssh using the -L or
+-R feature (I should test this).
