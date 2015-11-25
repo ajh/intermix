@@ -15,6 +15,7 @@ extern crate uuid;
 
 use std::thread;
 use libvterm_sys::*;
+use std::sync::mpsc::*;
 
 mod client;
 mod server;
@@ -55,7 +56,7 @@ fn main() {
 
     client_tx.send(client::ClientMsg::ServerAdd {
         server: ::client::state::Server {
-            id: "some client".to_string(),
+            id: "some server".to_string(),
             tx: server_tx.clone(),
             programs: vec![],
         }
@@ -63,13 +64,24 @@ fn main() {
 
     server_tx.send(server::ServerMsg::ClientAdd {
         client: ::server::Client {
-            id: "some server".to_string(),
-            tx: client_tx,
+            id: "some client".to_string(),
+            tx: client_tx.clone(),
         }
     });
+
+    pretend_a_mode_starts_a_program(&client_tx, &server_tx);
 
     let threads = vec![server_handle, client_handle];
     for thr in threads {
         thr.join().unwrap();
     }
+}
+
+// TODO: Move this code into a mode
+fn pretend_a_mode_starts_a_program(client_tx: &Sender<client::ClientMsg>, server_tx: &Sender<server::ServerMsg>) {
+    let command_and_args: Vec<String> = vec!["bash".to_string()];
+    server_tx.send(server::ServerMsg::ProgramStart {
+        command_and_args: command_and_args,
+        program_id: "bash-123".to_string(),
+    }).unwrap();
 }

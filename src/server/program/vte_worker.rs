@@ -28,23 +28,24 @@ pub struct VteWorker {
 }
 
 impl VteWorker {
-    pub fn spawn(server_tx: Sender<::server::ServerMsg>, program_id: String) -> (Sender<VteWorkerMsg>, thread::JoinHandle<()>) {
+    pub fn spawn(server_tx: Sender<::server::ServerMsg>, program_id: &str) -> (Sender<VteWorkerMsg>, thread::JoinHandle<()>) {
         let (tx, rx) = channel::<VteWorkerMsg>();
         let tx_clone = tx.clone();
+        let program_id = program_id.to_string();
 
-        info!("spawning vte worker");
+        info!("spawning vte worker for program {}", program_id);
         let handle = thread::spawn(move || {
-            let mut worker = VteWorker::new(server_tx, tx, rx, program_id);
+            let mut worker = VteWorker::new(server_tx, tx, rx, &program_id);
             worker.enter_listen_loop();
-            info!("exiting vte worker");
+            info!("exiting vte worker for program {}", program_id);
         });
 
         (tx_clone, handle)
     }
 
-    pub fn new(server_tx: Sender<::server::ServerMsg>, tx: Sender<VteWorkerMsg>, rx: Receiver<VteWorkerMsg>, program_id: String) -> VteWorker {
+    pub fn new(server_tx: Sender<::server::ServerMsg>, tx: Sender<VteWorkerMsg>, rx: Receiver<VteWorkerMsg>, program_id: &str) -> VteWorker {
         VteWorker {
-            program_id: program_id,
+            program_id: program_id.to_string(),
             rx: Some(rx),
             tx: tx,
             server_tx: server_tx,

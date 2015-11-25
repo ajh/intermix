@@ -49,14 +49,14 @@ pub struct Program {
 impl State {
     pub fn add_window(&mut self, window: Window) {
         if !self.windows.iter().any(|w| w.id == window.id) {
-            trace!("add window {}", window.id);
+            trace!("add window {:?}", window.id);
             self.windows.push(window)
         }
     }
 
     pub fn remove_window(&mut self, id: &str) {
         if let Some(i) = self.windows.iter().position(|w| w.id == id) {
-            trace!("remove window {}", id);
+            trace!("remove window {:?}", id);
             self.windows.remove(i);
         }
     }
@@ -69,21 +69,21 @@ impl State {
         let mut window = window.unwrap();
 
         if !window.panes.iter().any(|p| p.id == pane.id) {
-            trace!("add pane {}", pane.id);
+            trace!("add pane {:?}", pane.id);
             window.panes.push(pane)
         }
     }
 
     pub fn add_server(&mut self, server: Server) {
         if !self.servers.iter().any(|w| w.id == server.id) {
-            trace!("add server {}", server.id);
+            trace!("add server {:?}", server.id);
             self.servers.push(server)
         }
     }
 
     pub fn remove_server(&mut self, id: &str) {
         if let Some(i) = self.servers.iter().position(|w| w.id == id) {
-            trace!("remove server {}", id);
+            trace!("remove server {:?}", id);
             self.servers.remove(i);
         }
     }
@@ -96,7 +96,7 @@ impl State {
         let mut server = server.unwrap();
 
         if !server.programs.iter().any(|p| p.id == program.id) {
-            trace!("add program {}", program.id);
+            trace!("add program {:?}", program.id);
             server.programs.push(program)
         }
     }

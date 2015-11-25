@@ -38,28 +38,27 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(command_and_args: &Vec<String>,
+    pub fn new(id: &str,
+               command_and_args: &Vec<String>,
                server_tx: Sender<ServerMsg>,
                size: &ScreenSize)
                -> (Program, Vec<thread::JoinHandle<()>>) {
 
-        let child = fork(command_and_args);
+        let child = fork(id, command_and_args);
 
         let mut threads = vec![];
 
-        let program_id = uuid::Uuid::new_v4().to_simple_string();
-
-        let (vte_tx, handle) = VteWorker::spawn(server_tx.clone(), program_id.clone());
+        let (vte_tx, handle) = VteWorker::spawn(server_tx.clone(), id);
         threads.push(handle);
 
         let fd = child.pty().unwrap().as_raw_fd();
         let io = unsafe { File::from_raw_fd(fd) };
-        let handle = PtyReader::spawn(io, vte_tx.clone());
+        let handle = PtyReader::spawn(io, vte_tx.clone(), id);
         threads.push(handle);
 
         let program = Program {
             child_pid: child.pid(),
-            id: program_id,
+            id: id.to_string(),
             size: size.clone(), // todo: resize pty with this info
             pty: fd,
         };
@@ -68,8 +67,8 @@ impl Program {
     }
 }
 
-fn fork(command_and_args: &Vec<String>) -> pty::Child {
-    info!("forking program");
+fn fork(id: &str, command_and_args: &Vec<String>) -> pty::Child {
+    info!("forking program {}", id);
 
     match pty::fork() {
         Ok(child) => {

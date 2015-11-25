@@ -19,24 +19,27 @@ use super::*;
 ///
 /// An alternative would be to have 1 thread run for all programs using mio.
 pub struct PtyReader {
+    program_id: String,
     pty: File,
     vte_tx: mpsc::Sender<VteWorkerMsg>,
 }
 
 impl PtyReader {
-    pub fn spawn(io: File, vte_tx: mpsc::Sender<VteWorkerMsg>) -> thread::JoinHandle<()> {
-        info!("spawning pty reader");
+    pub fn spawn(io: File, vte_tx: mpsc::Sender<VteWorkerMsg>, program_id: &str) -> thread::JoinHandle<()> {
+        let program_id = program_id.to_string();
+        info!("spawning pty reader for program {}", program_id);
         thread::spawn(move || {
-            let mut reader = PtyReader::new(io, vte_tx);
+            let mut reader = PtyReader::new(io, vte_tx, &program_id);
             reader.enter_listen_loop();
-            info!("exiting pty reader");
+            info!("exiting pty reader for program {}", program_id);
         })
     }
 
-    fn new(io: File, vte_tx: mpsc::Sender<VteWorkerMsg>) -> PtyReader {
+    fn new(io: File, vte_tx: mpsc::Sender<VteWorkerMsg>, program_id: &str) -> PtyReader {
         PtyReader {
             pty: io,
             vte_tx: vte_tx,
+            program_id: program_id.to_string(),
         }
     }
 

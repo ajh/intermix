@@ -21,12 +21,12 @@ use std::sync::mpsc::*;
 pub enum ServerMsg {
     Quit,
 
-    ProgramInput { program_id: String, bytes: Vec<u8> },
-    ProgramStart { command_and_args: Vec<String> },
-    ProgramKill { program_id: String, signal: u8 },
-    ProgramRedrawRect { program_id: String, rect: Rect },
     ProgramDamage { program_id: String, cells: Vec<ScreenCell> },
+    ProgramInput { program_id: String, bytes: Vec<u8> },
+    ProgramKill { program_id: String, signal: u8 },
     ProgramMoveCursor { program_id: String, new: Pos, old: Pos, is_visible: bool },
+    ProgramRedrawRect { program_id: String, rect: Rect },
+    ProgramStart { program_id: String, command_and_args: Vec<String> },
 
     ClientAdd { client: Client },
     ClientUpdate { client: Client },
@@ -74,14 +74,32 @@ impl Server {
 
     fn enter_listener_loop(&mut self) {
         loop {
-            match self.rx.recv() {
-                Ok(msg) => self.handle(msg),
+            let msg = match self.rx.recv() {
+                Ok(msg) => msg,
                 Err(_) => break,
+            };
+
+            match msg {
+                ServerMsg::Quit => break,
+
+                ServerMsg::ProgramDamage { program_id, cells } => {},
+                ServerMsg::ProgramInput { program_id, bytes } => {},
+                ServerMsg::ProgramKill { program_id, signal } => {},
+                ServerMsg::ProgramMoveCursor { program_id, new, old, is_visible } => {},
+                ServerMsg::ProgramRedrawRect { program_id, rect } => {},
+                ServerMsg::ProgramStart { program_id, command_and_args } => self.start_program(program_id, command_and_args),
+
+                ServerMsg::ClientAdd { client } => {},
+                ServerMsg::ClientUpdate { client } => {},
+                ServerMsg::ClientRemote { client_id } => {},
             }
         }
     }
 
-    fn handle(&self, msg: ServerMsg) {
+    fn start_program(&mut self, id: String, command_and_args: Vec<String>) {
+        let size = libvterm_sys::ScreenSize { rows: 24, cols: 80 };
+        let (program, threads) = Program::new(&id, &command_and_args, self.tx.clone(), &size);
+        self.programs.push(program);
     }
 
     //pub fn start_new_window(&mut self) -> Vec<thread::JoinHandle<()>> {
