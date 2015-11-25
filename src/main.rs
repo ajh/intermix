@@ -61,6 +61,7 @@ fn main() {
             programs: vec![],
         }
     });
+    add_initial_window_to_client(&client_tx);
 
     server_tx.send(server::ServerMsg::ClientAdd {
         client: ::server::Client {
@@ -77,6 +78,15 @@ fn main() {
     }
 }
 
+fn add_initial_window_to_client(client_tx: &Sender<client::ClientMsg>) {
+    client_tx.send(client::ClientMsg::WindowAdd {
+        window: client::state::Window {
+            id: "initial window".to_string(),
+            .. Default::default()
+        }
+    }).unwrap();
+}
+
 // TODO: Move this code into a mode
 fn pretend_a_mode_starts_a_program(client_tx: &Sender<client::ClientMsg>, server_tx: &Sender<server::ServerMsg>) {
     let command_and_args: Vec<String> = vec!["bash".to_string()];
@@ -84,4 +94,22 @@ fn pretend_a_mode_starts_a_program(client_tx: &Sender<client::ClientMsg>, server
         command_and_args: command_and_args,
         program_id: "bash-123".to_string(),
     }).unwrap();
+
+    client_tx.send(client::ClientMsg::PaneAdd {
+        window_id: "initial window".to_string(),
+        pane: client::state::Pane {
+            id: "pane-bash-123".to_string(),
+            size: libvterm_sys::ScreenSize { rows: 24, cols: 80 },
+            offset: libvterm_sys::Pos { row: 0, col: 10 },
+            program_id: "bash-123".to_string(),
+        }
+    });
+
+    client_tx.send(client::ClientMsg::ProgramAdd {
+        server_id: "some server".to_string(),
+        program: client::state::Program {
+            id: "bash-123".to_string(),
+            is_subscribed: true,
+        }
+    });
 }

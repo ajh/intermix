@@ -82,17 +82,32 @@ impl Server {
             match msg {
                 ServerMsg::Quit => break,
 
-                ServerMsg::ProgramDamage { program_id, cells } => {},
+                ServerMsg::ProgramDamage { program_id, cells } => {
+                    self.send_msg_to_clients(
+                        ::client::ClientMsg::ProgramDamage { program_id: program_id, cells: cells },
+                        true
+                    );
+                },
                 ServerMsg::ProgramInput { program_id, bytes } => {},
                 ServerMsg::ProgramKill { program_id, signal } => {},
                 ServerMsg::ProgramMoveCursor { program_id, new, old, is_visible } => {},
                 ServerMsg::ProgramRedrawRect { program_id, rect } => {},
                 ServerMsg::ProgramStart { program_id, command_and_args } => self.start_program(program_id, command_and_args),
 
-                ServerMsg::ClientAdd { client } => {},
+                ServerMsg::ClientAdd { client } => {
+                    self.clients.push(client);
+                },
                 ServerMsg::ClientUpdate { client } => {},
                 ServerMsg::ClientRemote { client_id } => {},
             }
+        }
+    }
+
+    fn send_msg_to_clients(&self, msg: ::client::ClientMsg, hard: bool) {
+        trace!("sending (non debuggable msg) to {} clients", self.clients.len());
+        for client in &self.clients {
+            let result = client.tx.send(msg.clone());
+            if hard { result.expect("didnt send"); }
         }
     }
 

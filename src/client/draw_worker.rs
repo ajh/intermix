@@ -68,11 +68,18 @@ impl DrawWorker {
     }
 
     fn damage(&mut self, program_id: String, cells: Vec<libvterm_sys::ScreenCell>) {
-        // find offset from state
-        // self.painter.draw_cells(&cells, &mut io::stdout(), &offset);
+        trace!("damage for program {}", program_id);
+
+        let mut panes = self.state.windows.iter().flat_map(|w| w.panes.iter());
+        if let Some(pane) = panes.find(|p| p.program_id == program_id) {
+            self.painter.draw_cells(&cells, &mut io::stdout(), &pane.offset);
+        } else {
+            trace!("no pane for program {:?}", program_id);
+        }
     }
 
     fn move_cursor(&mut self, program_id: String, pos: libvterm_sys::Pos, is_visible: bool) {
+        trace!("move_cursor for program {}", program_id);
         // find offset from state
         // painter.move_cursor(pos, is_visible));
     }

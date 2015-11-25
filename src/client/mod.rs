@@ -98,6 +98,9 @@ impl Client {
                     break;
                 },
                 ClientMsg::UserInput { bytes: _ } => {},
+
+                // this catches ProgramDamage etc, which the draw worker needs but the input worker
+                // doesnt
                 _ => self.broadcast_msg(msg, true),
             }
         }
