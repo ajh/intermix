@@ -13,10 +13,12 @@ mod program;
 
 use libvterm_sys::*;
 use self::program::*;
+use std::fs::File;
+use std::io::prelude::*;
 use std::os::unix::prelude::*;
+use std::sync::mpsc::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::sync::mpsc::*;
 
 pub enum ServerMsg {
     Quit,
@@ -88,7 +90,7 @@ impl Server {
                         true
                     );
                 },
-                ServerMsg::ProgramInput { program_id, bytes } => {},
+                ServerMsg::ProgramInput { program_id, bytes } => self.program_input(program_id, bytes),
                 ServerMsg::ProgramKill { program_id, signal } => {},
                 ServerMsg::ProgramMoveCursor { program_id, new, old, is_visible } => {},
                 ServerMsg::ProgramRedrawRect { program_id, rect } => {},
@@ -100,6 +102,16 @@ impl Server {
                 ServerMsg::ClientUpdate { client } => {},
                 ServerMsg::ClientRemote { client_id } => {},
             }
+        }
+    }
+
+    fn program_input(&self, program_id: String, bytes: Vec<u8>) {
+        trace!("input for program {:?}", program_id);
+        if let Some(program) = self.programs.iter().find( |p| p.id == program_id ) {
+            let mut file = unsafe { File::from_raw_fd(program.pty) };
+            file.write_all(unsafe { bytes.as_slice() });
+        } else {
+            trace!("couldnt send input to unknown program {:?}", program_id);
         }
     }
 

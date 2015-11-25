@@ -8,9 +8,10 @@ extern crate docopt;
 extern crate rustc_serialize;
 extern crate uuid;
 
+use std::error::Error;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io::BufReader;
+use std::io::prelude::*;
 use std::sync::mpsc;
 use std::thread;
 use super::*;
@@ -58,9 +59,9 @@ impl PtyReader {
                     }
                     &buf[0..num_bytes]
                 }
-                Err(_) => {
+                Err(e) => {
                     self.vte_tx.send(VteWorkerMsg::PtyReadError).unwrap();
-                    error!("error reading from pty");
+                    error!("error reading from pty: {}", e.description());
                     break;
                 }
             };
