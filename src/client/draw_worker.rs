@@ -17,8 +17,8 @@ pub struct DrawWorker {
     rx: Receiver<ClientMsg>,
     tx: Sender<ClientMsg>,
     client_tx: Sender<ClientMsg>,
-    state: State,
     painter: TtyPainter,
+    state: State,
 }
 
 impl DrawWorker {

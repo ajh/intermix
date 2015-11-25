@@ -7,7 +7,7 @@ use std::sync::mpsc::*;
 pub struct State {
     pub windows: Vec<Window>,
     pub servers: Vec<Server>,
-    pub mode_name: String,
+    pub mode: Mode,
 }
 
 /// The window or tty that the user sees
@@ -44,6 +44,12 @@ pub struct Program {
     /// Whether the client is interested in msgs about this program. If its not visible, the answer
     /// is probably no.
     pub is_subscribed: bool
+}
+
+#[derive(Default, Clone, Debug)]
+pub struct Mode {
+    pub id: String,
+    // status line msg or whatever could be here too
 }
 
 impl State {

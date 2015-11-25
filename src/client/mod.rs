@@ -1,8 +1,9 @@
 mod draw_worker;
 mod input_worker;
-pub mod state;
+mod modal;
 mod stdin_read_worker;
 mod tty_painter;
+pub mod state;
 
 use vterm_sys;
 use self::draw_worker::*;

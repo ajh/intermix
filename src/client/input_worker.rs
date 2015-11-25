@@ -17,6 +17,7 @@ pub struct InputWorker {
     tx: Sender<ClientMsg>,
     client_tx: Sender<ClientMsg>,
     state: State,
+    mode: Box<::client::modal::Mode>,
 }
 
 impl InputWorker {
@@ -35,11 +36,16 @@ impl InputWorker {
     }
 
     fn new(client_tx: Sender<ClientMsg>, tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>) -> InputWorker {
+        let mode = Box::new(::client::modal::ProgramMode {
+            program_id: "todo".to_string()
+        });
+
         InputWorker {
             rx: rx,
             tx: tx,
             client_tx: client_tx,
             state: Default::default(),
+            mode: mode,
         }
     }
 
@@ -55,23 +61,14 @@ impl InputWorker {
                 ClientMsg::WindowAdd { window } => self.state.add_window(window),
                 ClientMsg::PaneAdd { window_id , pane } => self.state.add_pane(&window_id, pane),
                 ClientMsg::ServerAdd { server } => self.state.add_server(server),
-                ClientMsg::ProgramAdd { server_id, program } => self.state.add_program(&server_id, program),
-                ClientMsg::UserInput { bytes } => {
-                    // TODO: send the bytes to the selected mode
-
-                    // for now, send it to the first program
-                    if let Some(server) = self.state.servers.first() {
-                        if let Some(program) = server.programs.first() {
-                            trace!("sending input to program {}", program.id);
-                            server.tx.send(::server::ServerMsg::ProgramInput {
-                                program_id: program.id.clone(),
-                                bytes: bytes,
-                            });
-                        }
-                    }
-                }
+                ClientMsg::ProgramAdd { server_id, program } => self.program_add(server_id, program),
+                ClientMsg::UserInput { bytes } => self.mode.input(bytes, &self.state),
                 _ => {}
             }
         }
+    }
+
+    fn program_add(&mut self, server_id: String, program: Program) {
+        self.state.add_program(&server_id, program);
     }
 }
