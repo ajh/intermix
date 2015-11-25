@@ -16,6 +16,9 @@ use std::os::unix::prelude::*;
 use std::sync::mpsc::*;
 use super::*;
 
+// The way this works on the server side, is there is a special enum for passing the io bytes,
+// called VteWorkerMsg. Maybe I should reuse that instead of ClientMsg, because only the input
+// worker cares or is expected to handle an InputByte message.
 pub struct StdinReadWorker {
     client_tx: Sender<ClientMsg>,
 }
@@ -49,7 +52,7 @@ impl StdinReadWorker {
                         bytes.push(*byte)
                     }
 
-                    let msg = ClientMsg::InputBytes { bytes: bytes };
+                    let msg = ClientMsg::UserInput { bytes: bytes };
 
                     let result = self.client_tx.send(msg);
                     if result.is_err() {

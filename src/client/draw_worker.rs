@@ -55,8 +55,13 @@ impl DrawWorker {
 
             match msg {
                 ClientMsg::Quit => break,
-                ClientMsg::ProgramDamage{program_id, cells} => self.damage(program_id, cells),
-                ClientMsg::ProgramMoveCursor{program_id, old, new, is_visible} => self.move_cursor(program_id, new, is_visible),
+                ClientMsg::WindowAdd { window } => self.state.add_window(window),
+                ClientMsg::PaneAdd { window_id , pane } => self.state.add_pane(&window_id, pane),
+                ClientMsg::ServerAdd { server } => self.state.add_server(server),
+                ClientMsg::ProgramAdd { server_id, program } => self.state.add_program(&server_id, program),
+                ClientMsg::ProgramDamage { program_id, cells } => self.damage(program_id, cells),
+                ClientMsg::ProgramMoveCursor { program_id, old, new, is_visible } => self.move_cursor(program_id, new, is_visible),
+
                 _ => {}
             }
         }

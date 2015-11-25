@@ -45,14 +45,33 @@ impl InputWorker {
 
     fn enter_listen_loop(&mut self) {
         loop {
-            match self.rx.recv() {
-                Ok(msg) => self.handle(msg),
+            let msg = match self.rx.recv() {
+                Ok(msg) => msg,
                 Err(_) => break,
+            };
+
+            match msg {
+                ClientMsg::Quit => break,
+                ClientMsg::WindowAdd { window } => self.state.add_window(window),
+                ClientMsg::PaneAdd { window_id , pane } => self.state.add_pane(&window_id, pane),
+                ClientMsg::ServerAdd { server } => self.state.add_server(server),
+                ClientMsg::ProgramAdd { server_id, program } => self.state.add_program(&server_id, program),
+                ClientMsg::UserInput { bytes } => {
+                    // TODO: send the bytes to the selected mode
+
+                    // for now, send it to the first program
+                    if let Some(server) = self.state.servers.first() {
+                        if let Some(program) = server.programs.first() {
+                            trace!("sending input to program {}", program.id);
+                            server.tx.send(::server::ServerMsg::ProgramInput {
+                                program_id: program.id.clone(),
+                                bytes: bytes,
+                            });
+                        }
+                    }
+                }
+                _ => {}
             }
         }
-    }
-
-    fn handle(&mut self, event: ClientMsg) {
-        // when ClientMsg::InputBytes, send the bytes to the selected mode.
     }
 }

@@ -12,6 +12,7 @@ use self::stdin_read_worker::*;
 use std::sync::mpsc::*;
 use std::thread::{self, JoinHandle};
 
+#[derive(Clone)]
 pub enum ClientMsg {
     Quit,
 
@@ -33,7 +34,7 @@ pub enum ClientMsg {
     ProgramDamage { program_id: String, cells: Vec<libvterm_sys::ScreenCell> },
     ProgramMoveCursor { program_id: String, new: libvterm_sys::Pos, old: libvterm_sys::Pos, is_visible: bool },
 
-    InputBytes { bytes: Vec<u8> },
+    UserInput { bytes: Vec<u8> },
 }
 
 pub struct Client {
@@ -43,7 +44,7 @@ pub struct Client {
 
     /// We copy any received client state msgs to our threads, so they can keep their state in
     /// sync. This is the list of Senders for the threads.
-    thr_txs: Vec<Sender<ClientMsg>>,
+    worker_txs: Vec<Sender<ClientMsg>>,
 }
 
 impl Client {
@@ -67,29 +68,46 @@ impl Client {
             rx: rx,
             tx: tx,
             state: Default::default(),
-            thr_txs: vec!(),
+            worker_txs: vec!(),
         }
     }
 
     fn spawn_workers(&mut self) {
         // spawn input thr
         let (input_worker_tx, handle) = InputWorker::spawn(self.tx.clone());
+        self.worker_txs.push(input_worker_tx.clone());
 
         // spawn stdin reader
         let handle = StdinReadWorker::spawn(input_worker_tx);
 
         // spawn draw thr
+        let(draw_worker_tx, handle) = DrawWorker::spawn(self.tx.clone());
+        self.worker_txs.push(draw_worker_tx);
     }
 
     fn enter_listener_loop(&mut self) {
         loop {
-            match self.rx.recv() {
-                Ok(msg) => self.handle(msg),
+            let msg = match self.rx.recv() {
+                Ok(msg) => msg,
                 Err(_) => break,
+            };
+
+            match msg {
+                ClientMsg::Quit => {
+                    self.broadcast_msg(msg, false);
+                    break;
+                },
+                ClientMsg::UserInput { bytes: _ } => {},
+                _ => self.broadcast_msg(msg, true),
             }
         }
     }
 
-    fn handle(&self, msg: ClientMsg) {
+    fn broadcast_msg(&self, msg: ClientMsg, hard: bool) {
+        trace!("broadcasting (non-debuggable ClientMsg) to {} worker senders", self.worker_txs.len());
+        for tx in &self.worker_txs {
+            let result = tx.send(msg.clone());
+            if hard { result.expect("didnt send") }
+        }
     }
 }

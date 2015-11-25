@@ -3,7 +3,7 @@ use std::sync::mpsc::*;
 
 /// Represents the state of the client. Each thread will maintain their own representation which
 /// will stay in sync through message passing.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct State {
     pub windows: Vec<Window>,
     pub servers: Vec<Server>,
@@ -11,7 +11,7 @@ pub struct State {
 }
 
 /// The window or tty that the user sees
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Window {
     pub id: String,
     pub panes: Vec<Pane>,
@@ -19,7 +19,7 @@ pub struct Window {
 }
 
 /// a rectange within the window that displays output from a program
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 pub struct Pane {
     pub id: String,
     pub size: libvterm_sys::ScreenSize,
@@ -28,6 +28,7 @@ pub struct Pane {
 }
 
 /// A connection to an intermix server
+#[derive(Clone)]
 pub struct Server {
     pub id: String,
     pub programs: Vec<Program>,
@@ -37,7 +38,7 @@ pub struct Server {
 }
 
 /// A program running on the server
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 pub struct Program {
     pub id: String,
     /// Whether the client is interested in msgs about this program. If its not visible, the answer
@@ -48,12 +49,14 @@ pub struct Program {
 impl State {
     pub fn add_window(&mut self, window: Window) {
         if !self.windows.iter().any(|w| w.id == window.id) {
+            trace!("add window {}", window.id);
             self.windows.push(window)
         }
     }
 
     pub fn remove_window(&mut self, id: &str) {
         if let Some(i) = self.windows.iter().position(|w| w.id == id) {
+            trace!("remove window {}", id);
             self.windows.remove(i);
         }
     }
@@ -66,18 +69,21 @@ impl State {
         let mut window = window.unwrap();
 
         if !window.panes.iter().any(|p| p.id == pane.id) {
+            trace!("add pane {}", pane.id);
             window.panes.push(pane)
         }
     }
 
     pub fn add_server(&mut self, server: Server) {
         if !self.servers.iter().any(|w| w.id == server.id) {
+            trace!("add server {}", server.id);
             self.servers.push(server)
         }
     }
 
     pub fn remove_server(&mut self, id: &str) {
         if let Some(i) = self.servers.iter().position(|w| w.id == id) {
+            trace!("remove server {}", id);
             self.servers.remove(i);
         }
     }
@@ -90,6 +96,7 @@ impl State {
         let mut server = server.unwrap();
 
         if !server.programs.iter().any(|p| p.id == program.id) {
+            trace!("add program {}", program.id);
             server.programs.push(program)
         }
     }

@@ -55,7 +55,7 @@ fn main() {
 
     client_tx.send(client::ClientMsg::ServerAdd {
         server: ::client::state::Server {
-            id: "todo".to_string(),
+            id: "some client".to_string(),
             tx: server_tx.clone(),
             programs: vec![],
         }
@@ -63,7 +63,7 @@ fn main() {
 
     server_tx.send(server::ServerMsg::ClientAdd {
         client: ::server::Client {
-            id: "todo".to_string(),
+            id: "some server".to_string(),
             tx: client_tx,
         }
     });
