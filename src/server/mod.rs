@@ -105,11 +105,10 @@ impl Server {
         }
     }
 
-    fn program_input(&self, program_id: String, bytes: Vec<u8>) {
+    fn program_input(&mut self, program_id: String, bytes: Vec<u8>) {
         trace!("input for program {:?}", program_id);
-        if let Some(program) = self.programs.iter().find( |p| p.id == program_id ) {
-            let mut file = unsafe { File::from_raw_fd(program.pty) };
-            file.write_all(unsafe { bytes.as_slice() });
+        if let Some(mut program) = self.programs.iter_mut().find( |p| p.id == program_id ) {
+            program.pty.write_all(unsafe { bytes.as_slice() });
         } else {
             trace!("couldnt send input to unknown program {:?}", program_id);
         }

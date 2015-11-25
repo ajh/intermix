@@ -12,10 +12,11 @@ extern crate rustc_serialize;
 extern crate uuid;
 
 use libvterm_sys::*;
-use self::vte_worker::*;
 use self::pty_reader::*;
+use self::vte_worker::*;
 use std::ffi::CString;
 use std::fs::File;
+use std::io::prelude::*;
 use std::io;
 use std::os::unix::prelude::*;
 use std::ptr;
@@ -34,7 +35,7 @@ pub struct Program {
     pub child_pid: i32,
     pub id: String,
     pub size: ScreenSize,
-    pub pty: RawFd,
+    pub pty: File,
 }
 
 impl Program {
@@ -60,7 +61,7 @@ impl Program {
             child_pid: child.pid(),
             id: id.to_string(),
             size: size.clone(), // todo: resize pty with this info
-            pty: fd,
+            pty: unsafe { File::from_raw_fd(fd) },
         };
 
         (program, threads)
