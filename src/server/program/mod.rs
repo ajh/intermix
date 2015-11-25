@@ -4,14 +4,14 @@ mod pty_reader;
 extern crate log;
 extern crate pty;
 extern crate termios;
-extern crate libvterm_sys;
+extern crate vterm_sys;
 extern crate term;
 extern crate libc;
 extern crate docopt;
 extern crate rustc_serialize;
 extern crate uuid;
 
-use libvterm_sys::*;
+use vterm_sys::*;
 use self::pty_reader::*;
 use self::vte_worker::*;
 use std::ffi::CString;

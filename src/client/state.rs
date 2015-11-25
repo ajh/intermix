@@ -1,4 +1,4 @@
-use libvterm_sys;
+use vterm_sys;
 use std::sync::mpsc::*;
 
 /// Represents the state of the client. Each thread will maintain their own representation which
@@ -15,15 +15,15 @@ pub struct State {
 pub struct Window {
     pub id: String,
     pub panes: Vec<Pane>,
-    pub size: libvterm_sys::ScreenSize,
+    pub size: vterm_sys::ScreenSize,
 }
 
 /// a rectange within the window that displays output from a program
 #[derive(Default, Clone, Debug)]
 pub struct Pane {
     pub id: String,
-    pub size: libvterm_sys::ScreenSize,
-    pub offset: libvterm_sys::Pos,
+    pub size: vterm_sys::ScreenSize,
+    pub offset: vterm_sys::Pos,
     pub program_id: String,
 }
 

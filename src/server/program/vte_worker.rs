@@ -1,7 +1,7 @@
 extern crate log;
 extern crate pty;
 extern crate termios;
-extern crate libvterm_sys;
+extern crate vterm_sys;
 extern crate term;
 extern crate libc;
 extern crate docopt;
@@ -11,14 +11,14 @@ extern crate uuid;
 use std::io::prelude::*;
 use std::sync::mpsc::*;
 use std::thread;
-use libvterm_sys::*;
+use vterm_sys::*;
 use super::*;
 
 /// Runs bytes from the pty through VTerm, and sends ServerMsgs.
 ///
 /// This has to handle two kinds of Receivers:
 /// * VteWorkerMsg
-/// * and libvterm_sys::ScreenEvent.
+/// * and vterm_sys::ScreenEvent.
 pub struct VteWorker {
     tx: Sender<VteWorkerMsg>,
     rx: Option<Receiver<VteWorkerMsg>>,

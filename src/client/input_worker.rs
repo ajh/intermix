@@ -3,7 +3,7 @@ extern crate pty;
 extern crate termios;
 extern crate log4rs;
 extern crate ioctl_rs as ioctl;
-extern crate libvterm_sys;
+extern crate vterm_sys;
 
 use std::io;
 use std::thread;

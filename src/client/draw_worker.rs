@@ -3,7 +3,7 @@ extern crate pty;
 extern crate termios;
 extern crate log4rs;
 extern crate ioctl_rs as ioctl;
-extern crate libvterm_sys;
+extern crate vterm_sys;
 
 use std::io;
 use std::thread;
@@ -67,7 +67,7 @@ impl DrawWorker {
         }
     }
 
-    fn damage(&mut self, program_id: String, cells: Vec<libvterm_sys::ScreenCell>) {
+    fn damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>) {
         trace!("damage for program {}", program_id);
 
         let mut panes = self.state.windows.iter().flat_map(|w| w.panes.iter());
@@ -78,7 +78,7 @@ impl DrawWorker {
         }
     }
 
-    fn move_cursor(&mut self, program_id: String, pos: libvterm_sys::Pos, is_visible: bool) {
+    fn move_cursor(&mut self, program_id: String, pos: vterm_sys::Pos, is_visible: bool) {
         trace!("move_cursor for program {}", program_id);
         // find offset from state
         // painter.move_cursor(pos, is_visible));

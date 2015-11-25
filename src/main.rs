@@ -3,7 +3,7 @@
 
 extern crate docopt;
 extern crate libc;
-extern crate libvterm_sys;
+extern crate vterm_sys;
 #[macro_use]
 extern crate log;
 extern crate log4rs;
@@ -13,7 +13,7 @@ extern crate term;
 extern crate termios;
 extern crate uuid;
 
-use libvterm_sys::*;
+use vterm_sys::*;
 use std::io;
 use std::os::unix::io::RawFd;
 use std::sync::mpsc::*;
@@ -106,8 +106,8 @@ fn pretend_a_mode_starts_a_program(client_tx: &Sender<client::ClientMsg>, server
         window_id: "initial window".to_string(),
         pane: client::state::Pane {
             id: "pane-bash-123".to_string(),
-            size: libvterm_sys::ScreenSize { rows: 24, cols: 80 },
-            offset: libvterm_sys::Pos { row: 0, col: 10 },
+            size: vterm_sys::ScreenSize { rows: 24, cols: 80 },
+            offset: vterm_sys::Pos { row: 0, col: 10 },
             program_id: "bash-123".to_string(),
         }
     });

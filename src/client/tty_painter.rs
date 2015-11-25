@@ -1,7 +1,7 @@
-extern crate libvterm_sys;
+extern crate vterm_sys;
 extern crate term;
 
-use libvterm_sys::*;
+use vterm_sys::*;
 use std::io::prelude::*;
 
 #[derive(Debug, Default, Clone)]
@@ -347,9 +347,9 @@ impl TtyPainter {
 // * Move helper stuff to a helper file
 // * more tests
 mod tests {
-    extern crate libvterm_sys;
+    extern crate vterm_sys;
 
-    use libvterm_sys::*;
+    use vterm_sys::*;
     use super::*;
     use std::io::prelude::*;
     use std::io;

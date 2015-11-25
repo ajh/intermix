@@ -1,6 +1,6 @@
 extern crate docopt;
 extern crate libc;
-extern crate libvterm_sys;
+extern crate vterm_sys;
 extern crate log;
 extern crate log4rs;
 extern crate pty;
@@ -11,7 +11,7 @@ extern crate uuid;
 
 mod program;
 
-use libvterm_sys::*;
+use vterm_sys::*;
 use self::program::*;
 use std::fs::File;
 use std::io::prelude::*;
@@ -123,7 +123,7 @@ impl Server {
     }
 
     fn start_program(&mut self, id: String, command_and_args: Vec<String>) {
-        let size = libvterm_sys::ScreenSize { rows: 24, cols: 80 };
+        let size = vterm_sys::ScreenSize { rows: 24, cols: 80 };
         let (program, threads) = Program::new(&id, &command_and_args, self.tx.clone(), &size);
         self.programs.push(program);
     }

@@ -4,7 +4,7 @@ pub mod state;
 mod stdin_read_worker;
 mod tty_painter;
 
-use libvterm_sys;
+use vterm_sys;
 use self::draw_worker::*;
 use self::input_worker::*;
 use self::state::*;
@@ -31,8 +31,8 @@ pub enum ClientMsg {
     ProgramAdd { server_id: String, program: Program },
     ProgramUpdate { server_id: String, program: Window },
     ProgramRemove { server_id: String, program_id: String },
-    ProgramDamage { program_id: String, cells: Vec<libvterm_sys::ScreenCell> },
-    ProgramMoveCursor { program_id: String, new: libvterm_sys::Pos, old: libvterm_sys::Pos, is_visible: bool },
+    ProgramDamage { program_id: String, cells: Vec<vterm_sys::ScreenCell> },
+    ProgramMoveCursor { program_id: String, new: vterm_sys::Pos, old: vterm_sys::Pos, is_visible: bool },
 
     UserInput { bytes: Vec<u8> },
 }
