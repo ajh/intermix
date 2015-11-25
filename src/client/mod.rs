@@ -35,6 +35,8 @@ pub enum ClientMsg {
     ProgramDamage { program_id: String, cells: Vec<vterm_sys::ScreenCell> },
     ProgramMoveCursor { program_id: String, new: vterm_sys::Pos, old: vterm_sys::Pos, is_visible: bool },
 
+    ModeUpdate { mode: Mode },
+
     UserInput { bytes: Vec<u8> },
 }
 
@@ -57,6 +59,7 @@ impl Client {
         let handle = thread::spawn(move || {
             let mut client = Client::new(tx, rx);
             client.spawn_workers();
+            client.init();
             client.enter_listener_loop();
             info!("exiting client");
         });
@@ -113,5 +116,27 @@ impl Client {
             let result = tx.send(msg.clone());
             if hard { result.expect("didnt send") }
         }
+    }
+
+    fn init(&self) {
+        // This'll send to ourselves to be picked up in the event listen loop
+        self.tx.send(ClientMsg::WindowAdd {
+            window: Window {
+                id: "initial_window".to_string(),
+                .. Default::default()
+            }
+        }).unwrap();
+
+        self.tx.send(ClientMsg::PaneAdd {
+            window_id: "initial_window".to_string(),
+            pane: Pane {
+                id: "status_line".to_string(),
+                size: vterm_sys::ScreenSize { rows: 1, cols: 80 },
+                offset: vterm_sys::Pos { row: 24, col: 0 },
+                program_id: "".to_string(),
+            }
+        });
+
+        self.tx.send(ClientMsg::ModeUpdate { mode: Mode { id: "program".to_string() } }).unwrap();
     }
 }

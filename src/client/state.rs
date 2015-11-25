@@ -70,6 +70,7 @@ impl State {
     pub fn add_pane(&mut self, window_id: &str, pane: Pane) {
         let window = self.windows.iter_mut().find(|w| w.id == window_id);
         if window.is_none() {
+            trace!("couldnt add pane {:?} to unknown window {:?}", pane.id, window_id);
             return
         }
         let mut window = window.unwrap();
@@ -97,6 +98,7 @@ impl State {
     pub fn add_program(&mut self, server_id: &str, program: Program) {
         let server = self.servers.iter_mut().find(|w| w.id == server_id);
         if server.is_none() {
+            trace!("couldnt add program {:?} to unknown server {:?}", program.id, server_id);
             return
         }
         let mut server = server.unwrap();

@@ -61,7 +61,7 @@ impl DrawWorker {
                 ClientMsg::ProgramAdd { server_id, program } => self.state.add_program(&server_id, program),
                 ClientMsg::ProgramDamage { program_id, cells } => self.damage(program_id, cells),
                 ClientMsg::ProgramMoveCursor { program_id, old, new, is_visible } => self.move_cursor(program_id, new, is_visible),
-
+                ClientMsg::ModeUpdate { mode } => self.mode_update(mode),
                 _ => {}
             }
         }
@@ -82,5 +82,30 @@ impl DrawWorker {
         trace!("move_cursor for program {}", program_id);
         // find offset from state
         // painter.move_cursor(pos, is_visible));
+    }
+
+    fn mode_update(&mut self, mode: Mode) {
+        trace!("mode_update for mode {:?}", mode);
+        self.state.mode = mode;
+
+        // Draw it
+        let mut panes = self.state.windows.iter().flat_map(|w| w.panes.iter());
+        if let Some(pane) = panes.find( |p| p.id == "status_line" ) {
+            let mut cells = vec![];
+            for (i, char) in self.state.mode.id.chars().enumerate() {
+                cells.push(vterm_sys::ScreenCell {
+                    pos: vterm_sys::Pos { row: 0, col: i as i16 },
+                    chars: vec!(char),
+                    width: 1,
+                    attrs: Default::default(),
+                    fg: vterm_sys::Color { red: 240, green: 240, blue: 240 },
+                    bg: Default::default(),
+                });
+            }
+
+            self.painter.draw_cells(&cells, &mut io::stdout(), &pane.offset);
+        } else {
+            trace!("no status line pane");
+        }
     }
 }

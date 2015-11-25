@@ -66,7 +66,6 @@ fn main() {
             programs: vec![],
         }
     });
-    add_initial_window_to_client(&client_tx);
 
     server_tx.send(server::ServerMsg::ClientAdd {
         client: ::server::Client {
@@ -85,15 +84,6 @@ fn main() {
     set_cooked_mode(0);
 }
 
-fn add_initial_window_to_client(client_tx: &Sender<client::ClientMsg>) {
-    client_tx.send(client::ClientMsg::WindowAdd {
-        window: client::state::Window {
-            id: "initial window".to_string(),
-            .. Default::default()
-        }
-    }).unwrap();
-}
-
 // TODO: Move this code into a mode
 fn pretend_a_mode_starts_a_program(client_tx: &Sender<client::ClientMsg>, server_tx: &Sender<server::ServerMsg>) {
     let command_and_args: Vec<String> = vec!["bash".to_string()];
@@ -103,7 +93,7 @@ fn pretend_a_mode_starts_a_program(client_tx: &Sender<client::ClientMsg>, server
     }).unwrap();
 
     client_tx.send(client::ClientMsg::PaneAdd {
-        window_id: "initial window".to_string(),
+        window_id: "initial_window".to_string(),
         pane: client::state::Pane {
             id: "pane-bash-123".to_string(),
             size: vterm_sys::ScreenSize { rows: 24, cols: 80 },

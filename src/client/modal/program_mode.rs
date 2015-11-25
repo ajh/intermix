@@ -17,4 +17,8 @@ impl Mode for ProgramMode {
             }
         }
     }
+
+    fn display(&self) -> String {
+        "program-mode".to_string()
+    }
 }

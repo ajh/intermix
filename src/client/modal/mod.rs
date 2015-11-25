@@ -4,4 +4,7 @@ pub use self::program_mode::*;
 
 pub trait Mode {
     fn input(&mut self, bytes: Vec<u8>, client_state: &::client::state::State);
+
+    /// Maybe use the Display trait instead?
+    fn display(&self) -> String;
 }
