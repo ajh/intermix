@@ -82,5 +82,14 @@ impl Client {
     }
 
     fn enter_listener_loop(&mut self) {
+        loop {
+            match self.rx.recv() {
+                Ok(msg) => self.handle(msg),
+                Err(_) => break,
+            }
+        }
+    }
+
+    fn handle(&self, msg: ClientMsg) {
     }
 }

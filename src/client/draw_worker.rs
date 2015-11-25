@@ -48,20 +48,18 @@ impl DrawWorker {
 
     fn enter_listen_loop(&mut self) {
         loop {
-            match self.rx.recv() {
-                Ok(msg) => self.handle(msg),
+            let msg = match self.rx.recv() {
+                Ok(msg) => msg,
                 Err(_) => break,
+            };
+
+            match msg {
+                ClientMsg::Quit => break,
+                ClientMsg::ProgramDamage{program_id, cells} => self.damage(program_id, cells),
+                ClientMsg::ProgramMoveCursor{program_id, old, new, is_visible} => self.move_cursor(program_id, new, is_visible),
+                _ => {}
             }
         }
-    }
-
-    fn handle(&mut self, event: ClientMsg) {
-        match event {
-            ClientMsg::ProgramDamage{program_id, cells} => self.damage(program_id, cells),
-            ClientMsg::ProgramMoveCursor{program_id, old, new, is_visible} => self.move_cursor(program_id, new, is_visible),
-            _ => {},
-        }
-        // when ClientMsg::InputBytes, send the bytes to the selected mode.
     }
 
     fn damage(&mut self, program_id: String, cells: Vec<libvterm_sys::ScreenCell>) {

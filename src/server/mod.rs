@@ -53,7 +53,7 @@ impl Server {
         let (tx, rx) = channel::<ServerMsg>();
         let tx_clone = tx.clone();
 
-        info!("starting server");
+        info!("spawning server");
         let handle = thread::spawn(move || {
             let mut server = Server::new(tx, rx);
             server.enter_listener_loop();

@@ -22,7 +22,7 @@ pub struct StdinReadWorker {
 
 impl StdinReadWorker {
     pub fn spawn(tx: Sender<ClientMsg>) -> JoinHandle<()> {
-        info!("starting stdin reader thread");
+        info!("spawning stdin reader thread");
         thread::spawn(move || {
             let mut worker = StdinReadWorker {
                 client_tx: tx,
