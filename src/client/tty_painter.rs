@@ -125,8 +125,8 @@ impl TtyPainter {
 
             let ti = term::terminfo::TermInfo::from_env().unwrap();
             let cmd = ti.strings.get("cup").unwrap();
-            let params = [term::terminfo::parm::Param::Number(self.pen.pos.row as i16),
-                          term::terminfo::parm::Param::Number(self.pen.pos.col as i16)];
+            let params = [term::terminfo::parm::Param::Number(self.pen.pos.row as i32),
+                          term::terminfo::parm::Param::Number(self.pen.pos.col as i32)];
             let s = term::terminfo::parm::expand(&cmd,
                                                  &params,
                                                  &mut term::terminfo::parm::Variables::new())
@@ -264,8 +264,8 @@ impl TtyPainter {
             // trace!("moving cursor to row {:?} col {:?}", cell.pos.row, cell.pos.col);
             let ti = term::terminfo::TermInfo::from_env().unwrap();
             let cmd = ti.strings.get("cup").unwrap();
-            let params = [term::terminfo::parm::Param::Number(pos.row as i16),
-                          term::terminfo::parm::Param::Number(pos.col as i16)];
+            let params = [term::terminfo::parm::Param::Number(pos.row as i32),
+                          term::terminfo::parm::Param::Number(pos.col as i32)];
             let s = term::terminfo::parm::expand(&cmd,
                                                  &params,
                                                  &mut term::terminfo::parm::Variables::new())
@@ -300,8 +300,8 @@ impl TtyPainter {
             self.pen.pos = pos;
 
             let cmd = ti.strings.get("cup").unwrap();
-            let params = [term::terminfo::parm::Param::Number(self.pen.pos.row as i16),
-            term::terminfo::parm::Param::Number(self.pen.pos.col as i16)];
+            let params = [term::terminfo::parm::Param::Number(self.pen.pos.row as i32),
+            term::terminfo::parm::Param::Number(self.pen.pos.col as i32)];
             let s = term::terminfo::parm::expand(&cmd,
                                                  &params,
                                                  &mut term::terminfo::parm::Variables::new())
