@@ -13,11 +13,11 @@ Todo
 Client Server Work
 ==================
 
-* [ ] implement server ProgramStart handler
+* [x] implement server ProgramStart handler
+* [ ] implement a mode
 * [ ] implement debug for ClientMsg and ServerMsg
 * [ ] Use a different enum to communicate between
   client::stdin\_read\_worker and client::input\_worker. DRY with
   VteWorkerMsg stuff.
-* [ ] implement a mode
 * [ ] use cap'n proto instead of channel to communicate between client
       and server
