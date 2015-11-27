@@ -21,6 +21,7 @@ Client Server Work
   VteWorkerMsg stuff.
 * [ ] use cap'n proto instead of channel to communicate between client
       and server
+* [ ] fix shutdown behavior
 
 Benchmarks
 ==========
