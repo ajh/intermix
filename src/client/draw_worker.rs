@@ -15,32 +15,27 @@ use super::tty_painter::*;
 
 pub struct DrawWorker {
     rx: Receiver<ClientMsg>,
-    tx: Sender<ClientMsg>,
-    client_tx: Sender<ClientMsg>,
     painter: TtyPainter,
     state: State,
 }
 
 impl DrawWorker {
-    pub fn spawn(client_tx: Sender<ClientMsg>) -> (Sender<ClientMsg>, thread::JoinHandle<()>) {
+    pub fn spawn() -> (Sender<ClientMsg>, thread::JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
-        let tx_clone = tx.clone();
 
         info!("spawning draw worker");
         let handle = thread::spawn(move || {
-            let mut worker = DrawWorker::new(client_tx, tx, rx);
+            let mut worker = DrawWorker::new(rx);
             worker.enter_listen_loop();
             info!("exiting draw worker");
         });
 
-        (tx_clone, handle)
+        (tx, handle)
     }
 
-    fn new(client_tx: Sender<ClientMsg>, tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>) -> DrawWorker {
+    fn new(rx: Receiver<ClientMsg>) -> DrawWorker {
         DrawWorker {
             rx: rx,
-            tx: tx,
-            client_tx: client_tx,
             state: Default::default(),
             painter: Default::default(),
         }
@@ -55,14 +50,11 @@ impl DrawWorker {
 
             match msg {
                 ClientMsg::Quit => break,
-                ClientMsg::WindowAdd { window } => self.state.add_window(window),
-                ClientMsg::PaneAdd { window_id , pane } => self.state.add_pane(&window_id, pane),
-                ClientMsg::ServerAdd { server } => self.state.add_server(server),
-                ClientMsg::ProgramAdd { server_id, program } => self.state.add_program(&server_id, program),
                 ClientMsg::ProgramDamage { program_id, cells } => self.damage(program_id, cells),
                 ClientMsg::ProgramMoveCursor { program_id, old, new, is_visible } => self.move_cursor(program_id, new, is_visible),
-                ClientMsg::ModeUpdate { mode } => self.mode_update(mode),
-                _ => {}
+                ClientMsg::WindowAdd { window } => self.state.add_window(window),
+                ClientMsg::PaneAdd { window_id, pane } => self.state.add_pane(&window_id, pane),
+                _ => warn!("unhandled msg {:?}", msg)
             }
         }
     }
@@ -82,30 +74,5 @@ impl DrawWorker {
         trace!("move_cursor for program {}", program_id);
         // find offset from state
         // painter.move_cursor(pos, is_visible));
-    }
-
-    fn mode_update(&mut self, mode: Mode) {
-        trace!("mode_update for mode {:?}", mode);
-        self.state.mode = mode;
-
-        // Draw it
-        let mut panes = self.state.windows.iter().flat_map(|w| w.panes.iter());
-        if let Some(pane) = panes.find( |p| p.id == "status_line" ) {
-            let mut cells = vec![];
-            for (i, char) in self.state.mode.id.chars().enumerate() {
-                cells.push(vterm_sys::ScreenCell {
-                    pos: vterm_sys::Pos { row: 0, col: i as i16 },
-                    chars: vec!(char),
-                    width: 1,
-                    attrs: Default::default(),
-                    fg: vterm_sys::Color { red: 240, green: 240, blue: 240 },
-                    bg: Default::default(),
-                });
-            }
-
-            self.painter.draw_cells(&cells, &mut io::stdout(), &pane.offset);
-        } else {
-            trace!("no status line pane");
-        }
     }
 }

@@ -5,7 +5,7 @@ pub struct ProgramMode {
 }
 
 impl Mode for ProgramMode {
-    fn input(&mut self, bytes: Vec<u8>, client_state: &::client::state::State) {
+    fn input(&mut self, bytes: Vec<u8>, client_state: &mut ::client::state::State) {
         // for now, send it to the first program
         if let Some(server) = client_state.servers.first() {
             if let Some(program) = server.programs.first() {

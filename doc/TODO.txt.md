@@ -21,3 +21,9 @@ Client Server Work
   VteWorkerMsg stuff.
 * [ ] use cap'n proto instead of channel to communicate between client
       and server
+
+Benchmarks
+==========
+
+* pasting lots of input
+* drawing while scrolling through many pages of text

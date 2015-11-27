@@ -1,17 +1,17 @@
 use vterm_sys;
 use std::sync::mpsc::*;
+use std::fmt;
 
 /// Represents the state of the client. Each thread will maintain their own representation which
 /// will stay in sync through message passing.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct State {
     pub windows: Vec<Window>,
     pub servers: Vec<Server>,
-    pub mode: Mode,
 }
 
 /// The window or tty that the user sees
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Window {
     pub id: String,
     pub panes: Vec<Pane>,
@@ -37,6 +37,15 @@ pub struct Server {
     pub tx: Sender<::server::ServerMsg>,
 }
 
+impl fmt::Debug for Server {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("Server")
+            .field("id", &self.id)
+            .field("programs", &self.programs)
+            .finish()
+    }
+}
+
 /// A program running on the server
 #[derive(Default, Clone, Debug)]
 pub struct Program {
@@ -44,12 +53,6 @@ pub struct Program {
     /// Whether the client is interested in msgs about this program. If its not visible, the answer
     /// is probably no.
     pub is_subscribed: bool
-}
-
-#[derive(Default, Clone, Debug)]
-pub struct Mode {
-    pub id: String,
-    // status line msg or whatever could be here too
 }
 
 impl State {

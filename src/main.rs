@@ -92,16 +92,6 @@ fn pretend_a_mode_starts_a_program(client_tx: &Sender<client::ClientMsg>, server
         program_id: "bash-123".to_string(),
     }).unwrap();
 
-    client_tx.send(client::ClientMsg::PaneAdd {
-        window_id: "initial_window".to_string(),
-        pane: client::state::Pane {
-            id: "pane-bash-123".to_string(),
-            size: vterm_sys::ScreenSize { rows: 24, cols: 80 },
-            offset: vterm_sys::Pos { row: 0, col: 10 },
-            program_id: "bash-123".to_string(),
-        }
-    });
-
     client_tx.send(client::ClientMsg::ProgramAdd {
         server_id: "some server".to_string(),
         program: client::state::Program {
