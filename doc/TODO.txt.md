@@ -9,6 +9,11 @@ Todo
 * [ ] lsof for programs to view open files
 * [ ] raw keyup keydown input behavior
 * [ ] shell
+* [ ] cleanup todos and fixmes
+* [ ] servers should have ids ("some server")
+* [ ] Split up ClientMsg into smaller enums suited to their specific
+  channel
+* [ ] ask question about moving values between enums
 
 Client Server Work
 ==================
