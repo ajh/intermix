@@ -74,31 +74,12 @@ fn main() {
         }
     });
 
-    pretend_a_mode_starts_a_program(&client_tx, &server_tx);
-
     let threads = vec![server_handle, client_handle];
     for thr in threads {
         thr.join().unwrap();
     }
 
     set_cooked_mode(0);
-}
-
-// TODO: Move this code into a mode
-fn pretend_a_mode_starts_a_program(client_tx: &Sender<client::ClientMsg>, server_tx: &Sender<server::ServerMsg>) {
-    let command_and_args: Vec<String> = vec!["bash".to_string()];
-    server_tx.send(server::ServerMsg::ProgramStart {
-        command_and_args: command_and_args,
-        program_id: "bash-123".to_string(),
-    }).unwrap();
-
-    client_tx.send(client::ClientMsg::ProgramAdd {
-        server_id: "some server".to_string(),
-        program: client::state::Program {
-            id: "bash-123".to_string(),
-            is_subscribed: true,
-        }
-    });
 }
 
 // https://github.com/ruby/ruby/blob/trunk/ext/io/console/console.c

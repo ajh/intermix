@@ -94,6 +94,8 @@ impl Server {
                 ServerMsg::ProgramKill { program_id, signal } => {},
                 ServerMsg::ProgramMoveCursor { program_id, new, old, is_visible } => {},
                 ServerMsg::ProgramRedrawRect { program_id, rect } => {},
+
+                // need client id here
                 ServerMsg::ProgramStart { program_id, command_and_args } => self.start_program(program_id, command_and_args),
 
                 ServerMsg::ClientAdd { client } => {
@@ -126,6 +128,16 @@ impl Server {
         let size = vterm_sys::ScreenSize { rows: 24, cols: 80 };
         let (program, threads) = Program::new(&id, &command_and_args, self.tx.clone(), &size);
         self.programs.push(program);
+
+        if let Some(client) = self.clients.first() {
+            client.tx.send(::client::ClientMsg::ProgramAdd {
+                server_id: "some server".to_string(),
+                program: ::client::state::Program {
+                    id: id,
+                    is_subscribed: true,
+                }
+            });
+        }
     }
 
     //pub fn start_new_window(&mut self) -> Vec<thread::JoinHandle<()>> {

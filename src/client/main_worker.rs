@@ -41,7 +41,7 @@ impl MainWorker {
             rx: rx,
             windows: Default::default(),
             servers: Default::default(),
-            mode: Box::new(ProgramMode { program_id: "fixme".to_string() }),
+            mode: Box::new(CommandMode { accumulator: vec![] }),
         };
         worker.init();
         worker
@@ -71,6 +71,7 @@ impl MainWorker {
                     if let Some(cmd) = self.mode.input(self, bytes) {
                         match cmd {
                             UserCmd::ProgramInput { program_id, bytes: fites } => self.program_input_cmd(program_id, fites),
+                            UserCmd::ProgramStart => self.program_start_cmd(),
                         }
                     }
                 },
@@ -86,6 +87,17 @@ impl MainWorker {
                 program_id: program_id,
                 bytes: yikes,
             });
+        }
+    }
+
+    fn program_start_cmd(&self) {
+        if let Some(server) = self.servers.first() {
+            trace!("starting program");
+            let command_and_args: Vec<String> = vec!["bash".to_string()];
+            server.tx.send(::server::ServerMsg::ProgramStart {
+                command_and_args: command_and_args,
+                program_id: "bash-123".to_string(),
+            }).unwrap();
         }
     }
 
