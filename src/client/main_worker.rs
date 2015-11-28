@@ -16,9 +16,9 @@ use std::thread::{self, JoinHandle};
 pub struct MainWorker {
     rx: Receiver<ClientMsg>,
     draw_worker_tx: Sender<ClientMsg>,
-    windows: Windows,
-    servers: Servers,
-    mode: Box<Mode>,
+    pub windows: Windows,
+    pub servers: Servers,
+    pub mode: Box<Mode>,
 }
 
 impl MainWorker {
@@ -68,15 +68,24 @@ impl MainWorker {
                 ClientMsg::ServerAdd { server } => self.servers.add_server(server),
                 ClientMsg::ProgramAdd { server_id, program } => self.add_program(server_id, program),
                 ClientMsg::UserInput { bytes } => {
-                    // Would also like to have mode be able to change self.mode. Cell?
-                    //
-                    // Maybe not have mode make changes, but indicate which command if any to run?
-                    // Then it could just accumulate bytes and match against commands. Commands
-                    // could be run on self as methods.
-                    self.mode.input(bytes, &mut self.windows, &mut self.servers)
-                }
+                    if let Some(cmd) = self.mode.input(self, bytes) {
+                        match cmd {
+                            UserCmd::ProgramInput { program_id, bytes: fites } => self.program_input_cmd(program_id, fites),
+                        }
+                    }
+                },
                 _ => warn!("unhandled msg {:?}", msg),
             }
+        }
+    }
+
+    fn program_input_cmd(&self, program_id: String, yikes: Vec<u8>) {
+        if let Some(server) = self.servers.iter().find(|s| s.programs.iter().any(|p| p.id == program_id)) {
+            trace!("sending input to program {}", &program_id);
+            server.tx.send(::server::ServerMsg::ProgramInput {
+                program_id: program_id,
+                bytes: yikes,
+            });
         }
     }
 

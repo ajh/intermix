@@ -1,5 +1,6 @@
-use super::*;
+use ::client::main_worker::*;
 use std::fmt::Debug;
+use super::*;
 
 #[derive(Debug)]
 pub struct ProgramMode {
@@ -7,17 +8,8 @@ pub struct ProgramMode {
 }
 
 impl Mode for ProgramMode {
-    fn input(&self, bytes: Vec<u8>, windows: &mut ::client::state::Windows, servers: &mut ::client::state::Servers) {
-        // for now, send it to the first program
-        if let Some(server) = servers.first() {
-            if let Some(program) = server.programs.first() {
-                trace!("sending input to program {}", program.id);
-                server.tx.send(::server::ServerMsg::ProgramInput {
-                    program_id: program.id.clone(),
-                    bytes: bytes,
-                });
-            }
-        }
+    fn input(&self, worker: &MainWorker, bytes: Vec<u8>) -> Option<UserCmd> {
+        Some(UserCmd::ProgramInput { program_id: self.program_id.clone(), bytes: bytes })
     }
 
     fn display(&self) -> String {
