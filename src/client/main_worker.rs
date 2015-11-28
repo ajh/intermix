@@ -53,7 +53,16 @@ impl MainWorker {
             id: "win_0".to_string(),
             size: vterm_sys::ScreenSize { cols: 80, rows: 25 },
             .. Default::default()
-         });
+        });
+
+        self.add_pane("win_0".to_string(), Pane {
+            id: "status_line".to_string(),
+            size: vterm_sys::ScreenSize { cols: 80, rows: 1 },
+            offset: vterm_sys::Pos { col: 0, row: 25 },
+            program_id: "status_line".to_string(),
+        });
+
+        self.damage_status_line();
     }
 
     fn enter_listener_loop(&mut self) {
@@ -116,6 +125,7 @@ impl MainWorker {
     /// For now we only expect this once, so create a pane and enter program mode aimed at it
     fn add_program(&mut self, server_id: String, program: Program) {
         self.mode = Box::new(ProgramMode { program_id: program.id.clone() });
+        self.damage_status_line();
         self.add_pane("win_0".to_string(), Pane {
             id: "pane_0".to_string(),
             size: vterm_sys::ScreenSize { rows: 24, cols: 80 },
@@ -123,5 +133,32 @@ impl MainWorker {
             program_id: program.id.clone(),
         });
         self.servers.add_program(&server_id, program);
+    }
+
+    fn damage_status_line(&self) {
+        trace!("damage_status_line for mode {:?}", self.mode);
+
+        // Draw it
+        let mut panes = self.windows.iter().flat_map(|w| w.panes.iter());
+        if let Some(pane) = panes.find(|p| p.id == "status_line" ) {
+            let mut cells = vec![];
+            for (i, char) in self.mode.display().chars().enumerate() {
+                cells.push(vterm_sys::ScreenCell {
+                    pos: vterm_sys::Pos { row: 0, col: i as i16 },
+                    chars: vec!(char),
+                    width: 1,
+                    attrs: Default::default(),
+                    fg: vterm_sys::Color { red: 240, green: 240, blue: 240 },
+                    bg: Default::default(),
+                });
+            }
+
+            self.draw_worker_tx.send(ClientMsg::ProgramDamage {
+                program_id: "status_line".to_string(),
+                cells: cells,
+            });
+        } else {
+            trace!("no status line pane");
+        }
     }
 }
