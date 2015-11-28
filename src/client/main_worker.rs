@@ -16,7 +16,8 @@ use std::thread::{self, JoinHandle};
 pub struct MainWorker {
     rx: Receiver<ClientMsg>,
     draw_worker_tx: Sender<ClientMsg>,
-    state: State,
+    windows: Windows,
+    servers: Servers,
     mode: Box<Mode>,
 }
 
@@ -38,7 +39,8 @@ impl MainWorker {
         let mut worker = MainWorker {
             draw_worker_tx: draw_worker_tx,
             rx: rx,
-            state: Default::default(),
+            windows: Default::default(),
+            servers: Default::default(),
             mode: Box::new(ProgramMode { program_id: "fixme".to_string() }),
         };
         worker.init();
@@ -63,22 +65,29 @@ impl MainWorker {
 
             match msg {
                 ClientMsg::Quit => break,
-                ClientMsg::ServerAdd { server } => self.state.add_server(server),
+                ClientMsg::ServerAdd { server } => self.servers.add_server(server),
                 ClientMsg::ProgramAdd { server_id, program } => self.add_program(server_id, program),
-                ClientMsg::UserInput { bytes } => self.mode.input(bytes, &mut self.state),
+                ClientMsg::UserInput { bytes } => {
+                    // Would also like to have mode be able to change self.mode. Cell?
+                    //
+                    // Maybe not have mode make changes, but indicate which command if any to run?
+                    // Then it could just accumulate bytes and match against commands. Commands
+                    // could be run on self as methods.
+                    self.mode.input(bytes, &mut self.windows, &mut self.servers)
+                }
                 _ => warn!("unhandled msg {:?}", msg),
             }
         }
     }
 
     fn add_window(&mut self, window: Window) {
-        self.state.add_window(window.clone());
+        self.windows.add_window(window.clone());
         let msg = ClientMsg::WindowAdd { window: window };
         self.draw_worker_tx.send(msg).unwrap();
     }
 
     fn add_pane(&mut self, window_id: String, pane: Pane) {
-        self.state.add_pane(&window_id, pane.clone());
+        self.windows.add_pane(&window_id, pane.clone());
         let msg = ClientMsg::PaneAdd { window_id: window_id, pane: pane };
         self.draw_worker_tx.send(msg).unwrap();
     }
@@ -92,6 +101,6 @@ impl MainWorker {
             offset: vterm_sys::Pos { row: 0, col: 10 },
             program_id: program.id.clone(),
         });
-        self.state.add_program(&server_id, program);
+        self.servers.add_program(&server_id, program);
     }
 }

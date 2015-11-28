@@ -16,7 +16,7 @@ use super::tty_painter::*;
 pub struct DrawWorker {
     rx: Receiver<ClientMsg>,
     painter: TtyPainter,
-    state: State,
+    windows: Windows,
 }
 
 impl DrawWorker {
@@ -36,7 +36,7 @@ impl DrawWorker {
     fn new(rx: Receiver<ClientMsg>) -> DrawWorker {
         DrawWorker {
             rx: rx,
-            state: Default::default(),
+            windows: Default::default(),
             painter: Default::default(),
         }
     }
@@ -52,8 +52,8 @@ impl DrawWorker {
                 ClientMsg::Quit => break,
                 ClientMsg::ProgramDamage { program_id, cells } => self.damage(program_id, cells),
                 ClientMsg::ProgramMoveCursor { program_id, old, new, is_visible } => self.move_cursor(program_id, new, is_visible),
-                ClientMsg::WindowAdd { window } => self.state.add_window(window),
-                ClientMsg::PaneAdd { window_id, pane } => self.state.add_pane(&window_id, pane),
+                ClientMsg::WindowAdd { window } => self.windows.add_window(window),
+                ClientMsg::PaneAdd { window_id, pane } => self.windows.add_pane(&window_id, pane),
                 _ => warn!("unhandled msg {:?}", msg)
             }
         }
@@ -62,7 +62,7 @@ impl DrawWorker {
     fn damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>) {
         trace!("damage for program {}", program_id);
 
-        let mut panes = self.state.windows.iter().flat_map(|w| w.panes.iter());
+        let mut panes = self.windows.iter().flat_map(|w| w.panes.iter());
         if let Some(pane) = panes.find(|p| p.program_id == program_id) {
             self.painter.draw_cells(&cells, &mut io::stdout(), &pane.offset);
         } else {

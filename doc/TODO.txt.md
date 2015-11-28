@@ -28,3 +28,6 @@ Benchmarks
 
 * pasting lots of input
 * drawing while scrolling through many pages of text
+
+Consider MVC Design
+===================
