@@ -1,28 +1,15 @@
-#![feature(mpsc_select)]
-#![feature(convert)]
-
+extern crate libintermix;
 extern crate docopt;
-extern crate libc;
-extern crate vterm_sys;
 #[macro_use]
 extern crate log;
 extern crate log4rs;
-extern crate pty;
 extern crate rustc_serialize;
 extern crate term;
 extern crate termios;
-extern crate uuid;
 
-use vterm_sys::*;
 use std::io;
 use std::os::unix::io::RawFd;
-use std::sync::mpsc::*;
-use std::thread;
 use term::terminfo::*;
-
-
-mod client;
-mod server;
 
 const USAGE: &'static str = "
 intermix - a terminal emulator multiplexer
@@ -56,19 +43,19 @@ fn main() {
     let args: Args = parse_args();
     set_raw_mode(0);
 
-    let (server_tx, server_handle) = server::Server::spawn();
-    let (client_tx, client_handle) = client::Client::spawn();
+    let (server_tx, server_handle) = libintermix::server::Server::spawn();
+    let (client_tx, client_handle) = libintermix::client::Client::spawn();
 
-    client_tx.send(client::ClientMsg::ServerAdd {
-        server: ::client::state::Server {
+    client_tx.send(libintermix::client::ClientMsg::ServerAdd {
+        server: libintermix::client::state::Server {
             id: "some server".to_string(),
             tx: server_tx.clone(),
             programs: vec![],
         }
     });
 
-    server_tx.send(server::ServerMsg::ClientAdd {
-        client: ::server::Client {
+    server_tx.send(libintermix::server::ServerMsg::ClientAdd {
+        client: libintermix::server::Client {
             id: "some client".to_string(),
             tx: client_tx.clone(),
         }

@@ -3,6 +3,13 @@ name = "intermix"
 version = "0.1.0"
 authors = ["Andy Hartford <hartforda@gmail.com>"]
 
+[lib]
+name = "libintermix"
+
+[[bin]]
+name = "monolith"
+path = "src/bin/monolith.rs"
+
 [dependencies]
 docopt = "0.6"
 ioctl-rs = "0.1.3"
