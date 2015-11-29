@@ -1,6 +1,7 @@
-use vterm_sys::*;
 use std::io::prelude::*;
+use std::io::{self, BufWriter};
 use term;
+use vterm_sys::*;
 
 #[derive(Debug, Default, Clone)]
 pub struct Pen {
@@ -11,17 +12,25 @@ pub struct Pen {
     is_visible: bool,
 }
 
-#[derive(Debug, Default)]
-pub struct TtyPainter {
+#[derive(Debug)]
+pub struct TtyPainter<F: Write + Send> {
     // the physical state of the tty that is being painted
     pen: Pen,
+    io: BufWriter<F>,
 }
 
-impl TtyPainter {
+impl <F: Write + Send> TtyPainter<F> {
+    pub fn new(io: F) -> TtyPainter<F> {
+        TtyPainter {
+            pen: Default::default(),
+            io: BufWriter::new(io),
+        }
+    }
+
     /// Sync physical terminal state with pen state
     ///
     /// TODO: DRY with draw_cell
-    pub fn reset<F: Write>(&mut self, io: &mut F) {
+    pub fn reset(&mut self) {
         let mut sgrs: Vec<isize> = vec![];
 
         if self.pen.attrs.bold {
@@ -79,15 +88,15 @@ impl TtyPainter {
                 }
             }
             sgr.push_str("m");
-            io.write_all(sgr.as_bytes()).unwrap();
+            self.io.write_all(sgr.as_bytes()).unwrap();
         }
 
-        io.flush().unwrap();
+        self.io.flush().unwrap();
     }
 
     /// TODO: make this take &self not &mut self because changing the pen is just an implementation
     /// detail. Use Cell or whatever for interior mutability.
-    pub fn draw_cells<F: Write>(&mut self, cells: &Vec<ScreenCell>, io: &mut F, offset: &Pos) {
+    pub fn draw_cells(&mut self, cells: &Vec<ScreenCell>, offset: &Pos) {
         let restore_pen = self.pen.clone();
 
         if self.pen.is_visible {
@@ -99,11 +108,11 @@ impl TtyPainter {
                                                  &[],
                                                  &mut term::terminfo::parm::Variables::new())
                         .unwrap();
-            io.write_all(&s).unwrap();
+            self.io.write_all(&s).unwrap();
         }
 
         for cell in cells {
-            self.draw_cell(cell, io, offset)
+            self.draw_cell(cell, offset)
         }
 
         if restore_pen.is_visible {
@@ -115,7 +124,7 @@ impl TtyPainter {
                                                  &[],
                                                  &mut term::terminfo::parm::Variables::new())
                         .unwrap();
-            io.write_all(&s).unwrap();
+            self.io.write_all(&s).unwrap();
         }
 
         if restore_pen.pos != self.pen.pos {
@@ -129,13 +138,13 @@ impl TtyPainter {
                                                  &params,
                                                  &mut term::terminfo::parm::Variables::new())
                         .unwrap();
-            io.write_all(&s).unwrap();
+            self.io.write_all(&s).unwrap();
         }
 
-        io.flush().unwrap();
+        self.io.flush().unwrap();
     }
 
-    fn draw_cell<F: Write>(&mut self, cell: &ScreenCell, io: &mut F, offset: &Pos) {
+    fn draw_cell(&mut self, cell: &ScreenCell, offset: &Pos) {
         let mut sgrs: Vec<isize> = vec![];
 
         if self.pen.attrs.bold != cell.attrs.bold {
@@ -249,7 +258,7 @@ impl TtyPainter {
                 }
             }
             sgr.push_str("m");
-            io.write_all(sgr.as_bytes()).unwrap();
+            self.io.write_all(sgr.as_bytes()).unwrap();
         }
 
         // apply offset
@@ -268,17 +277,17 @@ impl TtyPainter {
                                                  &params,
                                                  &mut term::terminfo::parm::Variables::new())
                         .unwrap();
-            io.write_all(&s).unwrap();
+            self.io.write_all(&s).unwrap();
         }
 
         let bytes = cell.chars_as_utf8_bytes();
 
         // See tmux's tty.c:1155 function `tty_cell`
         if bytes.len() > 0 {
-            io.write_all(&bytes).ok().expect("failed to write");
+            self.io.write_all(&bytes).ok().expect("failed to write");
         } else {
             // like tmux's tty_repeat_space
-            io.write_all(&[b'\x20']).ok().expect("failed to write"); // space
+            self.io.write_all(&[b'\x20']).ok().expect("failed to write"); // space
         }
 
         // This is wrong. Really I need to know the user's screen size to know when wrap.
@@ -290,7 +299,7 @@ impl TtyPainter {
     }
 
     /// TODO: take a offset from the pane
-    pub fn move_cursor<F: Write>(&mut self, pos: Pos, is_visible: bool, io: &mut F) {
+    pub fn move_cursor(&mut self, pos: Pos, is_visible: bool) {
         let ti = term::terminfo::TermInfo::from_env().unwrap();
 
         if pos != self.pen.pos {
@@ -304,7 +313,7 @@ impl TtyPainter {
                                                  &params,
                                                  &mut term::terminfo::parm::Variables::new())
                 .unwrap();
-            io.write_all(&s).unwrap();
+            self.io.write_all(&s).unwrap();
         }
 
         if is_visible != self.pen.is_visible {
@@ -317,10 +326,10 @@ impl TtyPainter {
                                                  &[],
                                                  &mut term::terminfo::parm::Variables::new())
                         .unwrap();
-            io.write_all(&s).unwrap();
+            self.io.write_all(&s).unwrap();
         }
 
-        io.flush().unwrap();
+        self.io.flush().unwrap();
     }
 
     /// Implemented like tmux's tty_redraw_region
@@ -330,7 +339,7 @@ impl TtyPainter {
     ///
     /// Tmux also has an optimization where it'll no-op this if the effected region is >= 50% of
     /// the pane, but will instead schedule a "pane redraw". That is also not implemented.
-    pub fn insert_line<F: Write>(&mut self, scroll_region_size: &ScreenSize, scroll_region_pos: &Pos, io: &mut F) {
+    pub fn insert_line(&mut self, scroll_region_size: &ScreenSize, scroll_region_pos: &Pos) {
         // I'd like to iterate through all the cells in the pane. Can I get access to this?
     }
 
@@ -347,29 +356,29 @@ impl TtyPainter {
 mod tests {
     extern crate vterm_sys;
 
-    use vterm_sys::*;
-    use super::*;
     use std::io::prelude::*;
     use std::io;
+    use std::sync::{Arc, Mutex};
+    use super::*;
+    use vterm_sys::*;
 
     struct CaptureIO {
-        pub cursor: usize,
-        pub bytes: Vec<u8>,
+        pub bytes: Arc<Mutex<Vec<u8>>>,
     }
 
     impl CaptureIO {
-        fn new() -> CaptureIO {
-            CaptureIO {
-                cursor: 0,
-                bytes: vec![],
-            }
+        fn new() -> (CaptureIO, Arc<Mutex<Vec<u8>>>) {
+            let bytes = Arc::new(Mutex::new(Vec::new()));
+            let io = CaptureIO { bytes: bytes.clone() };
+            (io, bytes)
         }
     }
 
     impl Write for CaptureIO {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            let mut bytes = self.bytes.lock().unwrap();
             for byte in buf {
-                self.bytes.push(*byte);
+                bytes.push(*byte);
             }
             Ok(buf.len())
         }
@@ -462,12 +471,12 @@ mod tests {
         }
     }
 
-    fn drawn_cells(io: &CaptureIO, size: ScreenSize) -> Vec<ScreenCell> {
+    fn drawn_cells(bytes: &Vec<u8>, size: ScreenSize) -> Vec<ScreenCell> {
         let mut vterm = VTerm::new(size);
         vterm.state.set_default_colors(Color { red: 230, green: 230, blue: 230 },
                                        Color { red: 5, green: 5, blue: 5 });
         vterm.state.reset(true);
-        vterm.write(&io.bytes);
+        vterm.write(bytes);
 
         let iterator = CellsIterator::new(&vterm);
         iterator.collect()
@@ -475,21 +484,21 @@ mod tests {
 
     #[test]
     fn it_correctly_draws_empty_screen() {
-        let mut painter: TtyPainter = Default::default();
-        let mut io = CaptureIO::new();
+        let (mut io, bytes) = CaptureIO::new();
+        let mut painter = TtyPainter::new(io);
 
         let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 2, cols: 2 }).finalize();
 
         // paint them into libvterm
-        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+        painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 2, rows: 2}));
+        assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 2, rows: 2}));
     }
 
     #[test]
     fn it_correctly_draws_position_of_chars() {
-        let mut painter: TtyPainter = Default::default();
-        let mut io = CaptureIO::new();
+        let (mut io, bytes) = CaptureIO::new();
+        let mut painter = TtyPainter::new(io);
 
         let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
             .chars(vec![vec!['y', ' ', ' '],
@@ -497,15 +506,15 @@ mod tests {
                         vec![' ', ' ', '!']])
             .finalize();
 
-        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+        painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 3, rows: 3}));
+        assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 3, rows: 3}));
     }
 
     #[test]
     fn it_draws_consecutive_chars() {
-        let mut painter: TtyPainter = Default::default();
-        let mut io = CaptureIO::new();
+        let (mut io, bytes) = CaptureIO::new();
+        let mut painter = TtyPainter::new(io);
 
         let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
             .chars(vec![vec!['y', 'o', '!'],
@@ -513,15 +522,15 @@ mod tests {
                         vec![' ', ' ', ' ']])
             .finalize();
 
-        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+        painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 3, rows: 3}));
+        assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 3, rows: 3}));
     }
 
     #[test]
     fn it_draws_chars_with_gaps() {
-        let mut painter: TtyPainter = Default::default();
-        let mut io = CaptureIO::new();
+        let (mut io, bytes) = CaptureIO::new();
+        let mut painter = TtyPainter::new(io);
 
         let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
             .chars(vec![vec!['a', ' ', 'b'],
@@ -529,15 +538,15 @@ mod tests {
                         vec!['e', ' ', 'f']])
             .finalize();
 
-        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+        painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 3, rows: 3}));
+        assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 3, rows: 3}));
     }
 
     #[test]
     fn it_draws_vertical_chars() {
-        let mut painter: TtyPainter = Default::default();
-        let mut io = CaptureIO::new();
+        let (mut io, bytes) = CaptureIO::new();
+        let mut painter = TtyPainter::new(io);
 
         let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
             .chars(vec![vec![' ', 'y', ' '],
@@ -545,28 +554,28 @@ mod tests {
                         vec![' ', '!', ' ']])
             .finalize();
 
-        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+        painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 3, rows: 3}));
+        assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 3, rows: 3}));
     }
 
     #[test]
     fn it_clears_chars() {
-        let mut painter: TtyPainter = Default::default();
-        let mut io = CaptureIO::new();
+        let (mut io, bytes) = CaptureIO::new();
+        let mut painter = TtyPainter::new(io);
 
         let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 2, cols: 2 })
             .chars(vec![vec!['a', 'b'],
                         vec!['c', 'd']])
             .finalize();
-        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+        painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
         let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 2, cols: 2 })
             .chars(vec![vec!['h', ' '],
                         vec![' ', 'i']])
             .finalize();
-        painter.draw_cells(&cells, &mut io, &Pos { row: 0, col: 0 });
+        painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-        assert_eq!(cells, drawn_cells(&io, ScreenSize { cols: 2, rows: 2}));
+        assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 2, rows: 2}));
     }
 }

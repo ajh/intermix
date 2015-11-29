@@ -13,6 +13,7 @@ use self::state::*;
 use self::stdin_read_worker::*;
 use std::sync::mpsc::*;
 use std::thread::{self, JoinHandle};
+use std::io::prelude::*;
 use vterm_sys;
 
 #[derive(Clone, Debug)]
@@ -46,8 +47,8 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn spawn() -> (Sender<ClientMsg>, JoinHandle<()>) {
-        let (draw_tx, _) = DrawWorker::spawn();
+    pub fn spawn<F: 'static + Write + Send>(io: F) -> (Sender<ClientMsg>, JoinHandle<()>) {
+        let (draw_tx, _) = DrawWorker::spawn(io);
         let (main_tx, main_handle) = MainWorker::spawn(draw_tx.clone());
         let (server_tx, _) = ServerWorker::spawn(main_tx.clone(), draw_tx.clone());
         StdinReadWorker::spawn(main_tx.clone());

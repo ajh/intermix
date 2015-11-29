@@ -1,4 +1,5 @@
 use std::io;
+use std::io::prelude::*;
 use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Weak, Mutex};
@@ -7,19 +8,19 @@ use super::state::*;
 use super::tty_painter::*;
 use vterm_sys;
 
-pub struct DrawWorker {
+pub struct DrawWorker<F: 'static + Write + Send> {
     rx: Receiver<ClientMsg>,
-    painter: TtyPainter,
+    painter: TtyPainter<F>,
     windows: Windows,
 }
 
-impl DrawWorker {
-    pub fn spawn() -> (Sender<ClientMsg>, thread::JoinHandle<()>) {
+impl <F: 'static + Write + Send> DrawWorker<F> {
+    pub fn spawn(io: F) -> (Sender<ClientMsg>, thread::JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
 
         info!("spawning draw worker");
         let handle = thread::spawn(move || {
-            let mut worker = DrawWorker::new(rx);
+            let mut worker = DrawWorker::new(rx, io);
             worker.enter_listen_loop();
             info!("exiting draw worker");
         });
@@ -27,11 +28,11 @@ impl DrawWorker {
         (tx, handle)
     }
 
-    fn new(rx: Receiver<ClientMsg>) -> DrawWorker {
+    fn new(rx: Receiver<ClientMsg>, io: F) -> DrawWorker<F> {
         DrawWorker {
             rx: rx,
             windows: Default::default(),
-            painter: Default::default(),
+            painter: TtyPainter::new(io),
         }
     }
 
@@ -58,7 +59,7 @@ impl DrawWorker {
 
         let mut panes = self.windows.iter().flat_map(|w| w.panes.iter());
         if let Some(pane) = panes.find(|p| p.program_id == program_id) {
-            self.painter.draw_cells(&cells, &mut io::stdout(), &pane.offset);
+            self.painter.draw_cells(&cells, &pane.offset);
         } else {
             trace!("no pane for program {:?}", program_id);
         }
