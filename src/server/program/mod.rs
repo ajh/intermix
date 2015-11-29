@@ -1,16 +1,6 @@
 mod vte_worker;
 mod pty_reader;
 
-extern crate log;
-extern crate pty;
-extern crate termios;
-extern crate vterm_sys;
-extern crate term;
-extern crate libc;
-extern crate docopt;
-extern crate rustc_serialize;
-extern crate uuid;
-
 use vterm_sys::*;
 use self::pty_reader::*;
 use self::vte_worker::*;
@@ -23,6 +13,8 @@ use std::ptr;
 use std::sync::mpsc::*;
 use std::thread;
 use super::*;
+use libc;
+use pty;
 
 pub enum VteWorkerMsg {
     PtyRead { bytes: Vec<u8> },

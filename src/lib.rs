@@ -1,9 +1,10 @@
 #![feature(mpsc_select)]
 #![feature(convert)]
+#![feature(libc)]
 
 extern crate docopt;
-extern crate libc;
 extern crate vterm_sys;
+extern crate libc;
 #[macro_use]
 extern crate log;
 extern crate pty;

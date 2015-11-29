@@ -1,8 +1,6 @@
-extern crate vterm_sys;
-extern crate term;
-
 use vterm_sys::*;
 use std::io::prelude::*;
+use term;
 
 #[derive(Debug, Default, Clone)]
 pub struct Pen {

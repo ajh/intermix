@@ -1,10 +1,3 @@
-extern crate libc;
-extern crate pty;
-extern crate termios;
-extern crate log4rs;
-extern crate ioctl_rs as ioctl;
-extern crate vterm_sys;
-
 use std::io;
 use std::thread;
 use std::sync::mpsc::*;

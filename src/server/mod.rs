@@ -1,17 +1,6 @@
-extern crate docopt;
-extern crate libc;
-extern crate vterm_sys;
-extern crate log;
-extern crate log4rs;
-extern crate pty;
-extern crate rustc_serialize;
-extern crate term;
-extern crate termios;
-extern crate uuid;
-
 mod program;
 
-use vterm_sys::*;
+use vterm_sys::{self, ScreenCell, Rect, Pos};
 use self::program::*;
 use std::fs::File;
 use std::io::prelude::*;

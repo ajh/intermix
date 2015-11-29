@@ -13,7 +13,6 @@ path = "src/bin/monolith.rs"
 [dependencies]
 docopt = "0.6"
 ioctl-rs = "0.1.3"
-libc = "0.1.10"
 vterm-sys = "0"
 log = "0.3"
 log4rs = "0.3.3"
