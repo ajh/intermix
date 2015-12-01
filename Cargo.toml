@@ -21,3 +21,6 @@ rustc-serialize = "0.3"
 term = "0.2.12"
 termios = "0.2"
 uuid = "0.1"
+
+[dev-dependencies]
+regex = "0.1.41"

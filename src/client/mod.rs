@@ -1,9 +1,9 @@
-mod draw_worker;
-mod modal;
-mod stdin_read_worker;
-mod tty_painter;
-mod server_worker;
-mod main_worker;
+pub mod draw_worker;
+pub mod modal;
+pub mod stdin_read_worker;
+pub mod tty_painter;
+pub mod server_worker;
+pub mod main_worker;
 pub mod state;
 
 use self::draw_worker::*;

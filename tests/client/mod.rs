@@ -16,3 +16,8 @@
 //     fn client_can_start_a_program()
 //     fn client_can_connect_to_a_server()
 //
+//
+
+pub mod tty_painter;
+pub mod support;
+pub mod client;
