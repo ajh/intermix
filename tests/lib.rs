@@ -1,3 +1,4 @@
+#![feature(convert)]
 extern crate regex;
 extern crate libintermix;
 extern crate log4rs;
@@ -6,6 +7,7 @@ extern crate time;
 
 mod client;
 mod server;
+mod support;
 
 /// this could protect itself from running multiple times
 fn setup_logging() {
