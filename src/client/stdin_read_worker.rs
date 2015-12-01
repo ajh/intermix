@@ -25,6 +25,7 @@ impl StdinReadWorker {
         })
     }
 
+    /// start reading from stdin. Exits when a read fails.
     fn enter_read_loop(&mut self) {
         let mut buf = [0 as u8; 4096];
         let mut io = io::stdin();

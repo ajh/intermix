@@ -65,6 +65,7 @@ impl MainWorker {
         self.damage_status_line();
     }
 
+    /// Start receiving messages from Receiver. Exits on a Quit message.
     fn enter_listener_loop(&mut self) {
         loop {
             let msg = match self.rx.recv() {

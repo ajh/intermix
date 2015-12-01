@@ -44,7 +44,7 @@ fn main() {
     set_raw_mode(0);
 
     let (server_tx, server_handle) = libintermix::server::Server::spawn();
-    let (client_tx, client_handle) = libintermix::client::Client::spawn(io::stdout());
+    let (client_tx, client) = libintermix::client::Client::spawn(io::stdout());
 
     client_tx.send(libintermix::client::ClientMsg::ServerAdd {
         server: libintermix::client::state::Server {
@@ -61,7 +61,7 @@ fn main() {
         }
     });
 
-    let threads = vec![server_handle, client_handle];
+    let threads = vec![server_handle];
     for thr in threads {
         thr.join().unwrap();
     }

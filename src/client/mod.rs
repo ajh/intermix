@@ -42,21 +42,30 @@ pub enum ClientMsg {
 }
 
 pub struct Client {
-    /// TODO: remove this
-    is_or_is_not_true: bool
+    draw_tx: Sender<ClientMsg>,
+    main_tx: Sender<ClientMsg>,
+    server_tx: Sender<ClientMsg>,
 }
 
 impl Client {
-    pub fn spawn<F: 'static + Write + Send>(io: F) -> (Sender<ClientMsg>, JoinHandle<()>) {
+    pub fn spawn<F: 'static + Write + Send>(io: F) -> (Sender<ClientMsg>, Client) {
         let (draw_tx, _) = DrawWorker::spawn(io);
         let (main_tx, main_handle) = MainWorker::spawn(draw_tx.clone());
         let (server_tx, _) = ServerWorker::spawn(main_tx.clone(), draw_tx.clone());
         StdinReadWorker::spawn(main_tx.clone());
 
-        (server_tx, main_handle)
+        let client = Client {
+            draw_tx: draw_tx,
+            main_tx: main_tx,
+            server_tx: server_tx.clone(),
+        };
+
+        (server_tx, client)
     }
 
-    fn new(rx: Receiver<ClientMsg>) -> Client {
-        Client { is_or_is_not_true: true }
+    pub fn stop(self) {
+        self.draw_tx.send(ClientMsg::Quit);
+        self.main_tx.send(ClientMsg::Quit);
+        self.server_tx.send(ClientMsg::Quit);
     }
 }

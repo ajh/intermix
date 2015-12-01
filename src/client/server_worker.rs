@@ -37,6 +37,7 @@ impl ServerWorker {
         }
     }
 
+    /// Start receiving messages from Receiver. Exits on a Quit message.
     fn enter_listen_loop(&mut self) {
         loop {
             let msg = match self.rx.recv() {
