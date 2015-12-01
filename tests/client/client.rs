@@ -26,7 +26,7 @@ fn assert_in_command_mode(mut vterm: VTerm, tty_output: Arc<Mutex<Vec<u8>>>) {
 #[test]
 fn client_can_enter_command_mode() {
     let (mut io, tty_output) = CaptureIO::new();
-    let (client_tx, client) = Client::spawn(io);
+    let (client_tx, client) = Client::spawn(::std::io::stdin(), io);
 
     // The screen size here is hard coded through the client code. Need to fix that.
     let mut vterm = build_vterm(ScreenSize { rows: 26, cols: 80 });

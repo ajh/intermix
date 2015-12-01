@@ -44,7 +44,7 @@ fn main() {
     set_raw_mode(0);
 
     let (server_tx, server_handle) = libintermix::server::Server::spawn();
-    let (client_tx, client) = libintermix::client::Client::spawn(io::stdout());
+    let (client_tx, client) = libintermix::client::Client::spawn(io::stdin(), io::stdout());
 
     client_tx.send(libintermix::client::ClientMsg::ServerAdd {
         server: libintermix::client::state::Server {

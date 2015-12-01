@@ -48,11 +48,11 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn spawn<F: 'static + Write + Send>(io: F) -> (Sender<ClientMsg>, Client) {
-        let (draw_tx, _) = DrawWorker::spawn(io);
+    pub fn spawn<I: 'static + Read + Send, O: 'static + Write + Send>(input: I, output: O) -> (Sender<ClientMsg>, Client) {
+        let (draw_tx, _) = DrawWorker::spawn(output);
         let (main_tx, main_handle) = MainWorker::spawn(draw_tx.clone());
         let (server_tx, _) = ServerWorker::spawn(main_tx.clone(), draw_tx.clone());
-        StdinReadWorker::spawn(main_tx.clone());
+        StdinReadWorker::spawn(input, main_tx.clone());
 
         let client = Client {
             draw_tx: draw_tx,
