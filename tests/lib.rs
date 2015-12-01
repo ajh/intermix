@@ -7,6 +7,7 @@ extern crate time;
 mod client;
 mod server;
 
+/// this could protect itself from running multiple times
 fn setup_logging() {
     log4rs::init_file(&std::env::current_dir().unwrap().join("tests/log4rs.toml"),
                       log4rs::toml::Creator::default())
