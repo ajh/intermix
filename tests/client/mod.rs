@@ -19,5 +19,4 @@
 //
 
 pub mod tty_painter;
-pub mod support;
 pub mod client;

@@ -8,7 +8,7 @@ use std::io;
 use std::sync::{Arc, Mutex};
 use libintermix::client::tty_painter::*;
 use vterm_sys::*;
-use super::support::capture_io::*;
+use ::support::test_io::*;
 
 struct CellsIterator<'a> {
     pos: Pos,
@@ -93,12 +93,15 @@ impl ScreenCellBuilder {
     }
 }
 
-fn drawn_cells(bytes: &Vec<u8>, size: ScreenSize) -> Vec<ScreenCell> {
+fn drawn_cells<T: Read>(reader: &mut T, size: ScreenSize) -> Vec<ScreenCell> {
     let mut vterm = VTerm::new(size);
     vterm.state.set_default_colors(Color { red: 230, green: 230, blue: 230 },
                                    Color { red: 5, green: 5, blue: 5 });
     vterm.state.reset(true);
-    vterm.write(bytes);
+
+    let mut bytes: Vec<u8> = vec![];
+    reader.read_to_end(&mut bytes);
+    vterm.write(&bytes);
 
     let iterator = CellsIterator::new(&vterm);
     iterator.collect()
@@ -106,21 +109,21 @@ fn drawn_cells(bytes: &Vec<u8>, size: ScreenSize) -> Vec<ScreenCell> {
 
 #[test]
 fn it_correctly_draws_empty_screen() {
-    let (mut io, bytes) = CaptureIO::new();
-    let mut painter = TtyPainter::new(io);
+    let mut io = TestIO::new();
+    let mut painter = TtyPainter::new(io.clone());
 
     let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 2, cols: 2 }).finalize();
 
     // paint them into libvterm
     painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-    assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 2, rows: 2}));
+    assert_eq!(cells, drawn_cells(&mut io, ScreenSize { cols: 2, rows: 2}));
 }
 
 #[test]
 fn it_correctly_draws_position_of_chars() {
-    let (mut io, bytes) = CaptureIO::new();
-    let mut painter = TtyPainter::new(io);
+    let mut io = TestIO::new();
+    let mut painter = TtyPainter::new(io.clone());
 
     let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
         .chars(vec![vec!['y', ' ', ' '],
@@ -130,13 +133,13 @@ fn it_correctly_draws_position_of_chars() {
 
     painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-    assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 3, rows: 3}));
+    assert_eq!(cells, drawn_cells(&mut io, ScreenSize { cols: 3, rows: 3}));
 }
 
 #[test]
 fn it_draws_consecutive_chars() {
-    let (mut io, bytes) = CaptureIO::new();
-    let mut painter = TtyPainter::new(io);
+    let mut io = TestIO::new();
+    let mut painter = TtyPainter::new(io.clone());
 
     let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
         .chars(vec![vec!['y', 'o', '!'],
@@ -146,13 +149,13 @@ fn it_draws_consecutive_chars() {
 
     painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-    assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 3, rows: 3}));
+    assert_eq!(cells, drawn_cells(&mut io, ScreenSize { cols: 3, rows: 3}));
 }
 
 #[test]
 fn it_draws_chars_with_gaps() {
-    let (mut io, bytes) = CaptureIO::new();
-    let mut painter = TtyPainter::new(io);
+    let mut io = TestIO::new();
+    let mut painter = TtyPainter::new(io.clone());
 
     let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
         .chars(vec![vec!['a', ' ', 'b'],
@@ -162,13 +165,13 @@ fn it_draws_chars_with_gaps() {
 
     painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-    assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 3, rows: 3}));
+    assert_eq!(cells, drawn_cells(&mut io, ScreenSize { cols: 3, rows: 3}));
 }
 
 #[test]
 fn it_draws_vertical_chars() {
-    let (mut io, bytes) = CaptureIO::new();
-    let mut painter = TtyPainter::new(io);
+    let mut io = TestIO::new();
+    let mut painter = TtyPainter::new(io.clone());
 
     let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 3, cols: 3 })
         .chars(vec![vec![' ', 'y', ' '],
@@ -178,13 +181,13 @@ fn it_draws_vertical_chars() {
 
     painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-    assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 3, rows: 3}));
+    assert_eq!(cells, drawn_cells(&mut io, ScreenSize { cols: 3, rows: 3}));
 }
 
 #[test]
 fn it_clears_chars() {
-    let (mut io, bytes) = CaptureIO::new();
-    let mut painter = TtyPainter::new(io);
+    let mut io = TestIO::new();
+    let mut painter = TtyPainter::new(io.clone());
 
     let cells: Vec<ScreenCell> = ScreenCellBuilder::new(ScreenSize { rows: 2, cols: 2 })
         .chars(vec![vec!['a', 'b'],
@@ -198,5 +201,5 @@ fn it_clears_chars() {
         .finalize();
     painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
 
-    assert_eq!(cells, drawn_cells(&bytes.lock().unwrap(), ScreenSize { cols: 2, rows: 2}));
+    assert_eq!(cells, drawn_cells(&mut io, ScreenSize { cols: 2, rows: 2}));
 }
