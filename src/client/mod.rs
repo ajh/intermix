@@ -48,6 +48,10 @@ pub struct Client {
 }
 
 impl Client {
+    /// Create and start a client instance. Returns a Sender which can be used to send messages to
+    /// the client, and a client instance which can be used to stop the client.
+    ///
+    /// All the action takes place in threads so message passing is the client api more or less.
     pub fn spawn<I: 'static + Read + Send, O: 'static + Write + Send>(input: I, output: O) -> (Sender<ClientMsg>, Client) {
         let (draw_tx, _) = DrawWorker::spawn(output);
         let (main_tx, main_handle) = MainWorker::spawn(draw_tx.clone());
@@ -63,6 +67,7 @@ impl Client {
         (server_tx, client)
     }
 
+    /// Stop the client. It consumes the client so it can't be restarted.
     pub fn stop(self) {
         self.draw_tx.send(ClientMsg::Quit);
         self.main_tx.send(ClientMsg::Quit);

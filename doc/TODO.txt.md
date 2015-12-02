@@ -1,8 +1,13 @@
 Todo
 ====
 
+* [x] client - server architecture in same process
+* [ ] pass TtyIoctlSettings object to Client which is used in to set
+  initial window size in a testable way. I guess monolith can build it
+  pased on: https://github.com/carllerche/nix-rust/issues/201
+* [ ] clean up hacks and add more tests
 * [ ] pane transforms
-* [ ] client - server
+* [ ] client - server in separate processes
 * [ ] client connecting to multiple servers
 * [ ] modal UI design
 * [ ] v1 multiplexer (see mock.txt.md)
@@ -13,7 +18,7 @@ Todo
 * [ ] servers should have ids ("some server")
 * [ ] Split up ClientMsg into smaller enums suited to their specific
   channel
-* [ ] ask question about moving values between enums
+* [ ] figure out performance implications about moving values between enums
 
 Client Server Work
 ==================
