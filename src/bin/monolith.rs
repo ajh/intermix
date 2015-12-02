@@ -1,13 +1,16 @@
-extern crate libintermix;
+#![feature(libc)]
+#[macro_use] extern crate log;
 extern crate docopt;
-#[macro_use]
-extern crate log;
+extern crate libc;
+extern crate libintermix;
 extern crate log4rs;
 extern crate rustc_serialize;
 extern crate term;
 extern crate termios;
 
+use libc::c_ushort;
 use std::io;
+use std::mem;
 use std::os::unix::io::RawFd;
 use term::terminfo::*;
 
@@ -45,7 +48,13 @@ fn main() {
 
     let (server_tx, server_handle) = libintermix::server::Server::spawn();
 
-    let tty_ioctl_config: libintermix::client::TtyIoCtlConfig = Default::default();
+
+    let tty_ioctl_config: libintermix::client::TtyIoCtlConfig;
+    unsafe {
+        let mut size: WinSize = std::mem::zeroed();
+        libc::ioctl(1, TIOCGWINSZ, &mut size);
+        tty_ioctl_config = libintermix::client::TtyIoCtlConfig { rows: size.rows, cols: size.cols, ..Default::default() };
+    }
     let (client_tx, client) = libintermix::client::Client::spawn(io::stdin(), io::stdout(), tty_ioctl_config);
 
     client_tx.send(libintermix::client::ClientMsg::ServerAdd {
@@ -74,7 +83,18 @@ fn set_raw_mode(fd: RawFd) {
     let mut t = termios::Termios::from_fd(fd).unwrap();
     termios::cfmakeraw(&mut t);
     termios::tcsetattr(fd, termios::TCSADRAIN, &t).unwrap();
-
-    termios::tcgetattr(fd, &mut t);
-    println!("{:?}", t);
 }
+
+#[derive(Debug)]
+#[repr(C)]
+struct WinSize {
+    rows: c_ushort,
+    cols: c_ushort,
+    x_pixels: c_ushort,
+    y_pixels: c_ushort
+}
+
+#[cfg(any(target_os = "macos", target_os = "freebsd"))]
+const TIOCGWINSZ: libc::c_ulong = 0x40087468;
+#[cfg(any(target_os = "linux", target_os = "android"))]
+const TIOCGWINSZ: libc::c_ulong = 0x5413;
