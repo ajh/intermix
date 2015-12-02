@@ -41,6 +41,19 @@ pub enum ClientMsg {
     UserInput { bytes: Vec<u8> },
 }
 
+/// other settings from `man tty_ioctl` could live here
+#[derive(Clone, PartialEq)]
+pub struct TtyIoCtlConfig {
+    pub rows: u16,
+    pub cols: u16,
+}
+
+impl Default for TtyIoCtlConfig {
+    fn default() -> TtyIoCtlConfig {
+        TtyIoCtlConfig { rows: 24, cols: 80 }
+    }
+}
+
 pub struct Client {
     draw_tx: Sender<ClientMsg>,
     main_tx: Sender<ClientMsg>,
@@ -52,9 +65,10 @@ impl Client {
     /// the client, and a client instance which can be used to stop the client.
     ///
     /// All the action takes place in threads so message passing is the client api more or less.
-    pub fn spawn<I: 'static + Read + Send, O: 'static + Write + Send>(input: I, output: O) -> (Sender<ClientMsg>, Client) {
+    pub fn spawn<I, O>(input: I, output: O, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Client)
+        where I: 'static + Read + Send, O: 'static + Write + Send {
         let (draw_tx, _) = DrawWorker::spawn(output);
-        let (main_tx, main_handle) = MainWorker::spawn(draw_tx.clone());
+        let (main_tx, main_handle) = MainWorker::spawn(draw_tx.clone(), tty_ioctl_config);
         let (server_tx, _) = ServerWorker::spawn(main_tx.clone(), draw_tx.clone());
         StdinReadWorker::spawn(input, main_tx.clone());
 

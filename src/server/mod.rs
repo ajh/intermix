@@ -114,6 +114,7 @@ impl Server {
     }
 
     fn start_program(&mut self, id: String, command_and_args: Vec<String>) {
+        // FIXME: get size from client
         let size = vterm_sys::ScreenSize { rows: 24, cols: 80 };
         let (program, threads) = Program::new(&id, &command_and_args, self.tx.clone(), &size);
         self.programs.push(program);

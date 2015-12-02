@@ -6,6 +6,7 @@ dependencies = [
  "ioctl-rs 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log4rs 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nix 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "pty 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",

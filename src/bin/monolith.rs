@@ -44,7 +44,9 @@ fn main() {
     set_raw_mode(0);
 
     let (server_tx, server_handle) = libintermix::server::Server::spawn();
-    let (client_tx, client) = libintermix::client::Client::spawn(io::stdin(), io::stdout());
+
+    let tty_ioctl_config: libintermix::client::TtyIoCtlConfig = Default::default();
+    let (client_tx, client) = libintermix::client::Client::spawn(io::stdin(), io::stdout(), tty_ioctl_config);
 
     client_tx.send(libintermix::client::ClientMsg::ServerAdd {
         server: libintermix::client::state::Server {

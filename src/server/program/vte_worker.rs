@@ -39,6 +39,7 @@ impl VteWorker {
             rx: Some(rx),
             tx: tx,
             server_tx: server_tx,
+            // FIXME: get size from self
             vterm: VTerm::new(ScreenSize { rows: 24, cols: 80, }),
         }
     }

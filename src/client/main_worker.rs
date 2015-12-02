@@ -19,15 +19,16 @@ pub struct MainWorker {
     pub windows: Windows,
     pub servers: Servers,
     pub mode: Box<Mode>,
+    pub tty_ioctl_config: TtyIoCtlConfig,
 }
 
 impl MainWorker {
-    pub fn spawn(draw_worker_tx: Sender<ClientMsg>) -> (Sender<ClientMsg>, JoinHandle<()>) {
+    pub fn spawn(draw_worker_tx: Sender<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
 
         info!("spawning main worker");
         let handle = thread::spawn(move || {
-            let mut worker = MainWorker::new(draw_worker_tx, rx);
+            let mut worker = MainWorker::new(draw_worker_tx, rx, tty_ioctl_config);
             worker.enter_listener_loop();
             info!("exiting main worker");
         });
@@ -35,13 +36,14 @@ impl MainWorker {
         (tx, handle)
     }
 
-    fn new(draw_worker_tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>) -> MainWorker {
+    fn new(draw_worker_tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> MainWorker {
         let mut worker = MainWorker {
             draw_worker_tx: draw_worker_tx,
             rx: rx,
             windows: Default::default(),
             servers: Default::default(),
             mode: Box::new(CommandMode { accumulator: vec![] }),
+            tty_ioctl_config: tty_ioctl_config,
         };
         worker.init();
         worker
@@ -49,16 +51,21 @@ impl MainWorker {
 
     /// creates an initial window, status pane etc
     fn init(&mut self) {
+
+        // borrowch workaround
+        let rows = self.tty_ioctl_config.rows;
+        let cols = self.tty_ioctl_config.cols;
+
         self.add_window(Window {
             id: "win_0".to_string(),
-            size: vterm_sys::ScreenSize { cols: 80, rows: 25 },
+            size: vterm_sys::ScreenSize { cols: cols, rows: rows },
             .. Default::default()
         });
 
         self.add_pane("win_0".to_string(), Pane {
             id: "status_line".to_string(),
-            size: vterm_sys::ScreenSize { cols: 80, rows: 1 },
-            offset: vterm_sys::Pos { col: 0, row: 25 },
+            size: vterm_sys::ScreenSize { cols: cols, rows: 1 },
+            offset: vterm_sys::Pos { col: 0, row: (rows - 1) as i16 },
             program_id: "status_line".to_string(),
         });
 
@@ -129,6 +136,7 @@ impl MainWorker {
         self.damage_status_line();
         self.add_pane("win_0".to_string(), Pane {
             id: "pane_0".to_string(),
+            // FIXME: get real screen size from program
             size: vterm_sys::ScreenSize { rows: 24, cols: 80 },
             offset: vterm_sys::Pos { row: 0, col: 10 },
             program_id: program.id.clone(),
