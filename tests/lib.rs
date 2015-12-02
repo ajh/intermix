@@ -9,8 +9,15 @@ mod client;
 mod server;
 mod support;
 
+static mut is_logging_setup: bool = false;
+
 /// this could protect itself from running multiple times
 fn setup_logging() {
+    unsafe {
+        if is_logging_setup { return }
+        is_logging_setup = true;
+    }
+
     log4rs::init_file(&std::env::current_dir().unwrap().join("tests/log4rs.toml"),
                       log4rs::toml::Creator::default())
         .unwrap();

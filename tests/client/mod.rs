@@ -19,4 +19,4 @@
 //
 
 pub mod tty_painter;
-pub mod client;
+pub mod modal;
