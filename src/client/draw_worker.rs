@@ -8,6 +8,11 @@ use super::state::*;
 use super::tty_painter::*;
 use vterm_sys;
 
+/// # todos
+/// * [ ] make message enum more specific
+/// * [ ] Maybe build with initial state to avoid bootstrap data race?
+/// * [ ] optimize drawing when pane is full width (csr)
+/// * [ ] implement move cursor
 pub struct DrawWorker<F: 'static + Write + Send> {
     rx: Receiver<ClientMsg>,
     painter: TtyPainter<F>,

@@ -54,6 +54,8 @@ impl Default for TtyIoCtlConfig {
     }
 }
 
+/// # TODO
+/// * [ ] derive useful traits on stuff here
 pub struct Client {
     draw_tx: Sender<ClientMsg>,
     main_tx: Sender<ClientMsg>,
