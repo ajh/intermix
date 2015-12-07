@@ -117,10 +117,6 @@ impl Column {
             w.x = self.x
         }
     }
-
-    //pub fn widget_iter<'a>(&'a self) -> Iter<'a, Widget> {
-        //self.widgets.iter()
-    //}
 }
 
 #[derive(Debug, Clone)]
@@ -175,16 +171,11 @@ impl Screen {
         // rows then cols
         let mut drawing: Vec<Vec<char>> = vec![vec![' '; self.width as usize]; self.height as usize];
 
-        // Kwality code
-        for row in &self.rows {
-            for col in &row.children {
-                for w in &col.widgets {
-                    for y in (w.y..w.y+w.height) {
-                        for x in (w.x..w.x+w.width) {
-                            println!("{:?} y={} x={}", w, y, x);
-                            drawing[y as usize][x as usize] = w.fill;
-                        }
-                    }
+        for widget in WidgetIter::new(&self) {
+            for y in (widget.y..widget.y+widget.height) {
+                for x in (widget.x..widget.x+widget.width) {
+                    println!("{:?} y={} x={}", widget, y, x);
+                    drawing[y as usize][x as usize] = widget.fill;
                 }
             }
         }
@@ -195,5 +186,49 @@ impl Screen {
             .map(|row| row.iter().cloned().collect::<String>())
             .collect::<Vec<String>>()
             .join("\n")
+    }
+}
+
+pub struct WidgetIter<'a> {
+    row_index: usize,
+    col_index: usize,
+    widget_index: usize,
+    screen: &'a Screen,
+}
+
+impl<'a> WidgetIter<'a> {
+    pub fn new(screen: &'a Screen) -> WidgetIter<'a> {
+        WidgetIter {
+            row_index: 0,
+            col_index: 0,
+            widget_index: 0,
+            screen: screen,
+        }
+    }
+}
+
+impl<'a> Iterator for WidgetIter<'a> {
+    type Item = &'a Widget;
+
+    fn next(&mut self) -> Option<&'a Widget> {
+        if self.row_index >= self.screen.rows.len() {
+            return None
+        }
+        if self.col_index >= self.screen.rows[self.row_index].children.len() {
+            self.row_index += 1;
+            self.col_index = 0;
+            self.widget_index = 0;
+            return self.next();
+        }
+        if self.widget_index >= self.screen.rows[self.row_index].children[self.col_index].widgets.len() {
+            self.col_index += 1;
+            self.widget_index = 0;
+            return self.next();
+        }
+
+        let output = &self.screen.rows[self.row_index].children[self.col_index].widgets[self.widget_index];
+        self.widget_index += 1;
+
+        Some(output)
     }
 }
