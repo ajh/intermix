@@ -20,3 +20,4 @@
 
 pub mod tty_painter;
 pub mod modal;
+pub mod grid;

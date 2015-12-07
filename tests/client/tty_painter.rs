@@ -1,8 +1,6 @@
-// TODO:
-//
-// * move these to `tests` directory, but first need to split out lib and bin
-// * Move helper stuff to a helper file
-// * more tests
+//! # TODO:
+//!
+//! * [ ] more tests
 use std::io::prelude::*;
 use std::io;
 use std::sync::{Arc, Mutex};

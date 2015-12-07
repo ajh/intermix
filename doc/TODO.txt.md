@@ -1,10 +1,11 @@
 Todo
 ====
 
+* [ ] pane layout engine
+
 * [x] client - server architecture in same process
 * [x] client takes options to control window size
 * [ ] clean up hacks and add more tests
-* [ ] pane layout engine
 * [ ] pane transforms
 * [ ] client - server in separate processes
 * [ ] client connecting to multiple servers
