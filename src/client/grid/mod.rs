@@ -72,39 +72,18 @@ impl Node {
         }
     }
 
-    pub fn calc_height(&mut self) {
-        if let Some(widget) = self.widget.as_ref() {
-            self.size.rows = widget.size.rows as u16;
-        }
-
-        if let Some(children) = self.children.as_mut() {
-            for child in children.iter_mut() {
-                child.calc_height();
-            }
-
-            let max_height = children.iter()
-                .map(|c| c.get_size().rows)
-                .max();
-
-            self.size.rows = match max_height {
-                Some(h) => h,
-                None => 0,
-            };
-        }
-    }
-
-    pub fn set_screen_width(&mut self, screen_width: u16, parent_width: u16) {
+    pub fn calc_width(&mut self, parent_width: u16, screen_size: &Size) {
         match self.grid_width {
             GridWidth::Max => self.size.cols = parent_width,
             GridWidth::Cols(c) => {
                 let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
-                self.size.cols = (screen_width as f32 * percent).round() as u16;
+                self.size.cols = (screen_size.cols as f32 * percent).round() as u16;
             }
         }
 
         if let Some(children) = self.children.as_mut() {
             for child in children.iter_mut() {
-                child.set_screen_width(screen_width, self.size.cols);
+                child.calc_width(self.size.cols, screen_size);
             }
         }
 
@@ -115,21 +94,86 @@ impl Node {
         }
     }
 
-    pub fn set_pos(&mut self, pos: Pos) {
-        self.pos = pos;
+    // This depends on widths already being calculated
+    pub fn calc_col_position(&mut self, assigned_col: i16, screen_size: &Size) {
+        self.pos.col = assigned_col;
 
         if let Some(children) = self.children.as_mut() {
             let mut last_col = self.pos.col;
 
-            // TODO: this should flow things to a new line when they don't fit
             for child in children.iter_mut() {
-                child.set_pos(Pos { row: self.pos.row, col: last_col});
+                if last_col as u16 + child.get_size().cols > screen_size.cols {
+                    last_col = 0; // wrap
+                }
+
+                child.calc_col_position(last_col, screen_size);
+
                 last_col += child.get_size().cols as i16;
             }
         }
 
         if let Some(widget) = self.widget.as_mut() {
-            widget.set_pos(self.pos.clone());
+            let mut p = widget.get_pos().clone();
+            p.col = self.pos.col;
+            widget.set_pos(p);
+        }
+    }
+
+    pub fn calc_height(&mut self, screen_size: &Size) {
+        if let Some(widget) = self.widget.as_ref() {
+            self.size.rows = widget.size.rows as u16;
+        }
+
+        if let Some(children) = self.children.as_mut() {
+            for child in children.iter_mut() {
+                child.calc_height(screen_size);
+            }
+
+            let mut max_height_in_row = 0;
+            let mut our_height = 0;
+
+            for child in children.iter() {
+                if child.get_pos().col == self.pos.col {
+                    // start of new row
+                    our_height += max_height_in_row;
+                    max_height_in_row = 0;
+                }
+
+                if child.get_size().rows > max_height_in_row {
+                    max_height_in_row = child.get_size().rows;
+                }
+            }
+            our_height += max_height_in_row;
+            self.size.rows = our_height;
+        }
+    }
+
+    pub fn set_row_pos(&mut self, assigned_row: i16, screen_size: &Size) {
+        self.pos.row = assigned_row;
+
+        if let Some(children) = self.children.as_mut() {
+            let mut max_height_in_row: i16 = 0;
+            let mut current_row: i16 = self.pos.row;
+
+            for child in children.iter_mut() {
+                if child.get_pos().col == self.pos.col {
+                    // start of new row
+                    current_row += max_height_in_row;
+                    max_height_in_row = 0;
+                }
+
+                if child.get_size().rows > max_height_in_row as u16 {
+                    max_height_in_row = child.get_size().rows as i16;
+                }
+
+                child.set_row_pos(current_row, screen_size);
+            }
+        }
+
+        if let Some(widget) = self.widget.as_mut() {
+            let mut p = widget.get_pos().clone();
+            p.row = self.pos.row;
+            widget.set_pos(p);
         }
     }
 
@@ -221,12 +265,19 @@ impl Screen {
         }
     }
 
+    /// Here's the algo:
+    ///
+    /// 1. set node widths, since this depends on no other info
+    /// 2. set node col positions, taking into account wrapping
+    /// 3. set node heights
+    /// 4. set node row positions
     fn calculate_layout(&mut self) {
         if self.root.is_none() { return }
         let root = self.root.as_mut().unwrap();
-        root.set_screen_width(self.size.cols, self.size.cols);
-        root.calc_height();
-        root.set_pos(Pos { row: 0, col: 0 });
+        root.calc_width(self.size.cols, &self.size);
+        root.calc_col_position(0, &self.size);
+        root.calc_height(&self.size);
+        root.set_row_pos(0, &self.size);
     }
 
     pub fn display(&mut self) -> String {
