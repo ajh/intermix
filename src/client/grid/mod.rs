@@ -6,99 +6,103 @@ pub type Pos = vterm_sys::Pos;
 
 const GRID_COLUMNS_COUNT: u16 = 12;
 
-pub trait Alignable {
-    fn calc_height(&mut self);
-    fn get_pos(&self) -> &Pos;
-    fn get_size(&self) -> &Size;
-    fn set_pos(&mut self, pos: Pos);
-    fn set_width(&mut self, width: u16);
+#[derive(Debug, Clone)]
+enum GridWidth {
+    /// rows
+    Max,
+    /// cols
+    Cols (u16),
 }
 
 #[derive(Debug, Clone)]
-pub struct Row {
-    children: Vec<Column>,
+pub struct Node {
+    grid_width: GridWidth,
+    children: Option<Vec<Node>>,
     size: Size,
     pos: Pos,
+    widget: Option<Widget>,
 }
 
-impl Row {
-    pub fn new(children: Vec<Column>) -> Row {
-        Row {
-            children: children,
+impl Node {
+    pub fn container(widget: Widget) -> Node {
+        Node {
+            grid_width: GridWidth::Max,
+            children: None,
             size: Default::default(),
             pos: Default::default(),
+            widget: Some(widget),
+        }
+    }
+
+    pub fn row(children: Vec<Node>) -> Node {
+        Node {
+            grid_width: GridWidth::Max,
+            children: Some(children),
+            size: Default::default(),
+            pos: Default::default(),
+            widget: None,
+        }
+    }
+
+    pub fn col(grid_width: u16, children: Vec<Node>) -> Node {
+        // TODO: validate grid_width value
+        Node {
+            grid_width: GridWidth::Cols (grid_width),
+            children: Some(children),
+            size: Default::default(),
+            pos: Default::default(),
+            widget: None,
         }
     }
 
     pub fn calc_height(&mut self) {
-        for child in &mut self.children {
-            child.calc_height();
+        if let Some(widget) = self.widget.as_ref() {
+            self.size.rows = widget.size.rows as u16;
         }
 
-        self.size.rows = match self.children.iter().map(|c| c.get_size().rows).min() {
-            Some(h) => h,
-            None => 0,
-        };
+        if let Some(children) = self.children.as_mut() {
+            for child in children.iter_mut() {
+                child.calc_height();
+            }
+
+            let max_height = children.iter()
+                .map(|c| c.get_size().rows)
+                .max();
+
+            self.size.rows = match max_height {
+                Some(h) => h,
+                None => 0,
+            };
+        }
     }
 
-    pub fn set_width(&mut self, width: u16) {
-        self.size.cols = width;
+    pub fn set_screen_width(&mut self, screen_width: u16) {
+        match self.grid_width {
+            GridWidth::Max => self.size.cols = screen_width,
+            GridWidth::Cols(c) => {
+                let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
+                self.size.cols = (screen_width as f32 * percent).floor() as u16;
+            }
+        }
 
-        for child in &mut self.children {
-            let grid_width = child.grid_width; // borrowck workaround
-            let w = (self.size.cols as f32 * (grid_width as f32 / GRID_COLUMNS_COUNT as f32)).floor();
-            child.set_width(w as u16);
+        if let Some(children) = self.children.as_mut() {
+            for child in children.iter_mut() {
+                child.set_screen_width(screen_width);
+            }
         }
     }
 
     pub fn set_pos(&mut self, pos: Pos) {
         self.pos = pos;
 
-        let mut last_col = self.pos.col;
-        for child in &mut self.children {
-            child.set_pos(Pos { row: self.pos.row, col: last_col});
-            last_col += child.get_size().cols as i16;
-        }
-    }
-}
+        if let Some(children) = self.children.as_mut() {
+            let mut last_col = self.pos.col;
 
-#[derive(Debug, Clone)]
-pub struct Column {
-    /// how many grid columns wide
-    pub grid_width: u16,
-    size: Size,
-    pos: Pos,
-
-    widgets: Vec<Widget>
-}
-
-impl Column {
-    pub fn new(grid_width: u16, widgets: Vec<Widget>) -> Column {
-        Column {
-            grid_width: grid_width,
-            widgets: widgets,
-            size: Default::default(),
-            pos: Default::default(),
-        }
-    }
-
-    pub fn calc_height(&mut self) {
-        self.size.rows = self.widgets
-            .iter()
-            .fold(0, |sum, w| sum + w.size.rows as u16);
-    }
-
-    pub fn set_width(&mut self, width: u16) {
-        self.size.cols = width;
-    }
-
-    pub fn set_pos(&mut self, pos: Pos) {
-        self.pos = pos;
-
-        let mut last_row = self.pos.row;
-        for widget in &mut self.widgets {
-            widget.set_pos(Pos { row: last_row, col: self.pos.col });
-            last_row += widget.get_size().rows as i16;
+            // TODO: this should flow things to a new line when they don't fit
+            for child in children.iter_mut() {
+                child.set_pos(Pos { row: self.pos.row, col: last_col});
+                last_col += child.get_size().cols as i16;
+            }
         }
     }
 
@@ -108,6 +112,26 @@ impl Column {
 
     pub fn get_pos(&self) -> &Pos {
         &self.pos
+    }
+
+    pub fn widgets(&self) -> Widgets {
+        let mut widgets = vec![];
+
+        if let Some(widget) = self.widget.as_ref() {
+            widgets.push(widget);
+        }
+
+        if let Some(children) = self.children.as_ref() {
+            for child in children.iter() {
+                let mut more_widgets = child.widgets().collect::<Vec<&Widget>>();
+                widgets.append(&mut more_widgets);
+            }
+        }
+
+        Widgets {
+            widgets: widgets,
+            index: 0,
+        }
     }
 }
 
@@ -146,50 +170,44 @@ impl Widget {
 
 #[derive(Debug, Clone)]
 pub struct Screen {
-    width: u16,
-    height: u16,
-    rows: Vec<Row>,
+    size: Size,
+    root: Option<Node>,
 }
 
 impl Screen {
-    pub fn new(width: u16, height: u16, rows: Vec<Row>) -> Screen {
+    pub fn new(size: Size, root: Option<Node>) -> Screen {
         Screen {
-            height: height,
-            rows: rows,
-            width: width,
+            size: size,
+            root: root,
         }
     }
 
     pub fn display(&mut self) -> String {
-        let mut output: Vec<String> = vec![format!(""); self.height as usize];
-
-        let mut last_row = 0;
-        for row in &mut self.rows {
-            row.set_width(self.width);
-            row.calc_height();
-            row.set_pos(Pos { row: last_row, col: 0 });
-            last_row += row.size.rows as i16;
-        }
-
         // rows then cols
-        let mut scene: Vec<Vec<char>> = vec![vec![' '; self.width as usize]; self.height as usize];
+        let mut scene: Vec<Vec<char>> = vec![vec![' '; self.size.cols as usize]; self.size.rows as usize];
 
-        for widget in WidgetIter::new(&self) {
-            if widget.get_pos().row as u16 >= self.height { continue }
-            if widget.get_pos().col as u16 >= self.width { continue }
+        if let Some(root) = self.root.as_mut() {
+            root.set_screen_width(self.size.cols);
+            root.calc_height();
+            root.set_pos(Pos { row: 0, col: 0 });
 
-            let row_end = *[(widget.get_pos().row as u16) + widget.get_size().rows, self.height]
-                .iter()
-                .min()
-                .unwrap();
-            let col_end = *[(widget.get_pos().col as u16) + widget.get_size().cols, self.width]
-                .iter()
-                .min()
-                .unwrap();
+            for widget in root.widgets() {
+                if widget.get_pos().row as u16 >= self.size.rows { continue }
+                if widget.get_pos().col as u16 >= self.size.cols { continue }
 
-            for y in ((widget.get_pos().row as u16)..row_end) {
-                for x in ((widget.get_pos().col as u16)..col_end) {
-                    scene[y as usize][x as usize] = widget.fill;
+                let row_end = *[(widget.get_pos().row as u16) + widget.get_size().rows, self.size.rows]
+                    .iter()
+                    .min()
+                    .unwrap();
+                let col_end = *[(widget.get_pos().col as u16) + widget.get_size().cols, self.size.cols]
+                    .iter()
+                    .min()
+                    .unwrap();
+
+                for y in ((widget.get_pos().row as u16)..row_end) {
+                    for x in ((widget.get_pos().col as u16)..col_end) {
+                        scene[y as usize][x as usize] = widget.fill;
+                    }
                 }
             }
         }
@@ -202,51 +220,21 @@ impl Screen {
 }
 
 #[derive(Debug)]
-pub struct WidgetIter<'a> {
-    row_index: usize,
-    col_index: usize,
-    widget_index: usize,
-    screen: &'a Screen,
+pub struct Widgets<'a> {
+    widgets: Vec<&'a Widget>,
+    index: usize,
 }
 
-impl<'a> WidgetIter<'a> {
-    pub fn new(screen: &'a Screen) -> WidgetIter<'a> {
-        WidgetIter {
-            row_index: 0,
-            col_index: 0,
-            widget_index: 0,
-            screen: screen,
-        }
-    }
-}
-
-impl<'a> Iterator for WidgetIter<'a> {
+impl<'a> Iterator for Widgets<'a> {
     type Item = &'a Widget;
 
     fn next(&mut self) -> Option<&'a Widget> {
-        println!("{:?}", self);
-        if self.row_index >= self.screen.rows.len() {
-            println!("0");
-            return None;
+        if self.index < self.widgets.len() {
+            let w = Some(self.widgets[self.index]);
+            self.index += 1;
+            w
+        } else {
+            None
         }
-        if self.col_index >= self.screen.rows[self.row_index].children.len() {
-            println!("1");
-            self.row_index += 1;
-            self.col_index = 0;
-            self.widget_index = 0;
-            return self.next();
-        }
-        if self.widget_index >= self.screen.rows[self.row_index].children[self.col_index].widgets.len() {
-            println!("2");
-            self.col_index += 1;
-            self.widget_index = 0;
-            return self.next();
-        }
-
-        println!("3");
-        let output = &self.screen.rows[self.row_index].children[self.col_index].widgets[self.widget_index];
-        self.widget_index += 1;
-
-        Some(output)
     }
 }
