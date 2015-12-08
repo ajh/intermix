@@ -141,7 +141,118 @@ aaab
 aaab");
 }
 
-// it_draws_a_8_and_4_width_col_unevenly
+#[test]
+fn it_draws_a_8_and_4_width_col_unevenly() {
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+
+    let mut screen = Screen::new(Size { rows: 2, cols: 3},
+          Node::row(vec![
+              Node::col(8, vec![Node::leaf(widget_a)]),
+              Node::col(4, vec![Node::leaf(widget_b)]),
+          ])
+    );
+
+    let actual = screen.display();
+
+    assert_eq!(
+        actual,
+        "\
+aab
+aab");
+}
+
+#[test]
+fn it_draws_a_4_and_8_width_col_evenly() {
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+
+    let mut screen = Screen::new(Size { rows: 2, cols: 4},
+          Node::row(vec![
+              Node::col(4, vec![Node::leaf(widget_a)]),
+              Node::col(8, vec![Node::leaf(widget_b)]),
+          ])
+    );
+
+    let actual = screen.display();
+
+    assert_eq!(
+        actual,
+        "\
+abbb
+abbb");
+}
+
+#[test]
+fn it_draws_a_4_and_8_width_col_unevenly() {
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+
+    let mut screen = Screen::new(Size { rows: 2, cols: 3},
+          Node::row(vec![
+              Node::col(4, vec![Node::leaf(widget_a)]),
+              Node::col(8, vec![Node::leaf(widget_b)]),
+          ])
+    );
+
+    let actual = screen.display();
+
+    assert_eq!(
+        actual,
+        "\
+abb
+abb");
+}
+
+#[test]
+fn it_draws_a_pair_of_6_width_cols_evenly() {
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+
+    let mut screen = Screen::new(Size { rows: 2, cols: 4},
+          Node::row(vec![
+              Node::col(6, vec![Node::leaf(widget_a)]),
+              Node::col(6, vec![Node::leaf(widget_b)]),
+          ])
+    );
+
+    let actual = screen.display();
+
+    assert_eq!(
+        actual,
+        "\
+aabb
+aabb");
+}
+
+#[test]
+fn it_draws_a_pair_of_6_width_cols_unevenly() {
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+
+    let mut screen = Screen::new(Size { rows: 2, cols: 3},
+          Node::row(vec![
+              Node::col(6, vec![Node::leaf(widget_a)]),
+              Node::col(6, vec![Node::leaf(widget_b)]),
+          ])
+    );
+
+    let actual = screen.display();
+
+    assert_eq!(
+        actual,
+        "\
+aab
+aab");
+}
+
+// it_wraps_a_pair_of_9_width_cols
+//
+// it_draws_a_bunch_of_columns
+// it_wraps_rows
+// it_truncates_widget_with_narrow_container
+// it_truncates_widget_with_short_container
+// it_draws_a_complicated_scene
 // it_draws_a_4_and_8_width_col_evenly
 // it_draws_a_4_and_8_width_col_unevenly
 // it_draws_a_pair_of_6_width_cols_evenly
