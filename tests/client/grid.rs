@@ -246,21 +246,109 @@ aab
 aab");
 }
 
-// it_wraps_a_pair_of_9_width_cols
-//
-// it_draws_a_bunch_of_columns
-// it_wraps_rows
-// it_truncates_widget_with_narrow_container
-// it_truncates_widget_with_short_container
-// it_draws_a_complicated_scene
-// it_draws_a_4_and_8_width_col_evenly
-// it_draws_a_4_and_8_width_col_unevenly
-// it_draws_a_pair_of_6_width_cols_evenly
-// it_draws_a_pair_of_6_width_cols_unevenly
-// it_wraps_a_pair_of_9_width_cols
-//
-// it_draws_a_bunch_of_columns
-// it_wraps_rows
-// it_truncates_widget_with_narrow_container
-// it_truncates_widget_with_short_container
-// it_draws_a_complicated_scene
+fn it_draws_a_bunch_of_columns() {
+    let widget_a = Widget::new('a', Size { rows: 1, cols: 1});
+    let widget_b = Widget::new('b', Size { rows: 1, cols: 1});
+    let widget_c = Widget::new('c', Size { rows: 1, cols: 1});
+    let widget_x = Widget::new('x', Size { rows: 1, cols: 1});
+    let widget_y = Widget::new('y', Size { rows: 1, cols: 1});
+    let widget_z = Widget::new('z', Size { rows: 1, cols: 1});
+
+    let mut screen = Screen::new(Size { rows: 1, cols: 6},
+          Node::row(vec![
+              Node::col(2, vec![Node::leaf(widget_a)]),
+              Node::col(2, vec![Node::leaf(widget_b)]),
+              Node::col(2, vec![Node::leaf(widget_c)]),
+              Node::col(2, vec![Node::leaf(widget_x)]),
+              Node::col(2, vec![Node::leaf(widget_y)]),
+              Node::col(2, vec![Node::leaf(widget_z)]),
+          ])
+    );
+
+    let actual = screen.display();
+
+    assert_eq!(actual, "abcxyz");
+}
+
+#[test]
+fn it_draws_rows() {
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+
+    let mut screen = Screen::new(Size { rows: 4, cols: 4},
+          Node::row(vec![
+              Node::row(vec![Node::leaf(widget_a)]),
+              Node::row(vec![Node::leaf(widget_b)]),
+          ])
+      );
+    let actual = screen.display();
+    assert_eq!(
+        actual,
+        "\
+aaaa
+aaaa
+bbbb
+bbbb");
+}
+
+#[test]
+fn it_truncates_widget_with_narrow_container() {
+    let widget_a = Widget::new('a', Size { rows: 1, cols: 4});
+
+    let mut screen = Screen::new(Size { rows: 1, cols: 2}, Node::leaf(widget_a));
+
+    let actual = screen.display();
+    assert_eq!(actual, "aa");
+}
+
+#[test]
+fn it_truncates_widget_with_short_container() {
+    let widget_a = Widget::new('a', Size { rows: 4, cols: 1});
+
+    let mut screen = Screen::new(Size { rows: 2, cols: 1}, Node::leaf(widget_a));
+
+    let actual = screen.display();
+    assert_eq!(actual, "a\na");
+}
+
+//#[test]
+//fn it_draws_a_complicated_scene() {
+    //let widget_a = Widget::new('a', Size { rows: 2, cols: 8});
+    //let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+    //let widget_c = Widget::new('c', Size { rows: 1, cols: 8});
+    //let widget_x = Widget::new('x', Size { rows: 2, cols: 4});
+    //let widget_y = Widget::new('y', Size { rows: 4, cols: 4});
+    //let widget_z = Widget::new('z', Size { rows: 5, cols: 1});
+
+    //let mut screen = Screen::new(Size { rows: 10, cols: 12},
+          //Node::row(vec![
+              //Node::row(vec![
+                  //Node::col(4, vec![Node::leaf(widget_a), Node::leaf(widget_b)]),
+                  //Node::col(8, vec![
+                      //Node::row(vec![Node::leaf(widget_c)]),
+                      //Node::row(vec![Node::leaf(widget_x)]),
+                  //]),
+              //]),
+              //Node::row(vec![
+                  //Node::col(4, vec![Node::leaf(widget_y)]),
+                  //Node::col(2, vec![]),
+                  //Node::col(6, vec![Node::leaf(widget_z)]),
+              //])
+          //])
+    //);
+
+    //let actual = screen.display();
+    //assert_eq!(
+        //actual,
+        //"\
+//aaaacccccccc
+//aaaaxxxx    \n\
+//bbbbxxxx    \n\
+//bbbb        \n\
+//yyyy  z
+//yyyy  z
+//yyyy  z
+//yyyy  z
+      //z
+       //");
+//}
