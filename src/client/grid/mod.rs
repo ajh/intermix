@@ -37,9 +37,7 @@ impl Row {
 
         for child in &mut self.children {
             let grid_width = child.grid_width; // borrowck workaround
-            println!("{} {} {}", self.width, grid_width, GRID_COLUMNS_COUNT);
             let w = (self.width as f32 * (grid_width as f32 / GRID_COLUMNS_COUNT as f32)).floor();
-            println!("{}", w);
             child.set_width(w as u16);
         }
     }
@@ -172,15 +170,16 @@ impl Screen {
         let mut drawing: Vec<Vec<char>> = vec![vec![' '; self.width as usize]; self.height as usize];
 
         for widget in WidgetIter::new(&self) {
+            // check that widget.y is within bounds
+            // then min(width.height, screen.height)
             for y in (widget.y..widget.y+widget.height) {
                 for x in (widget.x..widget.x+widget.width) {
-                    println!("{:?} y={} x={}", widget, y, x);
                     drawing[y as usize][x as usize] = widget.fill;
                 }
             }
         }
 
-        println!("{:?}", drawing);
+        println!("drawing done");
 
         drawing.iter()
             .map(|row| row.iter().cloned().collect::<String>())
@@ -189,6 +188,7 @@ impl Screen {
     }
 }
 
+#[derive(Debug)]
 pub struct WidgetIter<'a> {
     row_index: usize,
     col_index: usize,
@@ -211,21 +211,26 @@ impl<'a> Iterator for WidgetIter<'a> {
     type Item = &'a Widget;
 
     fn next(&mut self) -> Option<&'a Widget> {
+        println!("{:?}", self);
         if self.row_index >= self.screen.rows.len() {
-            return None
+            println!("0");
+            return None;
         }
         if self.col_index >= self.screen.rows[self.row_index].children.len() {
+            println!("1");
             self.row_index += 1;
             self.col_index = 0;
             self.widget_index = 0;
             return self.next();
         }
         if self.widget_index >= self.screen.rows[self.row_index].children[self.col_index].widgets.len() {
+            println!("2");
             self.col_index += 1;
             self.widget_index = 0;
             return self.next();
         }
 
+        println!("3");
         let output = &self.screen.rows[self.row_index].children[self.col_index].widgets[self.widget_index];
         self.widget_index += 1;
 
