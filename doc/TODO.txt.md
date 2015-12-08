@@ -22,6 +22,7 @@ Todo
 * [ ] dwarf fortress style background pictures
 * [ ] investigate whether vectors store the dynamic data on the stack or
   heap. The message enums may be inefficient.
+* [ ] alias some `vterm_sys` types like ScreenSize for ease of use
 
 Client Server Work
 ==================

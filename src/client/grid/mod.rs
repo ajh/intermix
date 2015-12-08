@@ -28,8 +28,10 @@ impl Row {
             child.calc_height();
         }
 
-        self.height = self.children.iter()
-            .fold(999, |min, c| if c.height < min { c.height } else { min } );
+        self.height = match self.children.iter().map(|c| c.height).min() {
+            Some(h) => h,
+            None => 0,
+        };
     }
 
     pub fn set_width(&mut self, width: u16) {
@@ -93,9 +95,6 @@ impl Column {
 
     pub fn set_width(&mut self, width: u16) {
         self.width = width;
-        for w in &mut self.widgets {
-            w.width = self.width;
-        }
     }
 
     pub fn set_y(&mut self, y: u16) {
@@ -127,11 +126,11 @@ pub struct Widget {
 }
 
 impl Widget {
-    pub fn new(fill: char, height: u16) -> Widget {
+    pub fn new(fill: char, height: u16, width: u16) -> Widget {
         Widget {
             fill: fill,
             height: height,
-            width: 0,
+            width: width,
             x: 0,
             y: 0,
         }
@@ -167,21 +166,29 @@ impl Screen {
         }
 
         // rows then cols
-        let mut drawing: Vec<Vec<char>> = vec![vec![' '; self.width as usize]; self.height as usize];
+        let mut scene: Vec<Vec<char>> = vec![vec![' '; self.width as usize]; self.height as usize];
 
         for widget in WidgetIter::new(&self) {
-            // check that widget.y is within bounds
-            // then min(width.height, screen.height)
-            for y in (widget.y..widget.y+widget.height) {
-                for x in (widget.x..widget.x+widget.width) {
-                    drawing[y as usize][x as usize] = widget.fill;
+            if widget.y >= self.height { continue }
+            if widget.x >= self.width { continue }
+
+            let y_end = *[widget.y+widget.height, self.height]
+                .iter()
+                .min()
+                .unwrap();
+            let x_end = *[widget.x+widget.width, self.width]
+                .iter()
+                .min()
+                .unwrap();
+
+            for y in (widget.y..y_end) {
+                for x in (widget.x..x_end) {
+                    scene[y as usize][x as usize] = widget.fill;
                 }
             }
         }
 
-        println!("drawing done");
-
-        drawing.iter()
+        scene.iter()
             .map(|row| row.iter().cloned().collect::<String>())
             .collect::<Vec<String>>()
             .join("\n")

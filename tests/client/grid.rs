@@ -11,9 +11,9 @@ fn it_draws_an_empty_screen() {
 }
 
 #[test]
-fn it_draws_one_row_one_12_col() {
+fn it_draws_row_and_12_width_col() {
     ::setup_logging();
-    let widget_a = Widget::new('a', 2);
+    let widget_a = Widget::new('a', 2, 4);
 
     let mut screen = Screen::new(4, 2, vec![
         Row::new(vec![Column::new(12, vec![widget_a])]),
@@ -29,9 +29,9 @@ aaaa");
 }
 
 #[test]
-fn it_draws_one_row_one_9_col() {
+fn it_draws_row_and_9_width_col() {
     ::setup_logging();
-    let widget_a = Widget::new('a', 2);
+    let widget_a = Widget::new('a', 2, 3);
 
     let mut screen = Screen::new(4, 2, vec![
         Row::new(vec![Column::new(9, vec![widget_a])]),
@@ -49,7 +49,7 @@ aaa ");
 #[test]
 fn it_draws_one_row_one_6_col() {
     ::setup_logging();
-    let widget_a = Widget::new('a', 2);
+    let widget_a = Widget::new('a', 2, 2);
 
     let mut screen = Screen::new(4, 2, vec![
         Row::new(vec![Column::new(6, vec![widget_a])]),
@@ -65,9 +65,9 @@ aa  ");
 }
 
 #[test]
-fn it_draws_one_row_one_3_col() {
+fn it_draws_row_and_3_width_col() {
     ::setup_logging();
-    let widget_a = Widget::new('a', 2);
+    let widget_a = Widget::new('a', 2, 1);
 
     let mut screen = Screen::new(4, 2, vec![
         Row::new(vec![Column::new(3, vec![widget_a])]),
@@ -83,10 +83,10 @@ a   ");
 }
 
 #[test]
-fn it_draws_one_row_9_col_and_3_col() {
+fn it_draws_row_and_9_and_3_width_cols() {
     ::setup_logging();
-    let widget_a = Widget::new('a', 2);
-    let widget_b = Widget::new('b', 2);
+    let widget_a = Widget::new('a', 2, 3);
+    let widget_b = Widget::new('b', 2, 1);
 
     let mut screen = Screen::new(4, 2, vec![
         Row::new(vec![
@@ -104,33 +104,75 @@ aaab\n\
 aaab");
 }
 
-//#[test]
-//fn it_draws_two_rows() {
-    //::setup_logging();
-    //let widget_a = Widget::new('a', 2);
-    //let widget_b = Widget::new('b', 2);
+#[test]
+fn it_draws_two_rows() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', 2, 4);
+    let widget_b = Widget::new('b', 2, 4);
 
-    //let mut screen = Screen::new(4, 2, vec![
+    let mut screen = Screen::new(4, 4, vec![
+        Row::new(vec![Column::new(12, vec![widget_a])]),
+        Row::new(vec![Column::new(12, vec![widget_b])]),
+    ]);
+
+    let actual = screen.display();
+
+    assert_eq!(
+        actual,
+        "\
+aaaa\n\
+aaaa\n\
+bbbb\n\
+bbbb");
+}
+
+#[test]
+fn it_draws_a_too_small_column() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', 2, 1);
+
+    let mut screen = Screen::new(1, 1, vec![
+        Row::new(vec![Column::new(12, vec![widget_a])]),
+    ]);
+
+    let actual = screen.display();
+
+    assert_eq!(actual, "a");
+}
+
+#[test]
+fn it_draws_a_too_small_row() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', 1, 2);
+
+    let mut screen = Screen::new(1, 1, vec![
+        Row::new(vec![Column::new(12, vec![widget_a])]),
+    ]);
+
+    let actual = screen.display();
+
+    assert_eq!(actual, "a");
+}
+
+//#[test]
+//fn it_draws_when_width_divides_unevenly_into_grid() {
+    //::setup_logging();
+    //let widget_a = Widget::new('a', 1, 1);
+
+    //let mut screen = Screen::new(5, 1, vec![
         //Row::new(vec![Column::new(12, vec![widget_a])]),
-        //Row::new(vec![Column::new(12, vec![widget_b])]),
     //]);
 
     //let actual = screen.display();
 
-    //assert_eq!(
-        //actual,
-        //"\
-//aaaa\n\
-//aaaa\n\
-//bbbb\n\
-//bbbb");
+    //assert_eq!(actual, "aaaaa");
 //}
 
 #[test]
 fn it_draws_a_simple_scene() {
     ::setup_logging();
-    let widget_a = Widget::new('a', 2);
-    let widget_b = Widget::new('b', 2);
+    let widget_a = Widget::new('a', 2, 2);
+    let widget_b = Widget::new('b', 2, 2);
 
     let mut screen = Screen::new(4, 2, vec![
         Row::new(vec![
