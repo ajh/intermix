@@ -14,6 +14,19 @@ enum GridWidth {
     Cols (u16),
 }
 
+/// A Node is a rectangle that gets aligned into a layout with other nodes.
+///
+/// It starts its life only knowing its grid width in a 12 column grid system. The size and
+/// position values get calculated at run time based on its position in the layout.
+///
+/// There are three constructors for nodes:
+///
+/// * leaf - creates a node holding a widget. Cannot contain other nodes.
+/// * row - creates a 12 grid width node.
+/// * col - creates a node with the given grid width.
+///
+/// Nodes will try to position themselves to the right of a prior sibling node, but will wrap
+/// without enough room.
 #[derive(Debug, Clone)]
 pub struct Node {
     grid_width: GridWidth,
@@ -24,7 +37,9 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn container(widget: Widget) -> Node {
+
+    /// Create a leaf node that holds a widget
+    pub fn leaf(widget: Widget) -> Node {
         Node {
             grid_width: GridWidth::Max,
             children: None,
@@ -34,6 +49,8 @@ impl Node {
         }
     }
 
+    /// Create a row node that is full width. It will always wrap below a prior sibling node if one
+    /// exists.
     pub fn row(children: Vec<Node>) -> Node {
         Node {
             grid_width: GridWidth::Max,
@@ -44,6 +61,7 @@ impl Node {
         }
     }
 
+    /// Create a column node with the given grid width.
     pub fn col(grid_width: u16, children: Vec<Node>) -> Node {
         // TODO: validate grid_width value
         Node {
@@ -114,6 +132,7 @@ impl Node {
         &self.pos
     }
 
+    /// Return an iterator over all the widgets within this node or its descendants
     pub fn widgets(&self) -> Widgets {
         let mut widgets = vec![];
 
@@ -135,6 +154,11 @@ impl Node {
     }
 }
 
+/// A widget is something that can be drawn to the screen.
+///
+/// It has a fixed size, but its position is calculated at run time.
+///
+/// If it's too big for is containing node its display is truncated.
 #[derive(Debug, Clone)]
 pub struct Widget {
     fill: char,
@@ -168,6 +192,7 @@ impl Widget {
     }
 }
 
+/// Represents the layout for an entire screen. Contains one node which is the root.
 #[derive(Debug, Clone)]
 pub struct Screen {
     size: Size,
@@ -219,6 +244,7 @@ impl Screen {
     }
 }
 
+/// An iterator for widgets within a Node.
 #[derive(Debug)]
 pub struct Widgets<'a> {
     widgets: Vec<&'a Widget>,
