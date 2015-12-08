@@ -30,14 +30,13 @@ enum GridWidth {
 #[derive(Debug, Clone)]
 pub struct Node {
     grid_width: GridWidth,
-    children: Option<Vec<Node>>,
-    size: Size,
     pos: Pos,
+    size: Size,
     widget: Option<Widget>,
+    children: Option<Vec<Node>>,
 }
 
 impl Node {
-
     /// Create a leaf node that holds a widget
     pub fn leaf(widget: Widget) -> Node {
         Node {
@@ -94,19 +93,25 @@ impl Node {
         }
     }
 
-    pub fn set_screen_width(&mut self, screen_width: u16) {
+    pub fn set_screen_width(&mut self, screen_width: u16, parent_width: u16) {
         match self.grid_width {
-            GridWidth::Max => self.size.cols = screen_width,
+            GridWidth::Max => self.size.cols = parent_width,
             GridWidth::Cols(c) => {
                 let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
-                self.size.cols = (screen_width as f32 * percent).floor() as u16;
+                self.size.cols = (screen_width as f32 * percent).round() as u16;
             }
         }
 
         if let Some(children) = self.children.as_mut() {
             for child in children.iter_mut() {
-                child.set_screen_width(screen_width);
+                child.set_screen_width(screen_width, self.size.cols);
             }
+        }
+
+        if let Some(widget) = self.widget.as_mut() {
+            let mut s = widget.get_size().clone();
+            s.cols = self.size.cols;
+            widget.set_size(s);
         }
     }
 
@@ -121,6 +126,10 @@ impl Node {
                 child.set_pos(Pos { row: self.pos.row, col: last_col});
                 last_col += child.get_size().cols as i16;
             }
+        }
+
+        if let Some(widget) = self.widget.as_mut() {
+            widget.set_pos(self.pos.clone());
         }
     }
 
@@ -156,9 +165,7 @@ impl Node {
 
 /// A widget is something that can be drawn to the screen.
 ///
-/// It has a fixed size, but its position is calculated at run time.
-///
-/// If it's too big for is containing node its display is truncated.
+/// Its size and position is calculated at run time.
 #[derive(Debug, Clone)]
 pub struct Widget {
     fill: char,
@@ -200,23 +207,39 @@ pub struct Screen {
 }
 
 impl Screen {
-    pub fn new(size: Size, root: Option<Node>) -> Screen {
+    pub fn new(size: Size, root: Node) -> Screen {
         Screen {
             size: size,
-            root: root,
+            root: Some(root),
         }
     }
 
+    pub fn empty(size: Size) -> Screen {
+        Screen {
+            size: size,
+            root: None,
+        }
+    }
+
+    fn calculate_layout(&mut self) {
+        if self.root.is_none() { return }
+        let root = self.root.as_mut().unwrap();
+        root.set_screen_width(self.size.cols, self.size.cols);
+        root.calc_height();
+        root.set_pos(Pos { row: 0, col: 0 });
+    }
+
     pub fn display(&mut self) -> String {
+        self.calculate_layout();
+        println!("{:?}", self);
+
         // rows then cols
         let mut scene: Vec<Vec<char>> = vec![vec![' '; self.size.cols as usize]; self.size.rows as usize];
 
         if let Some(root) = self.root.as_mut() {
-            root.set_screen_width(self.size.cols);
-            root.calc_height();
-            root.set_pos(Pos { row: 0, col: 0 });
-
             for widget in root.widgets() {
+                println!("{:?}", widget);
+
                 if widget.get_pos().row as u16 >= self.size.rows { continue }
                 if widget.get_pos().col as u16 >= self.size.cols { continue }
 
