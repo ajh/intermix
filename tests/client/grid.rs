@@ -246,6 +246,7 @@ aab
 aab");
 }
 
+#[test]
 fn it_draws_a_bunch_of_columns() {
     let widget_a = Widget::new('a', Size { rows: 1, cols: 1});
     let widget_b = Widget::new('b', Size { rows: 1, cols: 1});

@@ -1,5 +1,6 @@
 use std::slice::Iter;
 use vterm_sys;
+use itertools::Itertools;
 
 pub type Size = vterm_sys::ScreenSize;
 pub type Pos = vterm_sys::Pos;
@@ -72,18 +73,19 @@ impl Node {
         }
     }
 
-    pub fn calc_width(&mut self, parent_width: u16, screen_size: &Size) {
-        match self.grid_width {
-            GridWidth::Max => self.size.cols = parent_width,
-            GridWidth::Cols(c) => {
-                let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
-                self.size.cols = (screen_size.cols as f32 * percent).round() as u16;
-            }
-        }
+    pub fn calc_width(&mut self, assigned_width: u16, screen_size: &Size) {
+        self.size.cols = assigned_width;
 
         if let Some(children) = self.children.as_mut() {
             for child in children.iter_mut() {
-                child.calc_width(self.size.cols, screen_size);
+                match child.grid_width {
+                    GridWidth::Max => child.calc_width(self.size.cols, screen_size),
+                    GridWidth::Cols(c) => {
+                        let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
+                        let w = (screen_size.cols as f32 * percent).round() as u16;
+                        child.calc_width(w, screen_size);
+                    }
+                }
             }
         }
 
@@ -128,52 +130,34 @@ impl Node {
             for child in children.iter_mut() {
                 child.calc_height(screen_size);
             }
+        }
 
-            let mut max_height_in_row = 0;
-            let mut our_height = 0;
-
-            for child in children.iter() {
-                if child.get_pos().col == self.pos.col {
-                    // start of new row
-                    our_height += max_height_in_row;
-                    max_height_in_row = 0;
-                }
-
-                if child.get_size().rows > max_height_in_row {
-                    max_height_in_row = child.get_size().rows;
-                }
-            }
-            our_height += max_height_in_row;
-            self.size.rows = our_height;
+        if self.children.is_some() {
+            self.size.rows = self.children_wrapped()
+                .iter()
+                .map(|row| row.iter().map(|c| c.get_size().rows).max().unwrap())
+                .fold(0, ::std::ops::Add::add);
         }
     }
 
     pub fn set_row_pos(&mut self, assigned_row: i16, screen_size: &Size) {
         self.pos.row = assigned_row;
 
-        if let Some(children) = self.children.as_mut() {
-            let mut max_height_in_row: i16 = 0;
-            let mut current_row: i16 = self.pos.row;
-
-            for child in children.iter_mut() {
-                if child.get_pos().col == self.pos.col {
-                    // start of new row
-                    current_row += max_height_in_row;
-                    max_height_in_row = 0;
-                }
-
-                if child.get_size().rows > max_height_in_row as u16 {
-                    max_height_in_row = child.get_size().rows as i16;
-                }
-
-                child.set_row_pos(current_row, screen_size);
-            }
-        }
-
         if let Some(widget) = self.widget.as_mut() {
             let mut p = widget.get_pos().clone();
             p.row = self.pos.row;
             widget.set_pos(p);
+        }
+
+        if self.children.is_some() {
+            let mut current_row = self.pos.row;
+
+            for row in &mut self.children_wrapped_mut() {
+                for child in row.iter_mut() {
+                    child.set_row_pos(current_row, screen_size);
+                }
+                current_row += row.iter().map(|n| n.get_size().rows).max().unwrap() as i16;
+            }
         }
     }
 
@@ -204,6 +188,67 @@ impl Node {
             widgets: widgets,
             index: 0,
         }
+    }
+
+    /// Return lists of Nodes that are one the same row. When a Node wraps below others it is
+    /// returned in a new vec.
+    ///
+    /// For example if children are:
+    ///
+    /// * a row
+    /// * a col size 4
+    /// * a col size 4
+    /// * a col size 8
+    /// * a row
+    ///
+    /// we'd get these vecs:
+    ///
+    /// [
+    ///   [a row],
+    ///   [col size 4, col size 4],
+    ///   [col size 8],
+    ///   [row],
+    /// ]
+    ///
+    fn children_wrapped(&self) -> Vec<Vec<&Node>> {
+        let mut output = vec![];
+        let mut row = vec![];
+
+        if let Some(children) = self.children.as_ref() {
+            for child in children.iter() {
+                if child.get_pos().col == self.pos.col && row.len() > 0 {
+                    output.push(row);
+                    row = vec![];
+                }
+
+                row.push(child);
+            }
+        }
+
+        if row.len() > 0 { output.push(row) }
+
+        output
+    }
+
+    /// Is there a way to DRY this with the non-mutabile version?
+    fn children_wrapped_mut(&mut self) -> Vec<Vec<&mut Node>> {
+        let mut output = vec![];
+        let mut row = vec![];
+
+        if let Some(children) = self.children.as_mut() {
+            for child in children.iter_mut() {
+                if child.get_pos().col == self.pos.col && row.len() > 0 {
+                    output.push(row);
+                    row = vec![];
+                }
+
+                row.push(child);
+            }
+        }
+
+        if row.len() > 0 { output.push(row) }
+
+        output
     }
 }
 
@@ -274,7 +319,14 @@ impl Screen {
     fn calculate_layout(&mut self) {
         if self.root.is_none() { return }
         let root = self.root.as_mut().unwrap();
-        root.calc_width(self.size.cols, &self.size);
+        let width = match root.grid_width {
+            GridWidth::Max => self.size.cols,
+            GridWidth::Cols(c) => {
+                let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
+                (self.size.cols as f32 * percent).round() as u16
+            }
+        };
+        root.calc_width(width, &self.size);
         root.calc_col_position(0, &self.size);
         root.calc_height(&self.size);
         root.set_row_pos(0, &self.size);

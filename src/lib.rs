@@ -2,16 +2,16 @@
 #![feature(convert)]
 #![feature(libc)]
 
+#[macro_use] extern crate log;
 extern crate docopt;
-extern crate vterm_sys;
+extern crate itertools;
 extern crate libc;
-#[macro_use]
-extern crate log;
 extern crate pty;
 extern crate rustc_serialize;
 extern crate term;
 extern crate termios;
 extern crate uuid;
+extern crate vterm_sys;
 
 use vterm_sys::*;
 use std::io;
