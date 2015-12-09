@@ -31,8 +31,11 @@ enum GridWidth {
 #[derive(Debug, Clone)]
 pub struct Node {
     grid_width: GridWidth,
+    actual_grid_width: u16,
     pos: Pos,
     size: Size,
+    /// whether this node wrapped below its earlier siblings
+    is_below: bool,
     widget: Option<Widget>,
     children: Option<Vec<Node>>,
 }
@@ -42,10 +45,12 @@ impl Node {
     pub fn leaf(widget: Widget) -> Node {
         Node {
             grid_width: GridWidth::Max,
+            actual_grid_width: 0,
             children: None,
             size: Default::default(),
             pos: Default::default(),
             widget: Some(widget),
+            is_below: false,
         }
     }
 
@@ -54,10 +59,12 @@ impl Node {
     pub fn row(children: Vec<Node>) -> Node {
         Node {
             grid_width: GridWidth::Max,
+            actual_grid_width: 0,
             children: Some(children),
             size: Default::default(),
             pos: Default::default(),
             widget: None,
+            is_below: false,
         }
     }
 
@@ -66,11 +73,64 @@ impl Node {
         // TODO: validate grid_width value
         Node {
             grid_width: GridWidth::Cols (grid_width),
+            actual_grid_width: 0,
             children: Some(children),
             size: Default::default(),
             pos: Default::default(),
             widget: None,
+            is_below: false,
         }
+    }
+
+    pub fn calc_layout(&mut self, assigned_grid_width: u16) {
+        self.actual_grid_width = assigned_grid_width;
+
+        if let Some(children) = self.children.as_mut() {
+            let mut columns_in_row = 0;
+
+            for child in children.iter_mut() {
+                match child.grid_width {
+                    GridWidth::Max => {
+                        columns_in_row = 0;
+                        child.is_below = true;
+                        child.calc_layout(self.actual_grid_width);
+                    }
+                    GridWidth::Cols(c) => {
+                        columns_in_row += c;
+                        if columns_in_row > GRID_COLUMNS_COUNT {
+                            columns_in_row = 0;
+                            child.is_below = true;
+                        }
+
+                        child.calc_layout(if c <= self.actual_grid_width { c } else { self.actual_grid_width });
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn calc_size_and_position(&mut self, assigned_width: u16, assigned_position: Pos, screen_size: &Size) {
+        //self.size.cols = assigned_width;
+        //self.pos = assigned_position;
+
+        //if let Some(widget) = self.widget.as_mut() {
+            //let mut s = widget.get_size().clone();
+            //s.cols = self.size.cols;
+            //widget.set_size(s);
+
+            //let mut p = widget.get_pos().clone();
+            //p.col = self.pos.col;
+            //p.row = self.pos.row;
+            //widget.set_pos(p);
+
+            //self.size.rows = widget.size.rows as u16;
+        //}
+
+        //if self.children.is_some() {
+            //let child_widths = vec![];
+            //for row in &mut self.children_wrapped_mut() {
+            //}
+        //}
     }
 
     pub fn calc_width(&mut self, assigned_width: u16, screen_size: &Size) {
@@ -82,122 +142,80 @@ impl Node {
             widget.set_size(s);
         }
 
-        //if self.children.is_some() {
-            //let self_size_cols = self.size.cols;
+        if self.children.is_some() {
+            let self_size_cols = self.size.cols;
 
-            //for row in &mut self.children_wrapped_mut() {
-                //let row_has_max = row.iter()
-                    //.any(|c| match c.grid_width { GridWidth::Max => true, _ => false } );
+            for row in &mut self.children_wrapped_mut() {
+                let row_has_max = row.iter()
+                    .any(|c| match c.grid_width { GridWidth::Max => true, _ => false } );
 
-                //if row_has_max {
-                    //for child in row.iter_mut() {
-                        //let width = match child.grid_width {
-                            //GridWidth::Max => self_size_cols,
-                            //GridWidth::Cols(c) => {
-                                //warn!("Somehow a col node is sharing a line with a max node!");
-                                //let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
-                                //(screen_size.cols as f32 * percent).floor() as u16
-                            //}
-                        //};
+                if row_has_max {
+                    for child in row.iter_mut() {
+                        let width = match child.grid_width {
+                            GridWidth::Max => self_size_cols,
+                            GridWidth::Cols(c) => {
+                                warn!("Somehow a col node is sharing a line with a max node!");
+                                let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
+                                (screen_size.cols as f32 * percent).floor() as u16
+                            }
+                        };
 
-                        //child.calc_width(width, screen_size);
-                    //}
+                        child.calc_width(width, screen_size);
+                    }
 
-                    //continue;
-                //}
+                    continue;
+                }
 
-                //// calculate widths naively
-                //// if there is a MAX in the row
-                ////   assign widths
-                //// else
-                ////   calc total expected width in cols based on number of grid columns
-                ////   apply difference starting at beginning
+                // calculate widths naively
+                // if there is a MAX in the row
+                //   assign widths
+                // else
+                //   calc total expected width in cols based on number of grid columns
+                //   apply difference starting at beginning
 
-                //// tuple of (&mut Node, cols, delta, grid_cols)
-                //let mut widths = vec![];
-                //for child in row {
-                    //let info = match child.grid_width {
-                        //GridWidth::Cols(c) => {
-                            //let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
-                            //let width_f32 = screen_size.cols as f32 * percent;
-                            //let floor = width_f32.floor();
-                            //(child, floor as u16, width_f32 - floor, c)
-                        //},
-                        //_ => (child,0,0.0,0),
-                    //};
+                // tuple of (&mut Node, cols, delta, grid_cols)
+                let mut widths = vec![];
+                for child in row {
+                    let info = match child.grid_width {
+                        GridWidth::Cols(c) => {
+                            let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
+                            let width_f32 = screen_size.cols as f32 * percent;
+                            let floor = width_f32.floor();
+                            (child, floor as u16, width_f32 - floor, c)
+                        },
+                        _ => (child,0,0.0,0),
+                    };
 
-                    //println!("self_size_cols {} info {:?}", self_size_cols, info);
-                    //widths.push(info);
-                //}
+                    println!("self_size_cols {} info {:?}", self_size_cols, info);
+                    widths.push(info);
+                }
 
-                //let grid_columns = widths.iter()
-                    //.map(|t| t.3)
-                    //.fold(0, ::std::ops::Add::add);
+                let grid_columns = widths.iter()
+                    .map(|t| t.3)
+                    .fold(0, ::std::ops::Add::add);
 
-                //let percent = grid_columns as f32 / GRID_COLUMNS_COUNT as f32;
-                //let mut expected_width = (screen_size.cols as f32 * percent).round() as u16;
-                //if expected_width > self_size_cols { expected_width = self_size_cols }
+                let percent = grid_columns as f32 / GRID_COLUMNS_COUNT as f32;
+                let mut expected_width = (screen_size.cols as f32 * percent).round() as u16;
+                if expected_width > self_size_cols { expected_width = self_size_cols }
                 //println!("expected_width {}", expected_width);
 
-                //let actual_width = widths.iter()
-                    //.map(|t| t.1)
-                    //.fold(0, ::std::ops::Add::add);
+                let actual_width = widths.iter()
+                    .map(|t| t.1)
+                    .fold(0, ::std::ops::Add::add);
 
-                //let mut unused_cols = expected_width - actual_width;
+                let mut unused_cols = expected_width - actual_width;
 
-                //widths.sort_by(|a,b| b.2.partial_cmp(&a.2).unwrap());
-                //for (node, cols, _, _) in widths {
-                    //let cols = if unused_cols > 0 {
-                        //unused_cols -= 1;
-                        //cols + 1
-                    //}
-                    //else {
-                        //cols
-                    //};
-
-                    //node.calc_width(cols, screen_size);
-                //}
-
-                ////let row_has_max = row.iter()
-                    ////.any(|c| match c.grid_width { GridWidth::Max => true, _ => false } );
-                ////if row_has_max {
-                    ////for (i, child) in row.iter_mut().enumerate() {
-                        ////child.calc_width(naive_widths[i], screen_size);
-                    ////}
-                ////}
-                ////else {
-                    ////let grid_columns = row.iter()
-                        ////.map(|c| match c.grid_width { GridWidth::Cols(c) => c, _ => 0 })
-                        ////.fold(0, ::std::ops::Add::add);
-
-                    ////let percent = grid_columns as f32 / GRID_COLUMNS_COUNT as f32;
-                    ////let mut expected_width = (screen_size.cols as f32 * percent).round() as u16;
-                    ////if expected_width > self_size_cols { expected_width = self_size_cols }
-
-                    ////let actual_width = naive_widths.iter().fold(0, ::std::ops::Add::add);
-                    ////println!("expected {} actual {} self_size_cols {} row {:?}", expected_width, actual_width, self_size_cols, row);
-
-                    //// the fair way to add the extras is to add them to the ones with the biggest
-                    //// difference between the floor value and the float value.
-                ////}
-
-
-
-                ////let expected_width =
-                ////if sum < self.size.cols {
-                ////}
-            //}
-        //}
-
-        if let Some(children) = self.children.as_mut() {
-            for child in children.iter_mut() {
-                match child.grid_width {
-                    GridWidth::Max => child.calc_width(self.size.cols, screen_size),
-                    GridWidth::Cols(c) => {
-                        let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
-                        let w = (screen_size.cols as f32 * percent).round() as u16;
-                        child.calc_width(w, screen_size);
+                widths.sort_by(|a,b| b.2.partial_cmp(&a.2).unwrap());
+                for (child, cols, _, _) in widths {
+                    let cols = if unused_cols > 0 {
+                        unused_cols -= 1;
+                        cols + 1
                     }
+                    else {
+                        cols
+                    };
+
+                    child.calc_width(cols, screen_size);
                 }
             }
         }
@@ -323,7 +341,7 @@ impl Node {
 
         if let Some(children) = self.children.as_ref() {
             for child in children.iter() {
-                if child.get_pos().col == self.pos.col && row.len() > 0 {
+                if child.is_below && row.len() > 0 {
                     output.push(row);
                     row = vec![];
                 }
@@ -344,7 +362,7 @@ impl Node {
 
         if let Some(children) = self.children.as_mut() {
             for child in children.iter_mut() {
-                if child.get_pos().col == self.pos.col && row.len() > 0 {
+                if child.is_below && row.len() > 0 {
                     output.push(row);
                     row = vec![];
                 }
@@ -433,6 +451,14 @@ impl Screen {
     fn calculate_layout(&mut self) {
         if self.root.is_none() { return }
         let root = self.root.as_mut().unwrap();
+
+        let grid_width = match root.grid_width {
+            GridWidth::Max => GRID_COLUMNS_COUNT,
+            GridWidth::Cols(c) => c,
+        };
+        root.calc_layout(grid_width);
+        root.calc_size_and_position(self.size.cols, Pos { row: 0, col: 0 }, &self.size);
+
         let width = match root.grid_width {
             GridWidth::Max => self.size.cols,
             GridWidth::Cols(c) => {
