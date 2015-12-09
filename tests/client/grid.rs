@@ -121,14 +121,14 @@ aaaa");
 }
 
 #[test]
-fn it_draws_a_8_and_4_width_col_evenly() {
+fn it_draws_a_9_and_3_width_col_evenly() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut screen = Screen::new(Size { rows: 2, cols: 4},
           Node::row(vec![
-              Node::col(8, vec![Node::leaf(widget_a)]),
-              Node::col(4, vec![Node::leaf(widget_b)]),
+              Node::col(9, vec![Node::leaf(widget_a)]),
+              Node::col(3, vec![Node::leaf(widget_b)]),
           ])
     );
 
@@ -142,14 +142,14 @@ aaab");
 }
 
 #[test]
-fn it_draws_a_8_and_4_width_col_unevenly() {
+fn it_draws_a_9_and_3_width_col_unevenly() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut screen = Screen::new(Size { rows: 2, cols: 3},
           Node::row(vec![
-              Node::col(8, vec![Node::leaf(widget_a)]),
-              Node::col(4, vec![Node::leaf(widget_b)]),
+              Node::col(9, vec![Node::leaf(widget_a)]),
+              Node::col(3, vec![Node::leaf(widget_b)]),
           ])
     );
 
@@ -163,14 +163,14 @@ aab");
 }
 
 #[test]
-fn it_draws_a_4_and_8_width_col_evenly() {
+fn it_draws_a_3_and_9_width_col_evenly() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut screen = Screen::new(Size { rows: 2, cols: 4},
           Node::row(vec![
-              Node::col(4, vec![Node::leaf(widget_a)]),
-              Node::col(8, vec![Node::leaf(widget_b)]),
+              Node::col(3, vec![Node::leaf(widget_a)]),
+              Node::col(9, vec![Node::leaf(widget_b)]),
           ])
     );
 
@@ -184,14 +184,14 @@ abbb");
 }
 
 #[test]
-fn it_draws_a_4_and_8_width_col_unevenly() {
+fn it_draws_a_3_and_9_width_col_unevenly() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut screen = Screen::new(Size { rows: 2, cols: 3},
           Node::row(vec![
-              Node::col(4, vec![Node::leaf(widget_a)]),
-              Node::col(8, vec![Node::leaf(widget_b)]),
+              Node::col(3, vec![Node::leaf(widget_a)]),
+              Node::col(9, vec![Node::leaf(widget_b)]),
           ])
     );
 
