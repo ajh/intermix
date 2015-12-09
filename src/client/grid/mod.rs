@@ -144,6 +144,15 @@ impl Node {
         }
     }
 
+    /// Here's the algo:
+    ///
+    /// 1. iterate through children by rows.
+    ///
+    /// 2. For each row, figure out a couple things:
+    /// * how many cols are missing due to rounding errors
+    /// * which nodes are the most effected
+    ///
+    /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
     pub fn calc_width(&mut self, assigned_width: u16, screen_size: &Size) {
         self.size.cols = assigned_width;
 

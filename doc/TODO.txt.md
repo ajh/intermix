@@ -1,7 +1,10 @@
 Todo
 ====
 
-* [ ] pane layout engine
+* [x] grid layout engine
+* [ ] grid - make row and col leaf nodes to avoid unneccesary nesting
+* [ ] add more grid tests
+* [ ] integate grid with rest of code
 
 * [x] client - server architecture in same process
 * [x] client takes options to control window size

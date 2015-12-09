@@ -292,6 +292,8 @@ bbbb
 bbbb");
 }
 
+// it_draws_containers
+
 #[test]
 fn it_truncates_widget_with_narrow_container() {
     let widget_a = Widget::new('a', Size { rows: 1, cols: 4});
