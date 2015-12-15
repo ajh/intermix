@@ -16,21 +16,14 @@ pub type Pos = vterm_sys::Pos;
 #[derive(Debug, Clone)]
 pub struct Layout {
     pub size: Size,
-    pub root: Option<Node>,
+    pub root: Node,
 }
 
 impl Layout {
     pub fn new(size: Size, root: Node) -> Layout {
         Layout {
             size: size,
-            root: Some(root),
-        }
-    }
-
-    pub fn empty(size: Size) -> Layout {
-        Layout {
-            size: size,
-            root: None,
+            root: root,
         }
     }
 
@@ -48,26 +41,23 @@ impl Layout {
     /// Maybe?
     ///
     pub fn calculate_layout(&mut self) {
-        if self.root.is_none() { return }
-        let root = self.root.as_mut().unwrap();
-
-        let grid_width = match root.grid_width {
+        let grid_width = match self.root.grid_width {
             GridWidth::Max => GRID_COLUMNS_COUNT,
             GridWidth::Cols(c) => c,
         };
-        root.calc_layout(grid_width);
+        self.root.calc_layout(grid_width);
 
-        let width = match root.grid_width {
+        let width = match self.root.grid_width {
             GridWidth::Max => self.size.cols,
             GridWidth::Cols(c) => {
                 let percent = c as f32 / GRID_COLUMNS_COUNT as f32;
                 (self.size.cols as f32 * percent).round() as u16
             }
         };
-        root.calc_width(width, &self.size);
-        root.calc_col_position(0, &self.size);
-        root.calc_height(&self.size);
-        root.set_row_pos(0, &self.size);
+        self.root.calc_width(width, &self.size);
+        self.root.calc_col_position(0, &self.size);
+        self.root.calc_height(&self.size);
+        self.root.set_row_pos(0, &self.size);
     }
 
     pub fn display(&mut self) -> String {
@@ -76,24 +66,22 @@ impl Layout {
         // rows then cols
         let mut scene: Vec<Vec<char>> = vec![vec![' '; self.size.cols as usize]; self.size.rows as usize];
 
-        if let Some(root) = self.root.as_mut() {
-            for widget in root.widgets() {
-                if widget.get_pos().row as u16 >= self.size.rows { continue }
-                if widget.get_pos().col as u16 >= self.size.cols { continue }
+        for widget in self.root.widgets() {
+            if widget.get_pos().row as u16 >= self.size.rows { continue }
+            if widget.get_pos().col as u16 >= self.size.cols { continue }
 
-                let row_end = *[(widget.get_pos().row as u16) + widget.get_size().rows, self.size.rows]
-                    .iter()
-                    .min()
-                    .unwrap();
-                let col_end = *[(widget.get_pos().col as u16) + widget.get_size().cols, self.size.cols]
-                    .iter()
-                    .min()
-                    .unwrap();
+            let row_end = *[(widget.get_pos().row as u16) + widget.get_size().rows, self.size.rows]
+                .iter()
+                .min()
+                .unwrap();
+            let col_end = *[(widget.get_pos().col as u16) + widget.get_size().cols, self.size.cols]
+                .iter()
+                .min()
+                .unwrap();
 
-                for y in ((widget.get_pos().row as u16)..row_end) {
-                    for x in ((widget.get_pos().col as u16)..col_end) {
-                        scene[y as usize][x as usize] = widget.fill;
-                    }
+            for y in ((widget.get_pos().row as u16)..row_end) {
+                for x in ((widget.get_pos().col as u16)..col_end) {
+                    scene[y as usize][x as usize] = widget.fill;
                 }
             }
         }

@@ -1,16 +1,6 @@
 use libintermix::client::layout::*;
 
 #[test]
-fn it_draws_an_empty_layout() {
-    ::setup_logging();
-    let mut layout = Layout::empty(Size { rows: 2, cols: 4 });
-
-    let actual = layout.display();
-
-    assert_eq!(layout.display(), "    \n    ");
-}
-
-#[test]
 fn it_draws_a_root_container() {
     ::setup_logging();
     let widget_a = Widget::new('a', Size { rows: 2, cols: 2});

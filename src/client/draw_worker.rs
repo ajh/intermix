@@ -59,7 +59,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         trace!("damage for program {}", program_id);
 
         let layout = self.layout.read().unwrap();
-        if let Some(widget) = layout.root.as_ref().unwrap().widgets().find(|w| w.program_id == program_id) {
+        if let Some(widget) = layout.root.widgets().find(|w| w.program_id == program_id) {
             self.painter.draw_cells(&cells, &widget.pos);
         }
         else {

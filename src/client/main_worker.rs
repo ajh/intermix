@@ -69,8 +69,6 @@ impl MainWorker {
             let mut layout = self.layout.write().unwrap();
 
             layout.root
-                .as_mut()
-                .unwrap()
                 .children
                 .as_mut()
                 .unwrap()
@@ -139,8 +137,6 @@ impl MainWorker {
             let mut layout = self.layout.write().unwrap();
 
             layout.root
-                .as_mut()
-                .unwrap()
                 .children
                 .as_mut()
                 .unwrap()
@@ -162,7 +158,7 @@ impl MainWorker {
 
         let found_status_line = {
             let layout = self.layout.read().unwrap();
-            if let Some(widget) = layout.root.as_ref().unwrap().widgets().find(|w| w.program_id == "status_line".to_string()) {
+            if let Some(widget) = layout.root.widgets().find(|w| w.program_id == "status_line".to_string()) {
                 true
             } else {
                 false
