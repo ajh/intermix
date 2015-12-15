@@ -1,5 +1,15 @@
 use libintermix::client::layout::*;
 
+// Features todo:
+//
+// * horizontal align
+// * vertical align
+// * max height
+// * padding
+// * margin
+// * title
+// * border
+
 #[test]
 fn it_draws_a_root_container() {
     ::setup_logging();
