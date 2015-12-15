@@ -5,7 +5,7 @@ pub mod tty_painter;
 pub mod server_worker;
 pub mod main_worker;
 pub mod state;
-pub mod grid;
+pub mod layout;
 
 use self::draw_worker::*;
 use self::main_worker::*;

@@ -1,4 +1,4 @@
-use libintermix::client::grid::*;
+use libintermix::client::layout::*;
 
 #[test]
 fn it_draws_an_empty_screen() {

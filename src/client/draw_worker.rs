@@ -6,7 +6,7 @@ use std::sync::{Arc, RwLock};
 use super::*;
 use super::state::*;
 use super::tty_painter::*;
-use super::grid::*;
+use super::layout::*;
 use vterm_sys;
 
 /// # todos

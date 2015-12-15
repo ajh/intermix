@@ -1,7 +1,7 @@
 use vterm_sys;
 use super::*;
 use super::state::*;
-use super::grid::*;
+use super::layout::*;
 use super::modal::*;
 use std::sync::mpsc::*;
 use std::sync::{Arc, RwLock};
