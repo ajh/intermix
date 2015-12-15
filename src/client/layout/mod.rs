@@ -14,21 +14,21 @@ pub type Pos = vterm_sys::Pos;
 
 /// Represents the layout for an entire screen. Contains one node which is the root.
 #[derive(Debug, Clone)]
-pub struct Screen {
+pub struct Layout {
     pub size: Size,
     pub root: Option<Node>,
 }
 
-impl Screen {
-    pub fn new(size: Size, root: Node) -> Screen {
-        Screen {
+impl Layout {
+    pub fn new(size: Size, root: Node) -> Layout {
+        Layout {
             size: size,
             root: Some(root),
         }
     }
 
-    pub fn empty(size: Size) -> Screen {
-        Screen {
+    pub fn empty(size: Size) -> Layout {
+        Layout {
             size: size,
             root: None,
         }

@@ -21,13 +21,13 @@ pub struct MainWorker {
     pub servers: Servers,
     pub mode: Box<Mode>,
     pub tty_ioctl_config: TtyIoCtlConfig,
-    pub layout: Arc<RwLock<Screen>>,
+    pub layout: Arc<RwLock<Layout>>,
 }
 
 impl MainWorker {
-    pub fn spawn(draw_worker_tx: Sender<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Arc<RwLock<Screen>>, JoinHandle<()>) {
+    pub fn spawn(draw_worker_tx: Sender<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Arc<RwLock<Layout>>, JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
-        let layout = Arc::new(RwLock::new(Screen::new(
+        let layout = Arc::new(RwLock::new(Layout::new(
                     Size {
                         rows: tty_ioctl_config.rows,
                         cols: tty_ioctl_config.cols,
@@ -46,7 +46,7 @@ impl MainWorker {
         (tx, layout_clone, handle)
     }
 
-    fn new(draw_worker_tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig, layout: Arc<RwLock<Screen>>) -> MainWorker {
+    fn new(draw_worker_tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig, layout: Arc<RwLock<Layout>>) -> MainWorker {
         let mut worker = MainWorker {
             draw_worker_tx: draw_worker_tx,
             rx: rx,
@@ -66,9 +66,9 @@ impl MainWorker {
         let cols = self.tty_ioctl_config.cols;
 
         {
-            let mut screen = self.layout.write().unwrap();
+            let mut layout = self.layout.write().unwrap();
 
-            screen.root
+            layout.root
                 .as_mut()
                 .unwrap()
                 .children
@@ -79,7 +79,7 @@ impl MainWorker {
                         vterm_sys::ScreenSize { cols: cols, rows: 1 },
                         )));
 
-            screen.calculate_layout();
+            layout.calculate_layout();
         }
 
         self.damage_status_line();
@@ -136,9 +136,9 @@ impl MainWorker {
         self.mode = Box::new(ProgramMode { program_id: program.id.clone() });
 
         {
-            let mut screen = self.layout.write().unwrap();
+            let mut layout = self.layout.write().unwrap();
 
-            screen.root
+            layout.root
                 .as_mut()
                 .unwrap()
                 .children
@@ -149,7 +149,7 @@ impl MainWorker {
                         vterm_sys::ScreenSize { cols: 80, rows: 24 },
                         )));
 
-            screen.calculate_layout();
+            layout.calculate_layout();
         }
 
         self.servers.add_program(&server_id, program);
@@ -161,8 +161,8 @@ impl MainWorker {
         trace!("damage_status_line for mode {:?}", self.mode);
 
         let found_status_line = {
-            let screen = self.layout.read().unwrap();
-            if let Some(widget) = screen.root.as_ref().unwrap().widgets().find(|w| w.program_id == "status_line".to_string()) {
+            let layout = self.layout.read().unwrap();
+            if let Some(widget) = layout.root.as_ref().unwrap().widgets().find(|w| w.program_id == "status_line".to_string()) {
                 true
             } else {
                 false

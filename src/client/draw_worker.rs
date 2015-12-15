@@ -17,11 +17,11 @@ use vterm_sys;
 pub struct DrawWorker<F: 'static + Write + Send> {
     rx: Receiver<ClientMsg>,
     painter: TtyPainter<F>,
-    layout: Arc<RwLock<Screen>>,
+    layout: Arc<RwLock<Layout>>,
 }
 
 impl <F: 'static + Write + Send> DrawWorker<F> {
-    pub fn spawn(io: F, rx: Receiver<ClientMsg>, layout: Arc<RwLock<Screen>>) -> thread::JoinHandle<()> {
+    pub fn spawn(io: F, rx: Receiver<ClientMsg>, layout: Arc<RwLock<Layout>>) -> thread::JoinHandle<()> {
         info!("spawning draw worker");
         thread::spawn(move || {
             let mut worker = DrawWorker::new(rx, io, layout);
@@ -30,7 +30,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         })
     }
 
-    fn new(rx: Receiver<ClientMsg>, io: F, layout: Arc<RwLock<Screen>>) -> DrawWorker<F> {
+    fn new(rx: Receiver<ClientMsg>, io: F, layout: Arc<RwLock<Layout>>) -> DrawWorker<F> {
         DrawWorker {
             rx: rx,
             painter: TtyPainter::new(io),
@@ -58,8 +58,8 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
     fn damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>) {
         trace!("damage for program {}", program_id);
 
-        let screen = self.layout.read().unwrap();
-        if let Some(widget) = screen.root.as_ref().unwrap().widgets().find(|w| w.program_id == program_id) {
+        let layout = self.layout.read().unwrap();
+        if let Some(widget) = layout.root.as_ref().unwrap().widgets().find(|w| w.program_id == program_id) {
             self.painter.draw_cells(&cells, &widget.pos);
         }
         else {
