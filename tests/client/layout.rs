@@ -304,6 +304,68 @@ fn it_truncates_widget_with_short_container() {
     assert_eq!(actual, "a\na");
 }
 
+#[test]
+fn it_can_add_to_layout() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
+    let mut layout = Layout::new(
+        Size { rows: 4, cols: 2},
+        Node::row(vec![Node::leaf(widget_a)])
+    );
+
+    let actual = layout.display();
+    assert_eq!(actual, "aa\naa\n  \n  ");
+
+    let widget_b = Widget::new('b', Size { rows: 2, cols: 2});
+    layout.root
+        .children
+        .as_mut()
+        .unwrap()
+        .push(Node::leaf(widget_b));
+    layout.calculate_layout();
+
+    let actual = layout.display();
+    assert_eq!(
+        actual,
+        "\
+aa
+aa
+bb
+bb");
+}
+
+#[test]
+fn it_can_remove_from_layout() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
+    let widget_b = Widget::new('b', Size { rows: 2, cols: 2});
+
+    let mut layout = Layout::new(
+        Size { rows: 4, cols: 2},
+        Node::row(vec![
+              Node::leaf(widget_a),
+              Node::leaf(widget_b),
+        ])
+    );
+    let actual = layout.display();
+    assert_eq!(
+        actual,
+        "\
+aa
+aa
+bb
+bb");
+
+    layout.root
+        .children
+        .as_mut()
+        .unwrap()
+        .remove(1);
+
+    let actual = layout.display();
+    assert_eq!(actual, "aa\naa\n  \n  ");
+}
+
 //#[test]
 //fn it_draws_a_complicated_scene() {
     //let widget_a = Widget::new('a', Size { rows: 2, cols: 8});
