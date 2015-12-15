@@ -21,7 +21,7 @@ fn assert_in_command_mode<T: Read>(vterm: &mut VTerm, reader: &mut T) {
         reader.read_to_end(&mut bytes);
         vterm.write(&bytes);
 
-        let actual = vterm.screen.get_text(Rect { start_row: 23, end_row: 24, start_col: 0, end_col: 80 });
+        let actual = vterm.screen.get_text(Rect { start_row: 0, end_row: 24, start_col: 0, end_col: 80 });
         let re = Regex::new(r"command-mode").unwrap();
         re.is_match(&actual)
     });

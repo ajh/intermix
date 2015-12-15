@@ -2,10 +2,11 @@ use std::io;
 use std::io::prelude::*;
 use std::thread;
 use std::sync::mpsc::*;
-use std::sync::{Weak, Mutex};
+use std::sync::{Arc, RwLock};
 use super::*;
 use super::state::*;
 use super::tty_painter::*;
+use super::grid::*;
 use vterm_sys;
 
 /// # todos
@@ -17,27 +18,25 @@ pub struct DrawWorker<F: 'static + Write + Send> {
     rx: Receiver<ClientMsg>,
     painter: TtyPainter<F>,
     windows: Windows,
+    layout: Arc<RwLock<Screen>>,
 }
 
 impl <F: 'static + Write + Send> DrawWorker<F> {
-    pub fn spawn(io: F) -> (Sender<ClientMsg>, thread::JoinHandle<()>) {
-        let (tx, rx) = channel::<ClientMsg>();
-
+    pub fn spawn(io: F, rx: Receiver<ClientMsg>, layout: Arc<RwLock<Screen>>) -> thread::JoinHandle<()> {
         info!("spawning draw worker");
-        let handle = thread::spawn(move || {
-            let mut worker = DrawWorker::new(rx, io);
+        thread::spawn(move || {
+            let mut worker = DrawWorker::new(rx, io, layout);
             worker.enter_listen_loop();
             info!("exiting draw worker");
-        });
-
-        (tx, handle)
+        })
     }
 
-    fn new(rx: Receiver<ClientMsg>, io: F) -> DrawWorker<F> {
+    fn new(rx: Receiver<ClientMsg>, io: F, layout: Arc<RwLock<Screen>>) -> DrawWorker<F> {
         DrawWorker {
             rx: rx,
             windows: Default::default(),
             painter: TtyPainter::new(io),
+            layout: layout
         }
     }
 
@@ -53,8 +52,6 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
                 ClientMsg::Quit => break,
                 ClientMsg::ProgramDamage { program_id, cells } => self.damage(program_id, cells),
                 ClientMsg::ProgramMoveCursor { program_id, old, new, is_visible } => self.move_cursor(program_id, new, is_visible),
-                ClientMsg::WindowAdd { window } => self.windows.add_window(window),
-                ClientMsg::PaneAdd { window_id, pane } => self.windows.add_pane(&window_id, pane),
                 _ => warn!("unhandled msg {:?}", msg)
             }
         }
@@ -63,11 +60,12 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
     fn damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>) {
         trace!("damage for program {}", program_id);
 
-        let mut panes = self.windows.iter().flat_map(|w| w.panes.iter());
-        if let Some(pane) = panes.find(|p| p.program_id == program_id) {
-            self.painter.draw_cells(&cells, &pane.offset);
-        } else {
-            trace!("no pane for program {:?}", program_id);
+        let screen = self.layout.read().unwrap();
+        if let Some(widget) = screen.root.as_ref().unwrap().widgets().find(|w| w.program_id == program_id) {
+            self.painter.draw_cells(&cells, &widget.pos);
+        }
+        else {
+            trace!("didnt find widget {}", program_id);
         }
     }
 

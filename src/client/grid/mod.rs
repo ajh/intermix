@@ -37,9 +37,10 @@ pub struct Node {
     /// whether this node wrapped below its earlier siblings
     is_below: bool,
     widget: Option<Widget>,
-    children: Option<Vec<Node>>,
+    pub children: Option<Vec<Node>>,
 }
 
+/// This is an internal data structure used when calculating width
 #[derive(Debug)]
 struct WidthInfo {
     cols: u16,
@@ -365,10 +366,12 @@ impl Node {
 /// Its size and position is calculated at run time.
 #[derive(Debug, Clone)]
 pub struct Widget {
+    pub id: String,
+    pub program_id: String,
     fill: char,
     size: Size,
     actual_size: Size,
-    pos: Pos,
+    pub pos: Pos,
 }
 
 impl Widget {
@@ -378,6 +381,19 @@ impl Widget {
             size: size,
             actual_size: Default::default(),
             pos: Pos { row: 0, col: 0 },
+            id: "".to_string(),
+            program_id: "".to_string(),
+        }
+    }
+
+    pub fn new_with_program_id(program_id: String, size: Size) -> Widget {
+        Widget {
+            fill: ' ',
+            size: size,
+            actual_size: Default::default(),
+            pos: Pos { row: 0, col: 0 },
+            id: "".to_string(),
+            program_id: program_id,
         }
     }
 
@@ -401,8 +417,8 @@ impl Widget {
 /// Represents the layout for an entire screen. Contains one node which is the root.
 #[derive(Debug, Clone)]
 pub struct Screen {
-    size: Size,
-    root: Option<Node>,
+    pub size: Size,
+    pub root: Option<Node>,
 }
 
 impl Screen {
@@ -433,7 +449,7 @@ impl Screen {
     /// I think that opens the door to calculating width, height, and positions all at one go?
     /// Maybe?
     ///
-    fn calculate_layout(&mut self) {
+    pub fn calculate_layout(&mut self) {
         if self.root.is_none() { return }
         let root = self.root.as_mut().unwrap();
 

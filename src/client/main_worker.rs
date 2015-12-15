@@ -1,8 +1,10 @@
 use vterm_sys;
 use super::*;
 use super::state::*;
+use super::grid::*;
 use super::modal::*;
 use std::sync::mpsc::*;
+use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
 
 /// This worker handles:
@@ -20,30 +22,40 @@ pub struct MainWorker {
     pub servers: Servers,
     pub mode: Box<Mode>,
     pub tty_ioctl_config: TtyIoCtlConfig,
+    pub layout: Arc<RwLock<Screen>>,
 }
 
 impl MainWorker {
-    pub fn spawn(draw_worker_tx: Sender<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, JoinHandle<()>) {
+    pub fn spawn(draw_worker_tx: Sender<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Arc<RwLock<Screen>>, JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
+        let layout = Arc::new(RwLock::new(Screen::new(
+                    Size {
+                        rows: tty_ioctl_config.rows,
+                        cols: tty_ioctl_config.cols,
+                    },
+                    Node::row(vec![]),
+                    )));
+        let layout_clone = layout.clone();
 
         info!("spawning main worker");
         let handle = thread::spawn(move || {
-            let mut worker = MainWorker::new(draw_worker_tx, rx, tty_ioctl_config);
+            let mut worker = MainWorker::new(draw_worker_tx, rx, tty_ioctl_config, layout);
             worker.enter_listener_loop();
             info!("exiting main worker");
         });
 
-        (tx, handle)
+        (tx, layout_clone, handle)
     }
 
-    fn new(draw_worker_tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> MainWorker {
+    fn new(draw_worker_tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig, layout: Arc<RwLock<Screen>>) -> MainWorker {
         let mut worker = MainWorker {
             draw_worker_tx: draw_worker_tx,
             rx: rx,
             windows: Default::default(),
             servers: Default::default(),
             mode: Box::new(CommandMode { accumulator: vec![] }),
-            tty_ioctl_config: tty_ioctl_config,
+            tty_ioctl_config: tty_ioctl_config.clone(),
+            layout: layout,
         };
         worker.init();
         worker
@@ -51,23 +63,26 @@ impl MainWorker {
 
     /// creates an initial window, status pane etc
     fn init(&mut self) {
-
         // borrowch workaround
         let rows = self.tty_ioctl_config.rows;
         let cols = self.tty_ioctl_config.cols;
 
-        self.add_window(Window {
-            id: "win_0".to_string(),
-            size: vterm_sys::ScreenSize { cols: cols, rows: rows },
-            .. Default::default()
-        });
+        {
+            let mut screen = self.layout.write().unwrap();
 
-        self.add_pane("win_0".to_string(), Pane {
-            id: "status_line".to_string(),
-            size: vterm_sys::ScreenSize { cols: cols, rows: 1 },
-            offset: vterm_sys::Pos { col: 0, row: (rows - 1) as i16 },
-            program_id: "status_line".to_string(),
-        });
+            screen.root
+                .as_mut()
+                .unwrap()
+                .children
+                .as_mut()
+                .unwrap()
+                .push(Node::leaf(Widget::new_with_program_id(
+                        "status_line".to_string(),
+                        vterm_sys::ScreenSize { cols: cols, rows: 1 },
+                        )));
+
+            screen.calculate_layout();
+        }
 
         self.damage_status_line();
     }
@@ -124,32 +139,46 @@ impl MainWorker {
         self.draw_worker_tx.send(msg).unwrap();
     }
 
-    fn add_pane(&mut self, window_id: String, pane: Pane) {
-        self.windows.add_pane(&window_id, pane.clone());
-        let msg = ClientMsg::PaneAdd { window_id: window_id, pane: pane };
-        self.draw_worker_tx.send(msg).unwrap();
-    }
-
     /// For now we only expect this once, so create a pane and enter program mode aimed at it
     fn add_program(&mut self, server_id: String, program: Program) {
         self.mode = Box::new(ProgramMode { program_id: program.id.clone() });
-        self.damage_status_line();
-        self.add_pane("win_0".to_string(), Pane {
-            id: "pane_0".to_string(),
-            // FIXME: get real screen size from program
-            size: vterm_sys::ScreenSize { rows: 24, cols: 80 },
-            offset: vterm_sys::Pos { row: 0, col: 10 },
-            program_id: program.id.clone(),
-        });
+
+        {
+            let mut screen = self.layout.write().unwrap();
+
+            screen.root
+                .as_mut()
+                .unwrap()
+                .children
+                .as_mut()
+                .unwrap()
+                .insert(0, Node::leaf(Widget::new_with_program_id(
+                        program.id.clone(),
+                        vterm_sys::ScreenSize { cols: 80, rows: 24 },
+                        )));
+
+            screen.calculate_layout();
+        }
+
         self.servers.add_program(&server_id, program);
+
+        self.damage_status_line();
     }
 
     fn damage_status_line(&self) {
         trace!("damage_status_line for mode {:?}", self.mode);
 
+        let found_status_line = {
+            let screen = self.layout.read().unwrap();
+            if let Some(widget) = screen.root.as_ref().unwrap().widgets().find(|w| w.program_id == "status_line".to_string()) {
+                true
+            } else {
+                false
+            }
+        };
+
         // Draw it
-        let mut panes = self.windows.iter().flat_map(|w| w.panes.iter());
-        if let Some(pane) = panes.find(|p| p.id == "status_line" ) {
+        if found_status_line {
             let mut cells = vec![];
             for (i, char) in self.mode.display().chars().enumerate() {
                 cells.push(vterm_sys::ScreenCell {
@@ -167,7 +196,7 @@ impl MainWorker {
                 cells: cells,
             });
         } else {
-            trace!("no status line pane");
+            trace!("no status line widget");
         }
     }
 }
