@@ -17,7 +17,6 @@ use vterm_sys;
 pub struct DrawWorker<F: 'static + Write + Send> {
     rx: Receiver<ClientMsg>,
     painter: TtyPainter<F>,
-    windows: Windows,
     layout: Arc<RwLock<Screen>>,
 }
 
@@ -34,7 +33,6 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
     fn new(rx: Receiver<ClientMsg>, io: F, layout: Arc<RwLock<Screen>>) -> DrawWorker<F> {
         DrawWorker {
             rx: rx,
-            windows: Default::default(),
             painter: TtyPainter::new(io),
             layout: layout
         }

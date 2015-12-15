@@ -18,7 +18,6 @@ use std::thread::{self, JoinHandle};
 pub struct MainWorker {
     rx: Receiver<ClientMsg>,
     draw_worker_tx: Sender<ClientMsg>,
-    pub windows: Windows,
     pub servers: Servers,
     pub mode: Box<Mode>,
     pub tty_ioctl_config: TtyIoCtlConfig,
@@ -51,7 +50,6 @@ impl MainWorker {
         let mut worker = MainWorker {
             draw_worker_tx: draw_worker_tx,
             rx: rx,
-            windows: Default::default(),
             servers: Default::default(),
             mode: Box::new(CommandMode { accumulator: vec![] }),
             tty_ioctl_config: tty_ioctl_config.clone(),
@@ -131,12 +129,6 @@ impl MainWorker {
                 program_id: "bash-123".to_string(),
             }).unwrap();
         }
-    }
-
-    fn add_window(&mut self, window: Window) {
-        self.windows.add_window(window.clone());
-        let msg = ClientMsg::WindowAdd { window: window };
-        self.draw_worker_tx.send(msg).unwrap();
     }
 
     /// For now we only expect this once, so create a pane and enter program mode aimed at it

@@ -21,14 +21,6 @@ use vterm_sys;
 pub enum ClientMsg {
     Quit,
 
-    WindowAdd { window: Window },
-    WindowUpdate { window: Window },
-    WindowRemove { window_id: String },
-
-    PaneAdd { window_id: String, pane: Pane },
-    PaneUpdate { window_id: String, pane: Pane },
-    PaneRemove { window_id: String, pane_id: String },
-
     ServerAdd { server: Server },
     ServerUpdate { server: Server },
     ServerRemove { server_id: String },
