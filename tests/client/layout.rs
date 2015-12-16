@@ -10,18 +10,27 @@ use libintermix::client::layout::*;
 // * title
 // * border
 
+
+fn assert_scene_eq(actual: &str, expected: &str) {
+    let actual = actual.trim();
+    let expected = expected.trim();
+
+    if actual != expected {
+        panic!("scenes not equal.\nactual:\n{}\nexpected:\n{}", actual, expected);
+    }
+}
+
 #[test]
 fn it_draws_a_root_container() {
     ::setup_logging();
     let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
     let mut layout = Layout::new(Size { rows: 2, cols: 2}, Node::leaf(widget_a));
 
-    let actual = layout.display();
-    assert_eq!(
-        actual,
-        "\
-aa
-aa");
+    assert_scene_eq(&layout.display(), "
+.--.
+|aa|
+|aa|
+.--.");
 }
 
 #[test]
@@ -30,15 +39,14 @@ fn it_draws_a_root_column() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
-        Node::col(6, vec![Node::leaf(widget_a)])
+        Node::col(6, Default::default(), vec![Node::leaf(widget_a)])
     );
 
-    let actual = layout.display();
-    assert_eq!(
-        actual,
-        "\
-aa  \n\
-aa  ");
+    assert_scene_eq(&layout.display(), "
+.----.
+|aa  |
+|aa  |
+.----.");
 }
 
 #[test]
@@ -47,15 +55,14 @@ fn it_draws_a_root_row() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 2},
-        Node::row(vec![Node::leaf(widget_a)])
+        Node::row(Default::default(), vec![Node::leaf(widget_a)])
     );
 
-    let actual = layout.display();
-    assert_eq!(
-        actual,
-        "\
-aa
-aa");
+    assert_scene_eq(&layout.display(), "
+.--.
+|aa|
+|aa|
+.--.");
 }
 
 #[test]
@@ -64,19 +71,18 @@ fn it_draws_a_column_inside_a_row() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 3});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
-        Node::row(vec![
-            Node::col(9, vec![
+        Node::row(Default::default(), vec![
+            Node::col(9, Default::default(), vec![
                 Node::leaf(widget_a)
             ])
         ])
     );
 
-    let actual = layout.display();
-    assert_eq!(
-        actual,
-        "\
-aaa \n\
-aaa ");
+    assert_scene_eq(&layout.display(), "
+.----.
+|aaa |
+|aaa |
+.----.");
 }
 
 #[test]
@@ -85,19 +91,18 @@ fn it_draws_a_row_inside_a_column() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 3});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
-        Node::col(9, vec![
-            Node::row(vec![
+        Node::col(9, Default::default(), vec![
+            Node::row(Default::default(), vec![
                 Node::leaf(widget_a)
             ])
         ])
     );
 
-    let actual = layout.display();
-    assert_eq!(
-        actual,
-        "\
-aaa \n\
-aaa ");
+    assert_scene_eq(&layout.display(), "
+.----.
+|aaa |
+|aaa |
+.----.");
 }
 
 #[test]
@@ -106,18 +111,16 @@ fn it_draws_a_12_width_col() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
-          Node::col(12, vec![
+          Node::col(12, Default::default(), vec![
               Node::leaf(widget_a)
           ])
     );
 
-    let actual = layout.display();
-
-    assert_eq!(
-        actual,
-        "\
-aaaa
-aaaa");
+    assert_scene_eq(&layout.display(), "
+.----.
+|aaaa|
+|aaaa|
+.----.");
 }
 
 #[test]
@@ -126,19 +129,17 @@ fn it_draws_a_9_and_3_width_col_evenly() {
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
-          Node::row(vec![
-              Node::col(9, vec![Node::leaf(widget_a)]),
-              Node::col(3, vec![Node::leaf(widget_b)]),
+          Node::row(Default::default(), vec![
+              Node::col(9, Default::default(), vec![Node::leaf(widget_a)]),
+              Node::col(3, Default::default(), vec![Node::leaf(widget_b)]),
           ])
     );
 
-    let actual = layout.display();
-
-    assert_eq!(
-        actual,
-        "\
-aaab
-aaab");
+    assert_scene_eq(&layout.display(), "
+.----.
+|aaab|
+|aaab|
+.----.");
 }
 
 #[test]
@@ -147,19 +148,17 @@ fn it_draws_a_9_and_3_width_col_unevenly() {
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 3},
-          Node::row(vec![
-              Node::col(9, vec![Node::leaf(widget_a)]),
-              Node::col(3, vec![Node::leaf(widget_b)]),
+          Node::row(Default::default(), vec![
+              Node::col(9, Default::default(), vec![Node::leaf(widget_a)]),
+              Node::col(3, Default::default(), vec![Node::leaf(widget_b)]),
           ])
     );
 
-    let actual = layout.display();
-
-    assert_eq!(
-        actual,
-        "\
-aab
-aab");
+    assert_scene_eq(&layout.display(), "
+.---.
+|aab|
+|aab|
+.---.");
 }
 
 #[test]
@@ -168,19 +167,17 @@ fn it_draws_a_3_and_9_width_col_evenly() {
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
-          Node::row(vec![
-              Node::col(3, vec![Node::leaf(widget_a)]),
-              Node::col(9, vec![Node::leaf(widget_b)]),
+          Node::row(Default::default(), vec![
+              Node::col(3, Default::default(), vec![Node::leaf(widget_a)]),
+              Node::col(9, Default::default(), vec![Node::leaf(widget_b)]),
           ])
     );
 
-    let actual = layout.display();
-
-    assert_eq!(
-        actual,
-        "\
-abbb
-abbb");
+    assert_scene_eq(&layout.display(), "
+.----.
+|abbb|
+|abbb|
+.----.");
 }
 
 #[test]
@@ -189,19 +186,17 @@ fn it_draws_a_3_and_9_width_col_unevenly() {
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 3},
-          Node::row(vec![
-              Node::col(3, vec![Node::leaf(widget_a)]),
-              Node::col(9, vec![Node::leaf(widget_b)]),
+          Node::row(Default::default(), vec![
+              Node::col(3, Default::default(), vec![Node::leaf(widget_a)]),
+              Node::col(9, Default::default(), vec![Node::leaf(widget_b)]),
           ])
     );
 
-    let actual = layout.display();
-
-    assert_eq!(
-        actual,
-        "\
-abb
-abb");
+    assert_scene_eq(&layout.display(), "
+.---.
+|abb|
+|abb|
+.---.");
 }
 
 #[test]
@@ -210,19 +205,17 @@ fn it_draws_a_pair_of_6_width_cols_evenly() {
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
-          Node::row(vec![
-              Node::col(6, vec![Node::leaf(widget_a)]),
-              Node::col(6, vec![Node::leaf(widget_b)]),
+          Node::row(Default::default(), vec![
+              Node::col(6, Default::default(), vec![Node::leaf(widget_a)]),
+              Node::col(6, Default::default(), vec![Node::leaf(widget_b)]),
           ])
     );
 
-    let actual = layout.display();
-
-    assert_eq!(
-        actual,
-        "\
-aabb
-aabb");
+    assert_scene_eq(&layout.display(), "
+.----.
+|aabb|
+|aabb|
+.----.");
 }
 
 #[test]
@@ -231,19 +224,17 @@ fn it_draws_a_pair_of_6_width_cols_unevenly() {
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 3},
-          Node::row(vec![
-              Node::col(6, vec![Node::leaf(widget_a)]),
-              Node::col(6, vec![Node::leaf(widget_b)]),
+          Node::row(Default::default(), vec![
+              Node::col(6, Default::default(), vec![Node::leaf(widget_a)]),
+              Node::col(6, Default::default(), vec![Node::leaf(widget_b)]),
           ])
     );
 
-    let actual = layout.display();
-
-    assert_eq!(
-        actual,
-        "\
-aab
-aab");
+    assert_scene_eq(&layout.display(), "
+.---.
+|aab|
+|aab|
+.---.");
 }
 
 #[test]
@@ -256,19 +247,20 @@ fn it_draws_a_bunch_of_columns() {
     let widget_z = Widget::new('z', Size { rows: 1, cols: 1});
 
     let mut layout = Layout::new(Size { rows: 1, cols: 6},
-          Node::row(vec![
-              Node::col(2, vec![Node::leaf(widget_a)]),
-              Node::col(2, vec![Node::leaf(widget_b)]),
-              Node::col(2, vec![Node::leaf(widget_c)]),
-              Node::col(2, vec![Node::leaf(widget_x)]),
-              Node::col(2, vec![Node::leaf(widget_y)]),
-              Node::col(2, vec![Node::leaf(widget_z)]),
+          Node::row(Default::default(), vec![
+              Node::col(2, Default::default(), vec![Node::leaf(widget_a)]),
+              Node::col(2, Default::default(), vec![Node::leaf(widget_b)]),
+              Node::col(2, Default::default(), vec![Node::leaf(widget_c)]),
+              Node::col(2, Default::default(), vec![Node::leaf(widget_x)]),
+              Node::col(2, Default::default(), vec![Node::leaf(widget_y)]),
+              Node::col(2, Default::default(), vec![Node::leaf(widget_z)]),
           ])
     );
 
-    let actual = layout.display();
-
-    assert_eq!(actual, "abcxyz");
+    assert_scene_eq(&layout.display(), "
+.------.
+|abcxyz|
+.------.");
 }
 
 #[test]
@@ -277,19 +269,59 @@ fn it_draws_rows() {
     let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
 
     let mut layout = Layout::new(Size { rows: 4, cols: 4},
-          Node::row(vec![
-              Node::row(vec![Node::leaf(widget_a)]),
-              Node::row(vec![Node::leaf(widget_b)]),
+          Node::row(Default::default(), vec![
+              Node::row(Default::default(), vec![Node::leaf(widget_a)]),
+              Node::row(Default::default(), vec![Node::leaf(widget_b)]),
           ])
       );
-    let actual = layout.display();
-    assert_eq!(
-        actual,
-        "\
-aaaa
-aaaa
-bbbb
-bbbb");
+    assert_scene_eq(&layout.display(), "
+.----.
+|aaaa|
+|aaaa|
+|bbbb|
+|bbbb|
+.----.");
+}
+
+#[test]
+fn it_wraps_content_in_leftmost_column() {
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+
+    let mut layout = Layout::new(Size { rows: 4, cols: 4},
+          Node::col(12, Default::default(), vec![
+              Node::col(9, Default::default(), vec![Node::leaf(widget_a)]),
+              Node::col(6, Default::default(), vec![Node::leaf(widget_b)]),
+          ])
+      );
+    assert_scene_eq(&layout.display(), "
+.----.
+|aaa |
+|aaa |
+|bb  |
+|bb  |
+.----.");
+}
+
+#[test]
+fn it_wraps_content_in_rightmost_column() {
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+
+    let mut layout = Layout::new(Size { rows: 4, cols: 4}, Node::row(Default::default(), vec![
+          Node::col(3, Default::default(), vec![]),
+          Node::col(9, Default::default(), vec![
+              Node::col(6, Default::default(), vec![Node::leaf(widget_a)]),
+              Node::col(9, Default::default(), vec![Node::leaf(widget_b)]),
+          ])
+    ]));
+    assert_scene_eq(&layout.display(), "
+.----.
+| aa |
+| aa |
+| bbb|
+| bbb|
+.----.");
 }
 
 // it_draws_containers
@@ -300,8 +332,10 @@ fn it_truncates_widget_with_narrow_container() {
 
     let mut layout = Layout::new(Size { rows: 1, cols: 2}, Node::leaf(widget_a));
 
-    let actual = layout.display();
-    assert_eq!(actual, "aa");
+    assert_scene_eq(&layout.display(), "
+.--.
+|aa|
+.--.");
 }
 
 #[test]
@@ -310,8 +344,11 @@ fn it_truncates_widget_with_short_container() {
 
     let mut layout = Layout::new(Size { rows: 2, cols: 1}, Node::leaf(widget_a));
 
-    let actual = layout.display();
-    assert_eq!(actual, "a\na");
+    assert_scene_eq(&layout.display(), "
+.-.
+|a|
+|a|
+.-.");
 }
 
 #[test]
@@ -320,11 +357,16 @@ fn it_can_add_to_layout() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
     let mut layout = Layout::new(
         Size { rows: 4, cols: 2},
-        Node::row(vec![Node::leaf(widget_a)])
+        Node::row(Default::default(), vec![Node::leaf(widget_a)])
     );
 
-    let actual = layout.display();
-    assert_eq!(actual, "aa\naa\n  \n  ");
+    assert_scene_eq(&layout.display(), "
+.--.
+|aa|
+|aa|
+|  |
+|  |
+.--.");
 
     let widget_b = Widget::new('b', Size { rows: 2, cols: 2});
     layout.root
@@ -334,14 +376,13 @@ fn it_can_add_to_layout() {
         .push(Node::leaf(widget_b));
     layout.calculate_layout();
 
-    let actual = layout.display();
-    assert_eq!(
-        actual,
-        "\
-aa
-aa
-bb
-bb");
+    assert_scene_eq(&layout.display(), "
+.--.
+|aa|
+|aa|
+|bb|
+|bb|
+.--.");
 }
 
 #[test]
@@ -352,19 +393,18 @@ fn it_can_remove_from_layout() {
 
     let mut layout = Layout::new(
         Size { rows: 4, cols: 2},
-        Node::row(vec![
+        Node::row(Default::default(), vec![
               Node::leaf(widget_a),
               Node::leaf(widget_b),
         ])
     );
-    let actual = layout.display();
-    assert_eq!(
-        actual,
-        "\
-aa
-aa
-bb
-bb");
+    assert_scene_eq(&layout.display(), "
+.--.
+|aa|
+|aa|
+|bb|
+|bb|
+.--.");
 
     layout.root
         .children
@@ -372,8 +412,45 @@ bb");
         .unwrap()
         .remove(1);
 
-    let actual = layout.display();
-    assert_eq!(actual, "aa\naa\n  \n  ");
+    assert_scene_eq(&layout.display(), "
+.--.
+|aa|
+|aa|
+|  |
+|  |
+.--.");
+}
+
+#[test]
+fn it_can_align_columns_left() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
+    let mut layout = Layout::new(
+        Size { rows: 2, cols: 4},
+        Node::col(6, Default::default(), vec![Node::leaf(widget_a)])
+    );
+
+    assert_scene_eq(&layout.display(), "
+.----.
+|aa  |
+|aa  |
+.----.");
+}
+
+#[test]
+fn it_can_align_columns_right() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
+    let mut layout = Layout::new(
+        Size { rows: 2, cols: 4},
+        Node::col(6, NodeOptions { align: Align::Right, ..Default::default() }, vec![Node::leaf(widget_a)])
+    );
+
+    assert_scene_eq(&layout.display(), "
+.----.
+|  aa|
+|  aa|
+.----.");
 }
 
 //#[test]
@@ -401,19 +478,6 @@ bb");
               //])
           //])
     //);
-
-    //let actual = layout.display();
-    //assert_eq!(
-        //actual,
-        //"\
-//aaaacccccccc
-//aaaaxxxx    \n\
-//bbbbxxxx    \n\
-//bbbb        \n\
-//yyyy  z
-//yyyy  z
-//yyyy  z
-//yyyy  z
-      //z
-       //");
+    //
+    //blah blah blah
 //}

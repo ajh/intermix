@@ -13,6 +13,35 @@ pub enum GridWidth {
     Cols (u16),
 }
 
+#[derive(Debug, Clone)]
+pub enum Align {
+    Left,
+    Center,
+    Right,
+}
+
+#[derive(Debug, Clone)]
+pub enum VerticalAlign {
+    Top,
+    Middle,
+    Bottom,
+}
+
+#[derive(Debug, Clone)]
+pub struct NodeOptions {
+    pub align: Align,
+    pub vertical_align: VerticalAlign,
+}
+
+impl Default for NodeOptions {
+    fn default() -> NodeOptions {
+        NodeOptions {
+            align: Align::Left,
+            vertical_align: VerticalAlign::Top,
+        }
+    }
+}
+
 /// A Node is a rectangle that gets aligned into a layout with other nodes.
 ///
 /// It starts its life only knowing its grid width in a 12 column grid system. The size and
@@ -28,13 +57,14 @@ pub enum GridWidth {
 /// without enough room.
 #[derive(Debug, Clone)]
 pub struct Node {
-    pub grid_width: GridWidth,
     actual_grid_width: u16,
+    pub grid_width: GridWidth,
     pos: Pos,
     size: Size,
     /// whether this node wrapped below its earlier siblings
     is_below: bool,
     widget: Option<Widget>,
+    pub options: NodeOptions,
     pub children: Option<Vec<Node>>,
 }
 
@@ -42,41 +72,44 @@ impl Node {
     /// Create a leaf node that holds a widget
     pub fn leaf(widget: Widget) -> Node {
         Node {
-            grid_width: GridWidth::Max,
             actual_grid_width: 0,
             children: None,
-            size: Default::default(),
-            pos: Default::default(),
-            widget: Some(widget),
+            grid_width: GridWidth::Max,
             is_below: false,
+            options: Default::default(),
+            pos: Default::default(),
+            size: Default::default(),
+            widget: Some(widget),
         }
     }
 
     /// Create a row node that is full width. It will always wrap below a prior sibling node if one
     /// exists.
-    pub fn row(children: Vec<Node>) -> Node {
+    pub fn row(options: NodeOptions, children: Vec<Node>) -> Node {
         Node {
-            grid_width: GridWidth::Max,
             actual_grid_width: 0,
             children: Some(children),
-            size: Default::default(),
-            pos: Default::default(),
-            widget: None,
+            grid_width: GridWidth::Max,
             is_below: false,
+            options: options,
+            pos: Default::default(),
+            size: Default::default(),
+            widget: None,
         }
     }
 
     /// Create a column node with the given grid width.
-    pub fn col(grid_width: u16, children: Vec<Node>) -> Node {
+    pub fn col(grid_width: u16, options: NodeOptions, children: Vec<Node>) -> Node {
         // TODO: validate grid_width value
         Node {
-            grid_width: GridWidth::Cols (grid_width),
             actual_grid_width: 0,
             children: Some(children),
-            size: Default::default(),
-            pos: Default::default(),
-            widget: None,
+            grid_width: GridWidth::Cols (grid_width),
             is_below: false,
+            options: options,
+            pos: Default::default(),
+            size: Default::default(),
+            widget: None,
         }
     }
 
@@ -180,7 +213,7 @@ impl Node {
 
             for child in children.iter_mut() {
                 if last_col as u16 + child.get_size().cols > screen_size.cols {
-                    last_col = 0; // wrap
+                    last_col = self.pos.col; // wrap
                 }
 
                 child.calc_col_position(last_col, screen_size);

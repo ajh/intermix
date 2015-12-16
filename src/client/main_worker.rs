@@ -32,7 +32,7 @@ impl MainWorker {
                         rows: tty_ioctl_config.rows,
                         cols: tty_ioctl_config.cols,
                     },
-                    Node::row(vec![]),
+                    Node::row(Default::default(), vec![]),
                     )));
         let layout_clone = layout.clone();
 

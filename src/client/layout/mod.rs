@@ -63,9 +63,10 @@ impl Layout {
     pub fn display(&mut self) -> String {
         self.calculate_layout();
 
-        // rows then cols
+        // scene is 2d vec organized rows then cols
         let mut scene: Vec<Vec<char>> = vec![vec![' '; self.size.cols as usize]; self.size.rows as usize];
 
+        // draw widgets into scene
         for widget in self.root.widgets() {
             if widget.get_pos().row as u16 >= self.size.rows { continue }
             if widget.get_pos().col as u16 >= self.size.cols { continue }
@@ -86,6 +87,21 @@ impl Layout {
             }
         }
 
+        // draw border
+        let width = scene.first().unwrap().len();
+        for line in scene.iter_mut() {
+            line.insert(0, '|');
+            line.push('|');
+        }
+
+        let mut top_bottom = vec!['-'; width];
+        top_bottom.insert(0, '.');
+        top_bottom.push('.');
+
+        scene.insert(0, top_bottom.clone());
+        scene.push(top_bottom);
+
+        // convert 2d vec into a newline separated string
         scene.iter()
             .map(|row| row.iter().cloned().collect::<String>())
             .collect::<Vec<String>>()
