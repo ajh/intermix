@@ -208,17 +208,29 @@ impl Node {
     pub fn calc_col_position(&mut self, assigned_col: i16, screen_size: &Size) {
         self.pos.col = assigned_col;
 
-        if let Some(children) = self.children.as_mut() {
-            let mut last_col = self.pos.col;
+        if self.children.is_some() {
+            // copy to work around borrowck
+            let self_pos_col = self.pos.col;
+            let self_size_cols = self.size.cols;
+            let align = self.options.align.clone();
 
-            for child in children.iter_mut() {
-                if last_col as u16 + child.get_size().cols > screen_size.cols {
-                    last_col = self.pos.col; // wrap
+            for row in &mut self.children_wrapped_mut() {
+                let row_width = row.iter()
+                    .map(|c| c.get_size().cols as i16)
+                    .fold(0, ::std::ops::Add::add);
+                let unused_cols = self_size_cols as i16 - row_width;
+                let pos_offet = match align {
+                    Align::Left => 0,
+                    Align::Center => (unused_cols as f32 / 2.0).floor() as i16,
+                    Align::Right => unused_cols,
+                };
+
+                let mut col = self_pos_col + pos_offet;
+
+                for child in row {
+                    child.calc_col_position(col, screen_size);
+                    col += child.get_size().cols as i16;
                 }
-
-                child.calc_col_position(last_col, screen_size);
-
-                last_col += child.get_size().cols as i16;
             }
         }
 
