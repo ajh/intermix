@@ -7,9 +7,9 @@ pub const GRID_COLUMNS_COUNT: u16 = 12;
 
 #[derive(Debug, Clone)]
 pub enum GridWidth {
-    /// rows
+    /// Fill the width of the parent container
     Max,
-    /// cols
+    /// Be at most this many grid columns wide.
     Cols (u16),
 }
 
@@ -19,6 +19,9 @@ pub enum Align {
     Center,
     Right,
 }
+impl Default for Align {
+    fn default() -> Align { Align::Left }
+}
 
 #[derive(Debug, Clone)]
 pub enum VerticalAlign {
@@ -26,20 +29,16 @@ pub enum VerticalAlign {
     Middle,
     Bottom,
 }
+impl Default for VerticalAlign {
+    fn default() -> VerticalAlign { VerticalAlign::Top }
+}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct NodeOptions {
     pub align: Align,
     pub vertical_align: VerticalAlign,
-}
-
-impl Default for NodeOptions {
-    fn default() -> NodeOptions {
-        NodeOptions {
-            align: Align::Left,
-            vertical_align: VerticalAlign::Top,
-        }
-    }
+    pub height: Option<u16>,
+    pub width: Option<u16>,
 }
 
 /// A Node is a rectangle that gets aligned into a layout with other nodes.
@@ -57,14 +56,17 @@ impl Default for NodeOptions {
 /// without enough room.
 #[derive(Debug, Clone)]
 pub struct Node {
-    actual_grid_width: u16,
-    pub grid_width: GridWidth,
-    pos: Pos,
-    size: Size,
-    /// whether this node wrapped below its earlier siblings
-    is_below: bool,
-    widget: Option<Widget>,
-    pub options: NodeOptions,
+    pub align               : Align,
+    pub computed_grid_width : u16,
+    pub computed_pos        : Pos,
+    pub computed_size       : Size,
+    pub grid_width          : GridWidth,
+    pub height              : Option<u16>,
+    pub new_line            : bool,
+    pub vertical_align      : VerticalAlign,
+    pub widget              : Option<Widget>,
+    pub width               : Option<u16>,
+
     pub children: Option<Vec<Node>>,
 }
 
@@ -72,14 +74,17 @@ impl Node {
     /// Create a leaf node that holds a widget
     pub fn leaf(widget: Widget) -> Node {
         Node {
-            actual_grid_width: 0,
-            children: None,
-            grid_width: GridWidth::Max,
-            is_below: false,
-            options: Default::default(),
-            pos: Default::default(),
-            size: Default::default(),
-            widget: Some(widget),
+            align               :  Default::default(),
+            children            :  None,
+            computed_grid_width :  0,
+            computed_pos        :  Default::default(),
+            computed_size       :  Default::default(),
+            grid_width          :  GridWidth::Max,
+            height              :  None,
+            new_line            :  false,
+            vertical_align      :  Default::default(),
+            widget              :  Some(widget),
+            width               :  None,
         }
     }
 
@@ -87,14 +92,17 @@ impl Node {
     /// exists.
     pub fn row(options: NodeOptions, children: Vec<Node>) -> Node {
         Node {
-            actual_grid_width: 0,
-            children: Some(children),
-            grid_width: GridWidth::Max,
-            is_below: false,
-            options: options,
-            pos: Default::default(),
-            size: Default::default(),
-            widget: None,
+            align               :  options.align,
+            children            :  Some(children),
+            computed_grid_width :  0,
+            computed_pos        :  Default::default(),
+            computed_size       :  Default::default(),
+            grid_width          :  GridWidth::Max,
+            height              :  options.height,
+            new_line            :  false,
+            vertical_align      :  options.vertical_align,
+            widget              :  None,
+            width               :  options.width,
         }
     }
 
@@ -102,23 +110,26 @@ impl Node {
     pub fn col(grid_width: u16, options: NodeOptions, children: Vec<Node>) -> Node {
         // TODO: validate grid_width value
         Node {
-            actual_grid_width: 0,
-            children: Some(children),
-            grid_width: GridWidth::Cols (grid_width),
-            is_below: false,
-            options: options,
-            pos: Default::default(),
-            size: Default::default(),
-            widget: None,
+            align               :  options.align,
+            children            :  Some(children),
+            computed_grid_width :  0,
+            computed_pos        :  Default::default(),
+            computed_size       :  Default::default(),
+            grid_width          :  GridWidth::Cols (grid_width),
+            height              :  options.height,
+            new_line            :  false,
+            vertical_align      :  options.vertical_align,
+            widget              :  None,
+            width               :  options.width,
         }
     }
 
-    /// Calculate actual grid columns and where nodes must wrap under other nodes
+    /// Calculate computed grid columns and where nodes must wrap under other nodes
     ///
-    /// The actual grid column may be smaller than the desired one, when for example a col 9 is
+    /// The computed grid column may be smaller than the desired one, when for example a col 9 is
     /// inside a col 6.
     pub fn calc_layout(&mut self, assigned_grid_width: u16) {
-        self.actual_grid_width = assigned_grid_width;
+        self.computed_grid_width = assigned_grid_width;
 
         if let Some(children) = self.children.as_mut() {
             let mut columns_in_row = 0;
@@ -127,17 +138,17 @@ impl Node {
                 match child.grid_width {
                     GridWidth::Max => {
                         columns_in_row = 0;
-                        child.is_below = true;
-                        child.calc_layout(self.actual_grid_width);
+                        child.new_line = true;
+                        child.calc_layout(self.computed_grid_width);
                     }
                     GridWidth::Cols(c) => {
                         columns_in_row += c;
                         if columns_in_row > GRID_COLUMNS_COUNT {
                             columns_in_row = 0;
-                            child.is_below = true;
+                            child.new_line = true;
                         }
 
-                        child.calc_layout(if c <= self.actual_grid_width { c } else { self.actual_grid_width });
+                        child.calc_layout(if c <= self.computed_grid_width { c } else { self.computed_grid_width });
                     }
                 }
             }
@@ -154,25 +165,25 @@ impl Node {
     ///
     /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
     pub fn calc_width(&mut self, assigned_width: u16, screen_size: &Size) {
-        self.size.cols = assigned_width;
+        self.computed_size.cols = assigned_width;
 
         if let Some(widget) = self.widget.as_mut() {
             let mut s = widget.get_size().clone();
-            s.cols = self.size.cols;
+            s.cols = self.computed_size.cols;
             widget.set_size(s);
         }
 
         if self.children.is_some() {
             // copy these to work around borrowck issues
-            let self_size_cols = self.size.cols;
-            let self_actual_grid_width = self.actual_grid_width;
+            let self_size_cols = self.computed_size.cols;
+            let self_computed_grid_width = self.computed_grid_width;
 
-            for row in &mut self.children_wrapped_mut() {
-                let mut widths: Vec<WidthInfo> = row.iter()
+            for line in &mut self.children_wrapped_mut() {
+                let mut widths: Vec<WidthInfo> = line.iter()
                     .enumerate()
                     .map(|(i, child)| match child.grid_width {
                         GridWidth::Cols(c) => WidthInfo::new_from_col(c, screen_size.cols, i),
-                        GridWidth::Max => WidthInfo::new_from_row(self_size_cols, self_actual_grid_width, i)})
+                        GridWidth::Max => WidthInfo::new_from_row(self_size_cols, self_computed_grid_width, i)})
                     .sort_by(|a,b| b.delta.partial_cmp(&a.delta).unwrap());
 
                 let mut unused_cols = {
@@ -184,11 +195,11 @@ impl Node {
                     let mut expected_width = (screen_size.cols as f32 * percent).round() as u16;
                     if expected_width > self_size_cols { expected_width = self_size_cols }
 
-                    let actual_width = widths.iter()
+                    let computed_width = widths.iter()
                         .map(|t| t.cols)
                         .fold(0, ::std::ops::Add::add);
 
-                    expected_width - actual_width
+                    expected_width - computed_width
                 };
 
                 for info in widths {
@@ -198,7 +209,7 @@ impl Node {
                         cols += 1;
                     }
 
-                    row[info.child_index].calc_width(cols, screen_size);
+                    line[info.child_index].calc_width(cols, screen_size);
                 }
             }
         }
@@ -206,17 +217,17 @@ impl Node {
 
     // This depends on widths already being calculated
     pub fn calc_col_position(&mut self, assigned_col: i16, screen_size: &Size) {
-        self.pos.col = assigned_col;
+        self.computed_pos.col = assigned_col;
 
         if self.children.is_some() {
             // copy to work around borrowck
-            let self_pos_col = self.pos.col;
-            let self_size_cols = self.size.cols;
-            let align = self.options.align.clone();
+            let self_pos_col = self.computed_pos.col;
+            let self_size_cols = self.computed_size.cols;
+            let align = self.align.clone();
 
-            for row in &mut self.children_wrapped_mut() {
-                let row_width = row.iter()
-                    .map(|c| c.get_size().cols as i16)
+            for line in &mut self.children_wrapped_mut() {
+                let row_width = line.iter()
+                    .map(|c| c.get_computed_size().cols as i16)
                     .fold(0, ::std::ops::Add::add);
                 let unused_cols = self_size_cols as i16 - row_width;
                 let pos_offet = match align {
@@ -227,23 +238,23 @@ impl Node {
 
                 let mut col = self_pos_col + pos_offet;
 
-                for child in row {
+                for child in line {
                     child.calc_col_position(col, screen_size);
-                    col += child.get_size().cols as i16;
+                    col += child.get_computed_size().cols as i16;
                 }
             }
         }
 
         if let Some(widget) = self.widget.as_mut() {
             let mut p = widget.get_pos().clone();
-            p.col = self.pos.col;
+            p.col = self.computed_pos.col;
             widget.set_pos(p);
         }
     }
 
     pub fn calc_height(&mut self, screen_size: &Size) {
         if let Some(widget) = self.widget.as_ref() {
-            self.size.rows = widget.size.rows as u16;
+            self.computed_size.rows = widget.size.rows as u16;
         }
 
         if let Some(children) = self.children.as_mut() {
@@ -252,41 +263,56 @@ impl Node {
             }
         }
 
-        if self.children.is_some() {
-            self.size.rows = self.children_wrapped()
+        if self.height.is_some() {
+            self.computed_size.rows = self.height.clone().unwrap();
+        }
+        else if self.children.is_some() {
+            self.computed_size.rows = self.children_wrapped()
                 .iter()
-                .map(|row| row.iter().map(|c| c.get_size().rows).max().unwrap())
+                .map(|line| line.iter().map(|c| c.get_computed_size().rows).max().unwrap())
                 .fold(0, ::std::ops::Add::add);
         }
     }
 
     pub fn set_row_pos(&mut self, assigned_row: i16, screen_size: &Size) {
-        self.pos.row = assigned_row;
+        self.computed_pos.row = assigned_row;
 
         if let Some(widget) = self.widget.as_mut() {
             let mut p = widget.get_pos().clone();
-            p.row = self.pos.row;
+            p.row = self.computed_pos.row;
             widget.set_pos(p);
         }
 
         if self.children.is_some() {
-            let mut current_row = self.pos.row;
+            // copy to work around borrowck
+            let self_size_rows = self.computed_size.rows;
+            let v_align = self.vertical_align.clone();
+            let self_computed_pos_row = self.computed_pos.row;
 
-            for row in &mut self.children_wrapped_mut() {
-                for child in row.iter_mut() {
+            let mut lines = self.children_wrapped_mut();
+            let total_height = lines.iter()
+                .map(|line| line.iter().map(|n| n.get_computed_size().rows).max().unwrap() as i16)
+                .fold(0, ::std::ops::Add::add);
+            let unused_rows = self_size_rows as i16 - total_height;
+            let offset = match v_align {
+                VerticalAlign::Top => 0,
+                VerticalAlign::Middle => (unused_rows as f32 / 2.0).floor() as i16,
+                VerticalAlign::Bottom => unused_rows,
+            };
+
+            let mut current_row = self_computed_pos_row + offset;
+
+            for line in lines.iter_mut() {
+                for child in line.iter_mut() {
                     child.set_row_pos(current_row, screen_size);
                 }
-                current_row += row.iter().map(|n| n.get_size().rows).max().unwrap() as i16;
+                current_row += line.iter().map(|n| n.get_computed_size().rows).max().unwrap() as i16;
             }
         }
     }
 
-    pub fn get_size(&self) -> &Size {
-        &self.size
-    }
-
-    pub fn get_pos(&self) -> &Pos {
-        &self.pos
+    pub fn get_computed_size(&self) -> &Size {
+        &self.computed_size
     }
 
     /// Return an iterator over all the widgets within this node or its descendants
@@ -310,7 +336,7 @@ impl Node {
         }
     }
 
-    /// Return lists of Nodes that are one the same row. When a Node wraps below others it is
+    /// Return lists of Nodes that are one the same line. When a Node wraps below others it is
     /// returned in a new vec.
     ///
     /// For example if children are:
@@ -332,20 +358,20 @@ impl Node {
     ///
     fn children_wrapped(&self) -> Vec<Vec<&Node>> {
         let mut output = vec![];
-        let mut row = vec![];
+        let mut line = vec![];
 
         if let Some(children) = self.children.as_ref() {
             for child in children.iter() {
-                if child.is_below && row.len() > 0 {
-                    output.push(row);
-                    row = vec![];
+                if child.new_line && line.len() > 0 {
+                    output.push(line);
+                    line = vec![];
                 }
 
-                row.push(child);
+                line.push(child);
             }
         }
 
-        if row.len() > 0 { output.push(row) }
+        if line.len() > 0 { output.push(line) }
 
         output
     }
@@ -353,20 +379,20 @@ impl Node {
     /// Is there a way to DRY this with the non-mutabile version?
     fn children_wrapped_mut(&mut self) -> Vec<Vec<&mut Node>> {
         let mut output = vec![];
-        let mut row = vec![];
+        let mut line = vec![];
 
         if let Some(children) = self.children.as_mut() {
             for child in children.iter_mut() {
-                if child.is_below && row.len() > 0 {
-                    output.push(row);
-                    row = vec![];
+                if child.new_line && line.len() > 0 {
+                    output.push(line);
+                    line = vec![];
                 }
 
-                row.push(child);
+                line.push(child);
             }
         }
 
-        if row.len() > 0 { output.push(row) }
+        if line.len() > 0 { output.push(line) }
 
         output
     }

@@ -113,3 +113,122 @@ fn it_can_align_columns_center() {
 | ab |
 .----.");
 }
+
+#[test]
+fn it_can_align_a_row_top() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', Size { rows: 1, cols: 4});
+    let mut layout = Layout::new(
+        Size { rows: 2, cols: 4},
+        Node::row(NodeOptions { vertical_align: VerticalAlign::Top, ..Default::default() }, vec![
+            Node::row(Default::default(), vec![Node::leaf(widget_a)])
+        ])
+    );
+
+    assert_scene_eq(&layout.display(), "
+.----.
+|aaaa|
+|    |
+.----.");
+}
+
+#[test]
+fn it_can_align_rows_top() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', Size { rows: 1, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 1, cols: 4});
+    let mut layout = Layout::new(
+        Size { rows: 3, cols: 4},
+        Node::row(NodeOptions { vertical_align: VerticalAlign::Top, ..Default::default() }, vec![
+            Node::row(Default::default(), vec![Node::leaf(widget_a)]),
+            Node::row(Default::default(), vec![Node::leaf(widget_b)])
+        ])
+    );
+
+    assert_scene_eq(&layout.display(), "
+.----.
+|aaaa|
+|bbbb|
+|    |
+.----.");
+}
+
+#[test]
+fn it_can_align_a_row_botton() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', Size { rows: 1, cols: 4});
+    let mut layout = Layout::new(
+        Size { rows: 2, cols: 4},
+        Node::row(NodeOptions { vertical_align: VerticalAlign::Bottom, height: Some(2), ..Default::default() }, vec![
+            Node::row(Default::default(), vec![Node::leaf(widget_a)])
+        ])
+    );
+
+    assert_scene_eq(&layout.display(), "
+.----.
+|    |
+|aaaa|
+.----.");
+}
+
+#[test]
+fn it_can_align_rows_botton() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', Size { rows: 1, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 1, cols: 4});
+    let mut layout = Layout::new(
+        Size { rows: 3, cols: 4},
+        Node::row(NodeOptions { vertical_align: VerticalAlign::Bottom, height: Some(3), ..Default::default() }, vec![
+            Node::row(Default::default(), vec![Node::leaf(widget_a)]),
+            Node::row(Default::default(), vec![Node::leaf(widget_b)])
+        ])
+    );
+
+    assert_scene_eq(&layout.display(), "
+.----.
+|    |
+|aaaa|
+|bbbb|
+.----.");
+}
+
+#[test]
+fn it_can_align_a_row_middle() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', Size { rows: 1, cols: 4});
+    let mut layout = Layout::new(
+        Size { rows: 3, cols: 4},
+        Node::row(NodeOptions { vertical_align: VerticalAlign::Middle, height: Some(3), ..Default::default() }, vec![
+            Node::row(Default::default(), vec![Node::leaf(widget_a)])
+        ])
+    );
+
+    assert_scene_eq(&layout.display(), "
+.----.
+|    |
+|aaaa|
+|    |
+.----.");
+}
+
+#[test]
+fn it_can_align_rows_center() {
+    ::setup_logging();
+    let widget_a = Widget::new('a', Size { rows: 1, cols: 4});
+    let widget_b = Widget::new('b', Size { rows: 1, cols: 4});
+    let mut layout = Layout::new(
+        Size { rows: 4, cols: 4},
+        Node::row(NodeOptions { vertical_align: VerticalAlign::Middle, height: Some(4), ..Default::default() }, vec![
+            Node::row(Default::default(), vec![Node::leaf(widget_a)]),
+            Node::row(Default::default(), vec![Node::leaf(widget_b)])
+        ])
+    );
+
+    assert_scene_eq(&layout.display(), "
+.----.
+|    |
+|aaaa|
+|bbbb|
+|    |
+.----.");
+}
