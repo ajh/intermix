@@ -32,8 +32,13 @@ impl MainWorker {
                         rows: tty_ioctl_config.rows,
                         cols: tty_ioctl_config.cols,
                     },
-                    Node::row(Default::default(), vec![]),
-                    )));
+                    Node::row(
+                        NodeOptions {
+                            vertical_align: VerticalAlign::Bottom,
+                            height: Some(tty_ioctl_config.rows),
+                            ..Default::default()},
+                        vec![]
+                    ))));
         let layout_clone = layout.clone();
 
         info!("spawning main worker");
