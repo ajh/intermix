@@ -1,4 +1,8 @@
 use libintermix::client::layout::*;
+use ::support::layout::*;
+
+mod align;
+mod wrap;
 
 // Features todo:
 //
@@ -9,16 +13,6 @@ use libintermix::client::layout::*;
 // * margin
 // * title
 // * border
-
-
-fn assert_scene_eq(actual: &str, expected: &str) {
-    let actual = actual.trim();
-    let expected = expected.trim();
-
-    if actual != expected {
-        panic!("scenes not equal.\nactual:\n{}\nexpected:\n{}", actual, expected);
-    }
-}
 
 #[test]
 fn it_draws_a_root_container() {
@@ -284,49 +278,6 @@ fn it_draws_rows() {
 }
 
 #[test]
-fn it_wraps_content_in_leftmost_column() {
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
-
-    let mut layout = Layout::new(Size { rows: 4, cols: 4},
-          Node::col(12, Default::default(), vec![
-              Node::col(9, Default::default(), vec![Node::leaf(widget_a)]),
-              Node::col(6, Default::default(), vec![Node::leaf(widget_b)]),
-          ])
-      );
-    assert_scene_eq(&layout.display(), "
-.----.
-|aaa |
-|aaa |
-|bb  |
-|bb  |
-.----.");
-}
-
-#[test]
-fn it_wraps_content_in_rightmost_column() {
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
-
-    let mut layout = Layout::new(Size { rows: 4, cols: 4}, Node::row(Default::default(), vec![
-          Node::col(3, Default::default(), vec![]),
-          Node::col(9, Default::default(), vec![
-              Node::col(6, Default::default(), vec![Node::leaf(widget_a)]),
-              Node::col(9, Default::default(), vec![Node::leaf(widget_b)]),
-          ])
-    ]));
-    assert_scene_eq(&layout.display(), "
-.----.
-| aa |
-| aa |
-| bbb|
-| bbb|
-.----.");
-}
-
-// it_draws_containers
-
-#[test]
 fn it_truncates_widget_with_narrow_container() {
     let widget_a = Widget::new('a', Size { rows: 1, cols: 4});
 
@@ -419,98 +370,6 @@ fn it_can_remove_from_layout() {
 |  |
 |  |
 .--.");
-}
-
-#[test]
-fn it_can_align_columns_left() {
-    ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::col(6, Default::default(), vec![Node::leaf(widget_a)])
-    );
-
-    assert_scene_eq(&layout.display(), "
-.----.
-|aa  |
-|aa  |
-.----.");
-}
-
-#[test]
-fn it_can_align_a_column_right() {
-    ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { align: Align::Right, ..Default::default() }, vec![
-            Node::col(6, Default::default(), vec![Node::leaf(widget_a)])
-        ])
-    );
-
-    assert_scene_eq(&layout.display(), "
-.----.
-|  aa|
-|  aa|
-.----.");
-}
-
-#[test]
-fn it_can_align_columns_right() {
-    ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 2});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { align: Align::Right, ..Default::default() }, vec![
-            Node::col(3, Default::default(), vec![Node::leaf(widget_a)]),
-            Node::col(3, Default::default(), vec![Node::leaf(widget_b)])
-        ])
-    );
-
-    assert_scene_eq(&layout.display(), "
-.----.
-|  ab|
-|  ab|
-.----.");
-}
-
-#[test]
-fn it_can_align_a_column_center() {
-    ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { align: Align::Center, ..Default::default() }, vec![
-            Node::col(6, Default::default(), vec![Node::leaf(widget_a)])
-        ])
-    );
-
-    assert_scene_eq(&layout.display(), "
-.----.
-| aa |
-| aa |
-.----.");
-}
-
-#[test]
-fn it_can_align_column_center() {
-    ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 2});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { align: Align::Center, ..Default::default() }, vec![
-            Node::col(3, Default::default(), vec![Node::leaf(widget_a)]),
-            Node::col(3, Default::default(), vec![Node::leaf(widget_b)]),
-        ])
-    );
-
-    assert_scene_eq(&layout.display(), "
-.----.
-| ab |
-| ab |
-.----.");
 }
 
 //#[test]
