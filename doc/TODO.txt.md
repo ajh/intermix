@@ -1,13 +1,9 @@
 Todo
 ====
 
-* [x] grid layout engine
-* [ ] grid - make row and col leaf nodes to avoid unneccesary nesting
-* [ ] add more grid tests
-* [x] integate grid with rest of code
-
 * [x] client - server architecture in same process
 * [x] client takes options to control window size
+* [x] layout engine
 * [ ] clean up hacks and add more tests
 * [ ] pane transforms
 * [ ] client - server in separate processes

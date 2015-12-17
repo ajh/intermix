@@ -1,5 +1,6 @@
 use libintermix::client::layout::*;
 use ::support::layout::*;
+use ::support::layout_painter::*;
 
 #[test]
 fn it_wraps_content_in_leftmost_column() {
@@ -12,7 +13,8 @@ fn it_wraps_content_in_leftmost_column() {
               Node::col(6, Default::default(), vec![Node::leaf(widget_b)]),
           ])
       );
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aaa |
 |aaa |
@@ -33,7 +35,8 @@ fn it_wraps_content_in_rightmost_column() {
               Node::col(9, Default::default(), vec![Node::leaf(widget_b)]),
           ])
     ]));
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 | aa |
 | aa |

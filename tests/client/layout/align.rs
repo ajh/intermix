@@ -1,5 +1,6 @@
 use libintermix::client::layout::*;
 use ::support::layout::*;
+use ::support::layout_painter::*;
 
 #[test]
 fn it_can_align_a_column_left() {
@@ -12,7 +13,8 @@ fn it_can_align_a_column_left() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aa  |
 |aa  |
@@ -32,7 +34,8 @@ fn it_can_align_columns_left() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |ab  |
 |ab  |
@@ -49,7 +52,8 @@ fn it_can_align_a_column_right() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |  aa|
 |  aa|
@@ -69,7 +73,8 @@ fn it_can_align_columns_right() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |  ab|
 |  ab|
@@ -87,7 +92,8 @@ fn it_can_align_a_column_center() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 | aa |
 | aa |
@@ -107,7 +113,8 @@ fn it_can_align_columns_center() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 | ab |
 | ab |
@@ -125,7 +132,8 @@ fn it_can_align_a_row_top() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aaaa|
 |    |
@@ -145,7 +153,8 @@ fn it_can_align_rows_top() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aaaa|
 |bbbb|
@@ -164,7 +173,8 @@ fn it_can_align_a_row_botton() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |    |
 |aaaa|
@@ -184,7 +194,8 @@ fn it_can_align_rows_botton() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |    |
 |aaaa|
@@ -203,7 +214,8 @@ fn it_can_align_a_row_middle() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |    |
 |aaaa|
@@ -224,7 +236,8 @@ fn it_can_align_rows_center() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |    |
 |aaaa|

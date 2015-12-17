@@ -1,18 +1,18 @@
 use libintermix::client::layout::*;
 use ::support::layout::*;
+use ::support::layout_painter::*;
 
 mod align;
 mod wrap;
 
 // Features todo:
 //
-// * horizontal align
-// * vertical align
-// * max height
-// * padding
-// * margin
-// * title
-// * border
+// * [ ] padding
+// * [ ] margin
+// * [ ] title
+// * [ ] border
+// * [ ] use xml backend rather than node stuff?
+// * [ ] rethink widget vs leaf with id String
 
 #[test]
 fn it_draws_a_root_container() {
@@ -20,7 +20,8 @@ fn it_draws_a_root_container() {
     let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
     let mut layout = Layout::new(Size { rows: 2, cols: 2}, Node::leaf(widget_a));
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .--.
 |aa|
 |aa|
@@ -36,7 +37,8 @@ fn it_draws_a_root_column() {
         Node::col(6, Default::default(), vec![Node::leaf(widget_a)])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aa  |
 |aa  |
@@ -52,7 +54,8 @@ fn it_draws_a_root_row() {
         Node::row(Default::default(), vec![Node::leaf(widget_a)])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .--.
 |aa|
 |aa|
@@ -72,7 +75,8 @@ fn it_draws_a_column_inside_a_row() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aaa |
 |aaa |
@@ -92,7 +96,8 @@ fn it_draws_a_row_inside_a_column() {
         ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aaa |
 |aaa |
@@ -110,7 +115,8 @@ fn it_draws_a_12_width_col() {
           ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aaaa|
 |aaaa|
@@ -129,7 +135,8 @@ fn it_draws_a_9_and_3_width_col_evenly() {
           ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aaab|
 |aaab|
@@ -148,7 +155,8 @@ fn it_draws_a_9_and_3_width_col_unevenly() {
           ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .---.
 |aab|
 |aab|
@@ -167,7 +175,8 @@ fn it_draws_a_3_and_9_width_col_evenly() {
           ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |abbb|
 |abbb|
@@ -186,7 +195,8 @@ fn it_draws_a_3_and_9_width_col_unevenly() {
           ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .---.
 |abb|
 |abb|
@@ -205,7 +215,8 @@ fn it_draws_a_pair_of_6_width_cols_evenly() {
           ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aabb|
 |aabb|
@@ -224,7 +235,8 @@ fn it_draws_a_pair_of_6_width_cols_unevenly() {
           ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .---.
 |aab|
 |aab|
@@ -251,7 +263,8 @@ fn it_draws_a_bunch_of_columns() {
           ])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .------.
 |abcxyz|
 .------.");
@@ -268,7 +281,8 @@ fn it_draws_rows() {
               Node::row(Default::default(), vec![Node::leaf(widget_b)]),
           ])
       );
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .----.
 |aaaa|
 |aaaa|
@@ -283,7 +297,8 @@ fn it_truncates_widget_with_narrow_container() {
 
     let mut layout = Layout::new(Size { rows: 1, cols: 2}, Node::leaf(widget_a));
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .--.
 |aa|
 .--.");
@@ -295,7 +310,8 @@ fn it_truncates_widget_with_short_container() {
 
     let mut layout = Layout::new(Size { rows: 2, cols: 1}, Node::leaf(widget_a));
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .-.
 |a|
 |a|
@@ -311,7 +327,8 @@ fn it_can_add_to_layout() {
         Node::row(Default::default(), vec![Node::leaf(widget_a)])
     );
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .--.
 |aa|
 |aa|
@@ -327,7 +344,8 @@ fn it_can_add_to_layout() {
         .push(Node::leaf(widget_b));
     layout.calculate_layout();
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .--.
 |aa|
 |aa|
@@ -349,7 +367,8 @@ fn it_can_remove_from_layout() {
               Node::leaf(widget_b),
         ])
     );
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .--.
 |aa|
 |aa|
@@ -363,7 +382,8 @@ fn it_can_remove_from_layout() {
         .unwrap()
         .remove(1);
 
-    assert_scene_eq(&layout.display(), "
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
 .--.
 |aa|
 |aa|
