@@ -7,8 +7,12 @@ extern crate log4rs;
 extern crate rustc_serialize;
 extern crate term;
 extern crate termios;
+extern crate piston;
+extern crate glutin_window;
 
 use libc::c_ushort;
+use piston::event_loop::*;
+use piston::input::*;
 use std::io;
 use std::mem;
 use std::os::unix::io::RawFd;
