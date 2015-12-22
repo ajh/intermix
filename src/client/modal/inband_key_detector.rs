@@ -1,11 +1,12 @@
 use std::io::prelude::*;
 use std::io;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InbandKeyDetector {
     bytes: Vec<u8>,
     key: u8,
     key_found: bool,
+    is_possible: bool,
 }
 
 impl InbandKeyDetector {
@@ -14,6 +15,7 @@ impl InbandKeyDetector {
             bytes: vec![],
             key: key,
             key_found: false,
+            is_possible: false,
         }
     }
 
@@ -40,26 +42,20 @@ impl Read for InbandKeyDetector {
 
 impl Write for InbandKeyDetector {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let mut is_possible: bool = if let Some(byte) = self.bytes.last() {
-            *byte == self.key
-        } else {
-            false
-        };
-
         let mut read = 0;
 
         for byte in buf.iter() {
-            let is_escape = is_possible && *byte == self.key;
-            if is_possible && !is_escape {
+            let is_escape = self.is_possible && *byte == self.key;
+            if self.is_possible && !is_escape {
                 self.key_found = true;
                 self.bytes.pop();
                 break;
             }
             else if is_escape {
-                is_possible = false;
+                self.is_possible = false;
             }
             else {
-                is_possible = *byte == self.key;
+                self.is_possible = *byte == self.key;
             }
 
             read += 1;
@@ -124,9 +120,39 @@ mod tests {
     }
 
     #[test]
+    fn key_found_returns_true_when_key_pressed_among_reads() {
+        let mut io = InbandKeyDetector::new(B_KEY);
+        let mut out = vec![];
+
+        io.write("h".as_bytes());
+        io.read_to_end(&mut out);
+        io.write("b".as_bytes());
+        io.read_to_end(&mut out);
+        io.write("h".as_bytes());
+
+        assert!(io.key_found());
+    }
+
+    #[test]
     fn key_found_returns_false_when_key_escaped() {
         let mut io = InbandKeyDetector::new(B_KEY);
         io.write("hi bb there".as_bytes());
+        assert!(!io.key_found());
+    }
+
+    #[test]
+    fn key_found_returns_false_when_key_escaped_among_reads() {
+        let mut io = InbandKeyDetector::new(B_KEY);
+        let mut out = vec![];
+
+        io.write("h".as_bytes());
+        io.read_to_end(&mut out);
+        io.write("b".as_bytes());
+        io.read_to_end(&mut out);
+        io.write("b".as_bytes());
+        io.read_to_end(&mut out);
+        io.write("h".as_bytes());
+
         assert!(!io.key_found());
     }
 

@@ -8,8 +8,14 @@ pub struct CommandMode {
     pub accumulator: Vec<u8>,
 }
 
+impl CommandMode {
+    pub fn new() -> CommandMode {
+        Default::default()
+    }
+}
+
 impl Mode for CommandMode {
-    fn input(&self, worker: &MainWorker, bytes: Vec<u8>) -> Option<UserCmd> {
+    fn input(&mut self, bytes: Vec<u8>) -> Option<UserCmd> {
         if bytes == b"s" {
             Some(UserCmd::ProgramStart)
         } else {

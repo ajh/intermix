@@ -10,10 +10,11 @@ use std::fmt::Debug;
 pub enum UserCmd {
     ProgramInput { program_id: String, bytes: Vec<u8> },
     ProgramStart,
+    ModeChange { new_mode: String },
 }
 
 pub trait Mode : Debug {
-    fn input(&self, worker: &MainWorker, bytes: Vec<u8>) -> Option<UserCmd>;
+    fn input(&mut self, bytes: Vec<u8>) -> Option<UserCmd>;
 
     /// Maybe use the Display trait instead?
     fn display(&self) -> String;

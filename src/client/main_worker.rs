@@ -101,10 +101,11 @@ impl MainWorker {
                 ClientMsg::ServerAdd { server } => self.servers.add_server(server),
                 ClientMsg::ProgramAdd { server_id, program } => self.add_program(server_id, program),
                 ClientMsg::UserInput { bytes } => {
-                    if let Some(cmd) = self.mode.input(self, bytes) {
+                    if let Some(cmd) = self.mode.input(bytes) {
                         match cmd {
                             UserCmd::ProgramInput { program_id, bytes: fites } => self.program_input_cmd(program_id, fites),
                             UserCmd::ProgramStart => self.program_start_cmd(),
+                            UserCmd::ModeChange { new_mode } => self.change_mode(&new_mode),
                         }
                     }
                 },
@@ -115,7 +116,7 @@ impl MainWorker {
 
     fn program_input_cmd(&self, program_id: String, yikes: Vec<u8>) {
         if let Some(server) = self.servers.iter().find(|s| s.programs.iter().any(|p| p.id == program_id)) {
-            trace!("sending input to program {}", &program_id);
+            trace!("sending input to program {} {:?}", &program_id, &yikes);
             server.tx.send(::server::ServerMsg::ProgramInput {
                 program_id: program_id,
                 bytes: yikes,
@@ -136,7 +137,7 @@ impl MainWorker {
 
     /// For now we only expect this once, so create a pane and enter program mode aimed at it
     fn add_program(&mut self, server_id: String, program: Program) {
-        self.mode = Box::new(ProgramMode { program_id: program.id.clone() });
+        self.mode = Box::new(ProgramMode::new(program.id.clone()));
 
         {
             let mut layout = self.layout.write().unwrap();
@@ -191,5 +192,15 @@ impl MainWorker {
         } else {
             trace!("no status line widget");
         }
+    }
+
+    fn change_mode(&mut self, name: &str) {
+        match name {
+            "command" => {
+                self.mode = Box::new(CommandMode::new())
+            }
+            _ => {}
+        }
+        self.damage_status_line();
     }
 }
