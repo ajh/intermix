@@ -333,8 +333,6 @@ fn it_can_add_to_layout() {
     let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     layout.root
         .children
-        .as_mut()
-        .unwrap()
         .push(leaf_b);
     layout.calculate_layout();
 
@@ -372,8 +370,6 @@ fn it_can_remove_from_layout() {
 
     layout.root
         .children
-        .as_mut()
-        .unwrap()
         .remove(1);
 
     layout.calculate_layout();

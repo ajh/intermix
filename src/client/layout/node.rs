@@ -67,7 +67,7 @@ pub struct Node {
     pub width               : Option<u16>,
     pub value               : String,
 
-    pub children: Option<Vec<Node>>,
+    pub children: Vec<Node>,
 }
 
 impl Node {
@@ -75,7 +75,7 @@ impl Node {
     pub fn leaf_v2(value: String, options: NodeOptions) -> Node {
         Node {
             align               :  options.align,
-            children            :  None,
+            children            :  vec![],
             computed_grid_width :  0,
             computed_pos        :  Default::default(),
             computed_size       :  Default::default(),
@@ -93,7 +93,7 @@ impl Node {
     pub fn row(options: NodeOptions, children: Vec<Node>) -> Node {
         Node {
             align               :  options.align,
-            children            :  Some(children),
+            children            :  children,
             computed_grid_width :  0,
             computed_pos        :  Default::default(),
             computed_size       :  Default::default(),
@@ -111,7 +111,7 @@ impl Node {
         // TODO: validate grid_width value
         Node {
             align               :  options.align,
-            children            :  Some(children),
+            children            :  children,
             computed_grid_width :  0,
             computed_pos        :  Default::default(),
             computed_size       :  Default::default(),
@@ -131,25 +131,23 @@ impl Node {
     pub fn calc_layout(&mut self, assigned_grid_width: u16) {
         self.computed_grid_width = assigned_grid_width;
 
-        if let Some(children) = self.children.as_mut() {
-            let mut columns_in_row = 0;
+        let mut columns_in_row = 0;
 
-            for child in children.iter_mut() {
-                match child.grid_width {
-                    GridWidth::Max => {
+        for child in self.children.iter_mut() {
+            match child.grid_width {
+                GridWidth::Max => {
+                    columns_in_row = 0;
+                    child.new_line = true;
+                    child.calc_layout(self.computed_grid_width);
+                }
+                GridWidth::Cols(c) => {
+                    columns_in_row += c;
+                    if columns_in_row > GRID_COLUMNS_COUNT {
                         columns_in_row = 0;
                         child.new_line = true;
-                        child.calc_layout(self.computed_grid_width);
                     }
-                    GridWidth::Cols(c) => {
-                        columns_in_row += c;
-                        if columns_in_row > GRID_COLUMNS_COUNT {
-                            columns_in_row = 0;
-                            child.new_line = true;
-                        }
 
-                        child.calc_layout(if c <= self.computed_grid_width { c } else { self.computed_grid_width });
-                    }
+                    child.calc_layout(if c <= self.computed_grid_width { c } else { self.computed_grid_width });
                 }
             }
         }
@@ -167,44 +165,42 @@ impl Node {
     pub fn calc_width(&mut self, assigned_width: u16, screen_size: &Size) {
         self.computed_size.cols = assigned_width;
 
-        if self.children.is_some() {
-            // copy these to work around borrowck issues
-            let self_size_cols = self.computed_size.cols;
-            let self_computed_grid_width = self.computed_grid_width;
+        // copy these to work around borrowck issues
+        let self_size_cols = self.computed_size.cols;
+        let self_computed_grid_width = self.computed_grid_width;
 
-            for line in &mut self.children_wrapped_mut() {
-                let mut widths: Vec<WidthInfo> = line.iter()
-                    .enumerate()
-                    .map(|(i, child)| match child.grid_width {
-                        GridWidth::Cols(c) => WidthInfo::new_from_col(c, screen_size.cols, i),
-                        GridWidth::Max => WidthInfo::new_from_row(self_size_cols, self_computed_grid_width, i)})
-                    .sort_by(|a,b| b.delta.partial_cmp(&a.delta).unwrap());
+        for line in &mut self.lines_mut() {
+            let mut widths: Vec<WidthInfo> = line.iter()
+                .enumerate()
+                .map(|(i, child)| match child.grid_width {
+                    GridWidth::Cols(c) => WidthInfo::new_from_col(c, screen_size.cols, i),
+                    GridWidth::Max => WidthInfo::new_from_row(self_size_cols, self_computed_grid_width, i)})
+                .sort_by(|a,b| b.delta.partial_cmp(&a.delta).unwrap());
 
-                let mut unused_cols = {
-                    let grid_columns = widths.iter()
-                        .map(|t| t.grid_columns)
-                        .fold(0, ::std::ops::Add::add);
+            let mut unused_cols = {
+                let grid_columns = widths.iter()
+                    .map(|t| t.grid_columns)
+                    .fold(0, ::std::ops::Add::add);
 
-                    let percent = grid_columns as f32 / GRID_COLUMNS_COUNT as f32;
-                    let mut expected_width = (screen_size.cols as f32 * percent).round() as u16;
-                    if expected_width > self_size_cols { expected_width = self_size_cols }
+                let percent = grid_columns as f32 / GRID_COLUMNS_COUNT as f32;
+                let mut expected_width = (screen_size.cols as f32 * percent).round() as u16;
+                if expected_width > self_size_cols { expected_width = self_size_cols }
 
-                    let computed_width = widths.iter()
-                        .map(|t| t.cols)
-                        .fold(0, ::std::ops::Add::add);
+                let computed_width = widths.iter()
+                    .map(|t| t.cols)
+                    .fold(0, ::std::ops::Add::add);
 
-                    expected_width - computed_width
-                };
+                expected_width - computed_width
+            };
 
-                for info in widths {
-                    let mut cols = info.cols;
-                    if unused_cols > 0 {
-                        unused_cols -= 1;
-                        cols += 1;
-                    }
-
-                    line[info.child_index].calc_width(cols, screen_size);
+            for info in widths {
+                let mut cols = info.cols;
+                if unused_cols > 0 {
+                    unused_cols -= 1;
+                    cols += 1;
                 }
+
+                line[info.child_index].calc_width(cols, screen_size);
             }
         }
     }
@@ -213,45 +209,41 @@ impl Node {
     pub fn calc_col_position(&mut self, assigned_col: i16, screen_size: &Size) {
         self.computed_pos.col = assigned_col;
 
-        if self.children.is_some() {
-            // copy to work around borrowck
-            let self_pos_col = self.computed_pos.col;
-            let self_size_cols = self.computed_size.cols;
-            let align = self.align.clone();
+        // copy to work around borrowck
+        let self_pos_col = self.computed_pos.col;
+        let self_size_cols = self.computed_size.cols;
+        let align = self.align.clone();
 
-            for line in &mut self.children_wrapped_mut() {
-                let row_width = line.iter()
-                    .map(|c| c.get_computed_size().cols as i16)
-                    .fold(0, ::std::ops::Add::add);
-                let unused_cols = self_size_cols as i16 - row_width;
-                let pos_offet = match align {
-                    Align::Left => 0,
-                    Align::Center => (unused_cols as f32 / 2.0).floor() as i16,
-                    Align::Right => unused_cols,
-                };
+        for line in &mut self.lines_mut() {
+            let row_width = line.iter()
+                .map(|c| c.get_computed_size().cols as i16)
+                .fold(0, ::std::ops::Add::add);
+            let unused_cols = self_size_cols as i16 - row_width;
+            let pos_offet = match align {
+                Align::Left => 0,
+                Align::Center => (unused_cols as f32 / 2.0).floor() as i16,
+                Align::Right => unused_cols,
+            };
 
-                let mut col = self_pos_col + pos_offet;
+            let mut col = self_pos_col + pos_offet;
 
-                for child in line {
-                    child.calc_col_position(col, screen_size);
-                    col += child.get_computed_size().cols as i16;
-                }
+            for child in line {
+                child.calc_col_position(col, screen_size);
+                col += child.get_computed_size().cols as i16;
             }
         }
     }
 
     pub fn calc_height(&mut self, screen_size: &Size) {
-        if let Some(children) = self.children.as_mut() {
-            for child in children.iter_mut() {
-                child.calc_height(screen_size);
-            }
+        for child in self.children.iter_mut() {
+            child.calc_height(screen_size);
         }
 
         if self.height.is_some() {
             self.computed_size.rows = self.height.clone().unwrap();
         }
-        else if self.children.is_some() {
-            self.computed_size.rows = self.children_wrapped()
+        else if !self.children.is_empty() {
+            self.computed_size.rows = self.lines()
                 .iter()
                 .map(|line| line.iter().map(|c| c.get_computed_size().rows).max().unwrap())
                 .fold(0, ::std::ops::Add::add);
@@ -261,13 +253,13 @@ impl Node {
     pub fn set_row_pos(&mut self, assigned_row: i16, screen_size: &Size) {
         self.computed_pos.row = assigned_row;
 
-        if self.children.is_some() {
+        if !self.children.is_empty() {
             // copy to work around borrowck
             let self_size_rows = self.computed_size.rows;
             let v_align = self.vertical_align.clone();
             let self_computed_pos_row = self.computed_pos.row;
 
-            let mut lines = self.children_wrapped_mut();
+            let mut lines = self.lines_mut();
             let total_height = lines.iter()
                 .map(|line| line.iter().map(|n| n.get_computed_size().rows).max().unwrap() as i16)
                 .fold(0, ::std::ops::Add::add);
@@ -294,7 +286,7 @@ impl Node {
     }
 
     pub fn is_leaf(&self) -> bool {
-        self.children.is_none() || self.children.as_ref().unwrap().is_empty()
+        self.children.is_empty()
     }
 
     // Return an iterator over all leaf nodes which are descendants of this node
@@ -305,11 +297,9 @@ impl Node {
             leafs.push(self);
         }
 
-        if let Some(children) = self.children.as_ref() {
-            for child in children.iter() {
-                let mut more_leaves = child.leaf_iter().collect::<Vec<&Node>>();
-                leafs.append(&mut more_leaves);
-            }
+        for child in self.children.iter() {
+            let mut more_leaves = child.leaf_iter().collect::<Vec<&Node>>();
+            leafs.append(&mut more_leaves);
         }
 
         LeafIter {
@@ -338,19 +328,17 @@ impl Node {
     ///   [row],
     /// ]
     ///
-    fn children_wrapped(&self) -> Vec<Vec<&Node>> {
+    fn lines(&self) -> Vec<Vec<&Node>> {
         let mut output = vec![];
         let mut line = vec![];
 
-        if let Some(children) = self.children.as_ref() {
-            for child in children.iter() {
-                if child.new_line && line.len() > 0 {
-                    output.push(line);
-                    line = vec![];
-                }
-
-                line.push(child);
+        for child in self.children.iter() {
+            if child.new_line && line.len() > 0 {
+                output.push(line);
+                line = vec![];
             }
+
+            line.push(child);
         }
 
         if line.len() > 0 { output.push(line) }
@@ -359,19 +347,17 @@ impl Node {
     }
 
     /// Is there a way to DRY this with the non-mutabile version?
-    fn children_wrapped_mut(&mut self) -> Vec<Vec<&mut Node>> {
+    fn lines_mut(&mut self) -> Vec<Vec<&mut Node>> {
         let mut output = vec![];
         let mut line = vec![];
 
-        if let Some(children) = self.children.as_mut() {
-            for child in children.iter_mut() {
-                if child.new_line && line.len() > 0 {
-                    output.push(line);
-                    line = vec![];
-                }
-
-                line.push(child);
+        for child in self.children.iter_mut() {
+            if child.new_line && line.len() > 0 {
+                output.push(line);
+                line = vec![];
             }
+
+            line.push(child);
         }
 
         if line.len() > 0 { output.push(line) }

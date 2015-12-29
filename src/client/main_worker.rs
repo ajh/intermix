@@ -80,8 +80,6 @@ impl MainWorker {
 
             layout.root
                 .children
-                .as_mut()
-                .unwrap()
                 .push(status_line);
 
 
@@ -152,8 +150,6 @@ impl MainWorker {
 
             layout.root
                 .children
-                .as_mut()
-                .unwrap()
                 .insert(0, leaf);
 
             layout.calculate_layout();
