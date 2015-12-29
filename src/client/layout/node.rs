@@ -39,6 +39,8 @@ pub struct NodeOptions {
     pub vertical_align: VerticalAlign,
     pub height: Option<u16>,
     pub width: Option<u16>,
+    pub padding: Option<u16>,
+    pub margin: Option<u16>,
 }
 
 /// A Node is a rectangle that gets aligned into a layout with other nodes.
@@ -66,6 +68,8 @@ pub struct Node {
     pub vertical_align      : VerticalAlign,
     pub width               : Option<u16>,
     pub value               : String,
+    pub padding             : Option<u16>,
+    pub margin              : Option<u16>,
 
     pub children: Vec<Node>,
 }
@@ -85,6 +89,8 @@ impl Node {
             value               :  value,
             vertical_align      :  options.vertical_align,
             width               :  options.width,
+            padding             :  options.padding,
+            margin              :  options.margin,
         }
     }
 
@@ -103,6 +109,8 @@ impl Node {
             value               :  String::new(),
             vertical_align      :  options.vertical_align,
             width               :  options.width,
+            padding             :  options.padding,
+            margin              :  options.margin,
         }
     }
 
@@ -121,6 +129,8 @@ impl Node {
             value               :  String::new(),
             vertical_align      :  options.vertical_align,
             width               :  options.width,
+            padding             :  options.padding,
+            margin              :  options.margin,
         }
     }
 
