@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use super::*;
 use super::inband_key_detector::*;
 use std::io::prelude::*;
+use std::io;
 
 #[derive(Debug)]
 pub struct ProgramMode {
@@ -37,4 +38,11 @@ impl Mode for ProgramMode {
     fn display(&self) -> String {
         "program-mode".to_string()
     }
+}
+
+impl Write for ProgramMode {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.detector.write(buf)
+    }
+    fn flush(&mut self) -> io::Result<()> { Ok(()) }
 }

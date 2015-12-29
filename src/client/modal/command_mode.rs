@@ -2,6 +2,8 @@ use ::client::main_worker::*;
 use std::fmt::Debug;
 use super::*;
 use std::collections::BTreeMap;
+use std::io::prelude::*;
+use std::io;
 
 #[derive(Debug, Default)]
 pub struct CommandMode {
@@ -26,4 +28,12 @@ impl Mode for CommandMode {
     fn display(&self) -> String {
         "command-mode".to_string()
     }
+}
+
+impl Write for CommandMode {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let result = self.accumulator.write(buf);
+        result
+    }
+    fn flush(&mut self) -> io::Result<()> { Ok(()) }
 }
