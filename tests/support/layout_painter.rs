@@ -5,23 +5,24 @@ pub fn draw_layout(layout: &Layout) -> String {
     // scene is 2d vec organized rows then cols
     let mut scene: Vec<Vec<char>> = vec![vec![' '; layout.size.cols as usize]; layout.size.rows as usize];
 
-    // draw widgets into scene
-    for widget in layout.root.widgets() {
-        if widget.get_pos().row as u16 >= layout.size.rows { continue }
-        if widget.get_pos().col as u16 >= layout.size.cols { continue }
+    // draw leafs into scene
+    for leaf in layout.root.leaf_iter() {
+        println!("{:?}", leaf);
+        if leaf.computed_pos.row as u16 >= layout.size.rows { continue }
+        if leaf.computed_pos.col as u16 >= layout.size.cols { continue }
 
-        let row_end = *[(widget.get_pos().row as u16) + widget.get_size().rows, layout.size.rows]
+        let row_end = *[(leaf.computed_pos.row as u16) + leaf.computed_size.rows, layout.size.rows]
             .iter()
             .min()
             .unwrap();
-        let col_end = *[(widget.get_pos().col as u16) + widget.get_size().cols, layout.size.cols]
+        let col_end = *[(leaf.computed_pos.col as u16) + leaf.computed_size.cols, layout.size.cols]
             .iter()
             .min()
             .unwrap();
 
-        for y in ((widget.get_pos().row as u16)..row_end) {
-            for x in ((widget.get_pos().col as u16)..col_end) {
-                scene[y as usize][x as usize] = widget.fill;
+        for y in ((leaf.computed_pos.row as u16)..row_end) {
+            for x in ((leaf.computed_pos.col as u16)..col_end) {
+                scene[y as usize][x as usize] = leaf.value.chars().next().unwrap();
             }
         }
     }

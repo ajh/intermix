@@ -12,13 +12,13 @@ mod wrap;
 // * [ ] title
 // * [ ] border
 // * [ ] use xml backend rather than node stuff?
-// * [ ] rethink widget vs leaf with id String
+// * [x] rethink widget vs leaf with id String
 
 #[test]
 fn it_draws_a_root_container() {
     ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
-    let mut layout = Layout::new(Size { rows: 2, cols: 2}, Node::leaf(widget_a));
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let mut layout = Layout::new(Size { rows: 2, cols: 2}, leaf_a);
 
     layout.calculate_layout();
     assert_scene_eq(&draw_layout(&layout), "
@@ -31,10 +31,10 @@ fn it_draws_a_root_container() {
 #[test]
 fn it_draws_a_root_column() {
     ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
-        Node::col(6, Default::default(), vec![Node::leaf(widget_a)])
+        Node::col(6, Default::default(), vec![leaf_a])
     );
 
     layout.calculate_layout();
@@ -48,10 +48,10 @@ fn it_draws_a_root_column() {
 #[test]
 fn it_draws_a_root_row() {
     ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 2},
-        Node::row(Default::default(), vec![Node::leaf(widget_a)])
+        Node::row(Default::default(), vec![leaf_a])
     );
 
     layout.calculate_layout();
@@ -65,13 +65,11 @@ fn it_draws_a_root_row() {
 #[test]
 fn it_draws_a_column_inside_a_row() {
     ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 3});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(3), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::row(Default::default(), vec![
-            Node::col(9, Default::default(), vec![
-                Node::leaf(widget_a)
-            ])
+            Node::col(9, Default::default(), vec![leaf_a])
         ])
     );
 
@@ -86,13 +84,11 @@ fn it_draws_a_column_inside_a_row() {
 #[test]
 fn it_draws_a_row_inside_a_column() {
     ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 3});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(3), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::col(9, Default::default(), vec![
-            Node::row(Default::default(), vec![
-                Node::leaf(widget_a)
-            ])
+            Node::row(Default::default(), vec![leaf_a])
         ])
     );
 
@@ -107,12 +103,10 @@ fn it_draws_a_row_inside_a_column() {
 #[test]
 fn it_draws_a_12_width_col() {
     ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
-          Node::col(12, Default::default(), vec![
-              Node::leaf(widget_a)
-          ])
+          Node::col(12, Default::default(), vec![leaf_a])
     );
 
     layout.calculate_layout();
@@ -125,13 +119,13 @@ fn it_draws_a_12_width_col() {
 
 #[test]
 fn it_draws_a_9_and_3_width_col_evenly() {
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
           Node::row(Default::default(), vec![
-              Node::col(9, Default::default(), vec![Node::leaf(widget_a)]),
-              Node::col(3, Default::default(), vec![Node::leaf(widget_b)]),
+              Node::col(9, Default::default(), vec![leaf_a]),
+              Node::col(3, Default::default(), vec![leaf_b]),
           ])
     );
 
@@ -145,13 +139,13 @@ fn it_draws_a_9_and_3_width_col_evenly() {
 
 #[test]
 fn it_draws_a_9_and_3_width_col_unevenly() {
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 3},
           Node::row(Default::default(), vec![
-              Node::col(9, Default::default(), vec![Node::leaf(widget_a)]),
-              Node::col(3, Default::default(), vec![Node::leaf(widget_b)]),
+              Node::col(9, Default::default(), vec![leaf_a]),
+              Node::col(3, Default::default(), vec![leaf_b]),
           ])
     );
 
@@ -165,13 +159,13 @@ fn it_draws_a_9_and_3_width_col_unevenly() {
 
 #[test]
 fn it_draws_a_3_and_9_width_col_evenly() {
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
           Node::row(Default::default(), vec![
-              Node::col(3, Default::default(), vec![Node::leaf(widget_a)]),
-              Node::col(9, Default::default(), vec![Node::leaf(widget_b)]),
+              Node::col(3, Default::default(), vec![leaf_a]),
+              Node::col(9, Default::default(), vec![leaf_b]),
           ])
     );
 
@@ -185,13 +179,13 @@ fn it_draws_a_3_and_9_width_col_evenly() {
 
 #[test]
 fn it_draws_a_3_and_9_width_col_unevenly() {
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 3},
           Node::row(Default::default(), vec![
-              Node::col(3, Default::default(), vec![Node::leaf(widget_a)]),
-              Node::col(9, Default::default(), vec![Node::leaf(widget_b)]),
+              Node::col(3, Default::default(), vec![leaf_a]),
+              Node::col(9, Default::default(), vec![leaf_b]),
           ])
     );
 
@@ -205,13 +199,13 @@ fn it_draws_a_3_and_9_width_col_unevenly() {
 
 #[test]
 fn it_draws_a_pair_of_6_width_cols_evenly() {
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
           Node::row(Default::default(), vec![
-              Node::col(6, Default::default(), vec![Node::leaf(widget_a)]),
-              Node::col(6, Default::default(), vec![Node::leaf(widget_b)]),
+              Node::col(6, Default::default(), vec![leaf_a]),
+              Node::col(6, Default::default(), vec![leaf_b]),
           ])
     );
 
@@ -225,13 +219,13 @@ fn it_draws_a_pair_of_6_width_cols_evenly() {
 
 #[test]
 fn it_draws_a_pair_of_6_width_cols_unevenly() {
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 3},
           Node::row(Default::default(), vec![
-              Node::col(6, Default::default(), vec![Node::leaf(widget_a)]),
-              Node::col(6, Default::default(), vec![Node::leaf(widget_b)]),
+              Node::col(6, Default::default(), vec![leaf_a]),
+              Node::col(6, Default::default(), vec![leaf_b]),
           ])
     );
 
@@ -245,21 +239,21 @@ fn it_draws_a_pair_of_6_width_cols_unevenly() {
 
 #[test]
 fn it_draws_a_bunch_of_columns() {
-    let widget_a = Widget::new('a', Size { rows: 1, cols: 1});
-    let widget_b = Widget::new('b', Size { rows: 1, cols: 1});
-    let widget_c = Widget::new('c', Size { rows: 1, cols: 1});
-    let widget_x = Widget::new('x', Size { rows: 1, cols: 1});
-    let widget_y = Widget::new('y', Size { rows: 1, cols: 1});
-    let widget_z = Widget::new('z', Size { rows: 1, cols: 1});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_c = Node::leaf_v2("c".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_x = Node::leaf_v2("x".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_y = Node::leaf_v2("y".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_z = Node::leaf_v2("z".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 1, cols: 6},
           Node::row(Default::default(), vec![
-              Node::col(2, Default::default(), vec![Node::leaf(widget_a)]),
-              Node::col(2, Default::default(), vec![Node::leaf(widget_b)]),
-              Node::col(2, Default::default(), vec![Node::leaf(widget_c)]),
-              Node::col(2, Default::default(), vec![Node::leaf(widget_x)]),
-              Node::col(2, Default::default(), vec![Node::leaf(widget_y)]),
-              Node::col(2, Default::default(), vec![Node::leaf(widget_z)]),
+              Node::col(2, Default::default(), vec![leaf_a]),
+              Node::col(2, Default::default(), vec![leaf_b]),
+              Node::col(2, Default::default(), vec![leaf_c]),
+              Node::col(2, Default::default(), vec![leaf_x]),
+              Node::col(2, Default::default(), vec![leaf_y]),
+              Node::col(2, Default::default(), vec![leaf_z]),
           ])
     );
 
@@ -272,13 +266,13 @@ fn it_draws_a_bunch_of_columns() {
 
 #[test]
 fn it_draws_rows() {
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 4});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 4, cols: 4},
           Node::row(Default::default(), vec![
-              Node::row(Default::default(), vec![Node::leaf(widget_a)]),
-              Node::row(Default::default(), vec![Node::leaf(widget_b)]),
+              Node::row(Default::default(), vec![leaf_a]),
+              Node::row(Default::default(), vec![leaf_b]),
           ])
       );
     layout.calculate_layout();
@@ -292,10 +286,10 @@ fn it_draws_rows() {
 }
 
 #[test]
-fn it_truncates_widget_with_narrow_container() {
-    let widget_a = Widget::new('a', Size { rows: 1, cols: 4});
+fn it_truncates_leaf_with_narrow_container() {
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
 
-    let mut layout = Layout::new(Size { rows: 1, cols: 2}, Node::leaf(widget_a));
+    let mut layout = Layout::new(Size { rows: 1, cols: 2}, leaf_a);
 
     layout.calculate_layout();
     assert_scene_eq(&draw_layout(&layout), "
@@ -305,10 +299,10 @@ fn it_truncates_widget_with_narrow_container() {
 }
 
 #[test]
-fn it_truncates_widget_with_short_container() {
-    let widget_a = Widget::new('a', Size { rows: 4, cols: 1});
+fn it_truncates_leaf_with_short_container() {
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(4), width: Some(1), ..Default::default()});
 
-    let mut layout = Layout::new(Size { rows: 2, cols: 1}, Node::leaf(widget_a));
+    let mut layout = Layout::new(Size { rows: 2, cols: 1}, leaf_a);
 
     layout.calculate_layout();
     assert_scene_eq(&draw_layout(&layout), "
@@ -321,10 +315,10 @@ fn it_truncates_widget_with_short_container() {
 #[test]
 fn it_can_add_to_layout() {
     ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 4, cols: 2},
-        Node::row(Default::default(), vec![Node::leaf(widget_a)])
+        Node::row(Default::default(), vec![leaf_a])
     );
 
     layout.calculate_layout();
@@ -336,12 +330,12 @@ fn it_can_add_to_layout() {
 |  |
 .--.");
 
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 2});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     layout.root
         .children
         .as_mut()
         .unwrap()
-        .push(Node::leaf(widget_b));
+        .push(leaf_b);
     layout.calculate_layout();
 
     layout.calculate_layout();
@@ -357,14 +351,14 @@ fn it_can_add_to_layout() {
 #[test]
 fn it_can_remove_from_layout() {
     ::setup_logging();
-    let widget_a = Widget::new('a', Size { rows: 2, cols: 2});
-    let widget_b = Widget::new('b', Size { rows: 2, cols: 2});
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
 
     let mut layout = Layout::new(
         Size { rows: 4, cols: 2},
         Node::row(Default::default(), vec![
-              Node::leaf(widget_a),
-              Node::leaf(widget_b),
+              leaf_a,
+              leaf_b,
         ])
     );
     layout.calculate_layout();
@@ -394,26 +388,26 @@ fn it_can_remove_from_layout() {
 
 //#[test]
 //fn it_draws_a_complicated_scene() {
-    //let widget_a = Widget::new('a', Size { rows: 2, cols: 8});
-    //let widget_b = Widget::new('b', Size { rows: 2, cols: 4});
-    //let widget_c = Widget::new('c', Size { rows: 1, cols: 8});
-    //let widget_x = Widget::new('x', Size { rows: 2, cols: 4});
-    //let widget_y = Widget::new('y', Size { rows: 4, cols: 4});
-    //let widget_z = Widget::new('z', Size { rows: 5, cols: 1});
+    //let leaf_a = Node::leaf_v2("a".to_string(), Size { rows: 2, cols: 8});
+    //let leaf_b = Node::leaf_v2("b".to_string(), Size { rows: 2, cols: 4});
+    //let leaf_c = Node::leaf_v2("c".to_string(), Size { rows: 1, cols: 8});
+    //let leaf_x = Node::leaf_v2("x".to_string(), Size { rows: 2, cols: 4});
+    //let leaf_y = Node::leaf_v2("y".to_string(), Size { rows: 4, cols: 4});
+    //let leaf_z = Node::leaf_v2("z".to_string(), Size { rows: 5, cols: 1});
 
     //let mut layout = Layout::new(Size { rows: 10, cols: 12},
           //Node::row(vec![
               //Node::row(vec![
-                  //Node::col(4, vec![Node::leaf(widget_a), Node::leaf(widget_b)]),
+                  //Node::col(4, vec![leaf_a, leaf_b]),
                   //Node::col(8, vec![
-                      //Node::row(vec![Node::leaf(widget_c)]),
-                      //Node::row(vec![Node::leaf(widget_x)]),
+                      //Node::row(vec![leaf_c]),
+                      //Node::row(vec![leaf_x]),
                   //]),
               //]),
               //Node::row(vec![
-                  //Node::col(4, vec![Node::leaf(widget_y)]),
+                  //Node::col(4, vec![leaf_y]),
                   //Node::col(2, vec![]),
-                  //Node::col(6, vec![Node::leaf(widget_z)]),
+                  //Node::col(6, vec![leaf_z]),
               //])
           //])
     //);

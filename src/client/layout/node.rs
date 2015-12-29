@@ -1,7 +1,7 @@
 use std::slice::Iter;
 use vterm_sys;
 use itertools::Itertools;
-use super::{Size, Pos, Widget, Widgets};
+use super::{Size, Pos, LeafIter};
 
 pub const GRID_COLUMNS_COUNT: u16 = 12;
 
@@ -48,7 +48,7 @@ pub struct NodeOptions {
 ///
 /// There are three constructors for nodes:
 ///
-/// * leaf - creates a node holding a widget. Cannot contain other nodes.
+/// * leaf - creates a node holding a value. Cannot contain other nodes.
 /// * row - creates a 12 grid width node.
 /// * col - creates a node with the given grid width.
 ///
@@ -64,27 +64,27 @@ pub struct Node {
     pub height              : Option<u16>,
     pub new_line            : bool,
     pub vertical_align      : VerticalAlign,
-    pub widget              : Option<Widget>,
     pub width               : Option<u16>,
+    pub value               : String,
 
     pub children: Option<Vec<Node>>,
 }
 
 impl Node {
-    /// Create a leaf node that holds a widget
-    pub fn leaf(widget: Widget) -> Node {
+    /// Create a leaf node
+    pub fn leaf_v2(value: String, options: NodeOptions) -> Node {
         Node {
-            align               :  Default::default(),
+            align               :  options.align,
             children            :  None,
             computed_grid_width :  0,
             computed_pos        :  Default::default(),
             computed_size       :  Default::default(),
             grid_width          :  GridWidth::Max,
-            height              :  None,
+            height              :  options.height,
             new_line            :  false,
-            vertical_align      :  Default::default(),
-            widget              :  Some(widget),
-            width               :  None,
+            value               :  value,
+            vertical_align      :  options.vertical_align,
+            width               :  options.width,
         }
     }
 
@@ -100,8 +100,8 @@ impl Node {
             grid_width          :  GridWidth::Max,
             height              :  options.height,
             new_line            :  false,
+            value               :  String::new(),
             vertical_align      :  options.vertical_align,
-            widget              :  None,
             width               :  options.width,
         }
     }
@@ -118,8 +118,8 @@ impl Node {
             grid_width          :  GridWidth::Cols (grid_width),
             height              :  options.height,
             new_line            :  false,
+            value               :  String::new(),
             vertical_align      :  options.vertical_align,
-            widget              :  None,
             width               :  options.width,
         }
     }
@@ -166,12 +166,6 @@ impl Node {
     /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
     pub fn calc_width(&mut self, assigned_width: u16, screen_size: &Size) {
         self.computed_size.cols = assigned_width;
-
-        if let Some(widget) = self.widget.as_mut() {
-            let mut s = widget.get_size().clone();
-            s.cols = self.computed_size.cols;
-            widget.set_size(s);
-        }
 
         if self.children.is_some() {
             // copy these to work around borrowck issues
@@ -244,19 +238,9 @@ impl Node {
                 }
             }
         }
-
-        if let Some(widget) = self.widget.as_mut() {
-            let mut p = widget.get_pos().clone();
-            p.col = self.computed_pos.col;
-            widget.set_pos(p);
-        }
     }
 
     pub fn calc_height(&mut self, screen_size: &Size) {
-        if let Some(widget) = self.widget.as_ref() {
-            self.computed_size.rows = widget.size.rows as u16;
-        }
-
         if let Some(children) = self.children.as_mut() {
             for child in children.iter_mut() {
                 child.calc_height(screen_size);
@@ -276,12 +260,6 @@ impl Node {
 
     pub fn set_row_pos(&mut self, assigned_row: i16, screen_size: &Size) {
         self.computed_pos.row = assigned_row;
-
-        if let Some(widget) = self.widget.as_mut() {
-            let mut p = widget.get_pos().clone();
-            p.row = self.computed_pos.row;
-            widget.set_pos(p);
-        }
 
         if self.children.is_some() {
             // copy to work around borrowck
@@ -315,23 +293,27 @@ impl Node {
         &self.computed_size
     }
 
-    /// Return an iterator over all the widgets within this node or its descendants
-    pub fn widgets(&self) -> Widgets {
-        let mut widgets = vec![];
+    pub fn is_leaf(&self) -> bool {
+        self.children.is_none() || self.children.as_ref().unwrap().is_empty()
+    }
 
-        if let Some(widget) = self.widget.as_ref() {
-            widgets.push(widget);
+    // Return an iterator over all leaf nodes which are descendants of this node
+    pub fn leaf_iter(&self) -> LeafIter {
+        let mut leafs = vec![];
+
+        if self.is_leaf() {
+            leafs.push(self);
         }
 
         if let Some(children) = self.children.as_ref() {
             for child in children.iter() {
-                let mut more_widgets = child.widgets().collect::<Vec<&Widget>>();
-                widgets.append(&mut more_widgets);
+                let mut more_leaves = child.leaf_iter().collect::<Vec<&Node>>();
+                leafs.append(&mut more_leaves);
             }
         }
 
-        Widgets {
-            widgets: widgets,
+        LeafIter {
+            nodes: leafs,
             index: 0,
         }
     }

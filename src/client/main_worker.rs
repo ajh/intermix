@@ -73,14 +73,17 @@ impl MainWorker {
         {
             let mut layout = self.layout.write().unwrap();
 
+            let status_line = Node::leaf_v2(
+                "status_line".to_string(),
+                NodeOptions { height: Some(1), width: Some(cols), ..Default::default() }
+            );
+
             layout.root
                 .children
                 .as_mut()
                 .unwrap()
-                .push(Node::leaf(Widget::new_with_program_id(
-                        "status_line".to_string(),
-                        vterm_sys::ScreenSize { cols: cols, rows: 1 },
-                        )));
+                .push(status_line);
+
 
             layout.calculate_layout();
         }
@@ -142,14 +145,16 @@ impl MainWorker {
         {
             let mut layout = self.layout.write().unwrap();
 
+            let leaf = Node::leaf_v2(
+                program.id.clone(),
+                NodeOptions { height: Some(24), width: Some(80), ..Default::default() }
+            );
+
             layout.root
                 .children
                 .as_mut()
                 .unwrap()
-                .insert(0, Node::leaf(Widget::new_with_program_id(
-                        program.id.clone(),
-                        vterm_sys::ScreenSize { cols: 80, rows: 24 },
-                        )));
+                .insert(0, leaf);
 
             layout.calculate_layout();
         }
@@ -164,7 +169,7 @@ impl MainWorker {
 
         let found_status_line = {
             let layout = self.layout.read().unwrap();
-            if let Some(widget) = layout.root.widgets().find(|w| w.program_id == "status_line".to_string()) {
+            if let Some(node) = layout.root.leaf_iter().find(|n| n.value == "status_line".to_string()) {
                 true
             } else {
                 false
@@ -190,7 +195,7 @@ impl MainWorker {
                 cells: cells,
             });
         } else {
-            trace!("no status line widget");
+            warn!("no status line node");
         }
     }
 

@@ -1,13 +1,11 @@
 mod node;
-mod widget;
-mod widgets;
+mod leaf_iter;
 
 use std::slice::Iter;
 use vterm_sys;
 use itertools::Itertools;
 pub use self::node::*;
-pub use self::widget::*;
-pub use self::widgets::*;
+pub use self::leaf_iter::*;
 
 pub type Size = vterm_sys::ScreenSize;
 pub type Pos = vterm_sys::Pos;

@@ -59,11 +59,11 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         trace!("damage for program {}", program_id);
 
         let layout = self.layout.read().unwrap();
-        if let Some(widget) = layout.root.widgets().find(|w| w.program_id == program_id) {
-            self.painter.draw_cells(&cells, &widget.pos);
+        if let Some(node) = layout.root.leaf_iter().find(|w| w.value == program_id) {
+            self.painter.draw_cells(&cells, &node.computed_pos);
         }
         else {
-            trace!("didnt find widget {}", program_id);
+            warn!("didnt find node with value: {:?}", program_id);
         }
     }
 
