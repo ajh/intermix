@@ -20,3 +20,22 @@ fn it_can_have_padding_around_children() {
 |    |
 .----.");
 }
+
+#[test]
+fn it_can_have_margin_around_node() {
+    ::setup_logging();
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let mut layout = Layout::new(
+        Size { rows: 4, cols: 4},
+        Node::row(NodeOptions { margin: 1, ..Default::default() }, vec![leaf_a])
+    );
+
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
+.----.
+|    |
+| aa |
+| aa |
+|    |
+.----.");
+}

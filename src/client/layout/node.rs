@@ -176,14 +176,12 @@ impl Node {
     ///
     /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
     pub fn calc_width(&mut self, assigned_width: u16, screen_size: &Size) {
-        self.computed_size.cols = assigned_width;
+        self.computed_size.cols = assigned_width - self.margin * 2 - self.padding * 2;
 
         // copy these to work around borrowck issues
         let self_size_cols = self.computed_size.cols;
-        let inside_width = self.computed_size.cols - self.padding * 2;
+        let self_computed_size_cols = self.computed_size.cols;
         let self_computed_grid_width = self.computed_grid_width;
-
-        println!("self_size_cols {} inside_width {} self_computed_grid_width {}", self_size_cols, inside_width, self_computed_grid_width);
 
         for line in &mut self.lines_mut() {
             let mut widths: Vec<WidthInfo> = line.iter()
@@ -193,13 +191,13 @@ impl Node {
                         i,
                         c,
                         self_computed_grid_width,
-                        inside_width
+                        self_computed_size_cols,
                     ),
                     GridWidth::Max => WidthInfo::new(
                         i,
                         self_computed_grid_width,
                         self_computed_grid_width,
-                        inside_width,
+                        self_computed_size_cols,
                     )
                 })
                 .sort_by(|a,b| b.delta.partial_cmp(&a.delta).unwrap());
@@ -210,9 +208,9 @@ impl Node {
                     .fold(0, ::std::ops::Add::add);
 
                 let percent = grid_columns as f32 / self_computed_grid_width as f32;
-                let mut expected_width = (inside_width as f32 * percent).round() as u16;
+                let mut expected_width = (self_computed_size_cols as f32 * percent).round() as u16;
 
-                if expected_width > inside_width { expected_width = inside_width }
+                if expected_width > self_computed_size_cols { expected_width = self_computed_size_cols }
 
                 let computed_width = widths.iter()
                     .map(|t| t.cols)
@@ -235,25 +233,25 @@ impl Node {
 
     // This depends on widths already being calculated
     pub fn calc_col_position(&mut self, assigned_col: i16, screen_size: &Size) {
-        self.computed_pos.col = assigned_col;
+        self.computed_pos.col = assigned_col + self.margin as i16 + self.padding as i16;
 
         // copy to work around borrowck
-        let inside_x = self.computed_pos.col + self.padding as i16;
-        let inside_width = self.computed_size.cols - self.padding * 2;
+        let self_computed_pos_col = self.computed_pos.col;
+        let self_computed_size_cols = self.computed_size.cols;
         let align = self.align.clone();
 
         for line in &mut self.lines_mut() {
             let row_width = line.iter()
                 .map(|c| c.get_computed_size().cols as i16)
                 .fold(0, ::std::ops::Add::add);
-            let unused_cols = inside_width as i16 - row_width;
+            let unused_cols = self_computed_size_cols as i16 - row_width;
             let pos_offet = match align {
                 Align::Left => 0,
                 Align::Center => (unused_cols as f32 / 2.0).floor() as i16,
                 Align::Right => unused_cols,
             };
 
-            let mut col = inside_x + pos_offet;
+            let mut col = self_computed_pos_col + pos_offet;
 
             for child in line {
                 child.calc_col_position(col, screen_size);
@@ -273,35 +271,34 @@ impl Node {
             self.computed_size.rows = self.height.clone().unwrap();
         }
         else if !self.children.is_empty() {
-            let height = self.lines()
-                         .iter()
-                         .map(|line| line.iter().map(|c| c.get_computed_size().rows).max().unwrap())
-                         .fold(0, ::std::ops::Add::add);
-            self.computed_size.rows = height + self.padding * 2;
+            self.computed_size.rows = self.lines()
+                .iter()
+                .map(|line| line.iter().map(|c| c.get_computed_size().rows + c.margin * 2 + c.padding * 2).max().unwrap())
+                .fold(0, ::std::ops::Add::add);
         }
     }
 
     pub fn set_row_pos(&mut self, assigned_row: i16, screen_size: &Size) {
-        self.computed_pos.row = assigned_row;
+        self.computed_pos.row = assigned_row + self.margin as i16 + self.padding as i16;
 
         if !self.children.is_empty() {
             // copy to work around borrowck
-            let inside_height = self.computed_size.rows - self.padding * 2;
+            let self_computed_size_rows = self.computed_size.rows;
             let v_align = self.vertical_align.clone();
-            let inside_y = self.computed_pos.row + self.padding as i16;
+            let self_computed_pos_row = self.computed_pos.row;
 
             let mut lines = self.lines_mut();
             let total_height = lines.iter()
                 .map(|line| line.iter().map(|n| n.get_computed_size().rows).max().unwrap() as i16)
                 .fold(0, ::std::ops::Add::add);
-            let unused_rows = inside_height as i16 - total_height;
+            let unused_rows = self_computed_size_rows as i16 - total_height;
             let offset = match v_align {
                 VerticalAlign::Top => 0,
                 VerticalAlign::Middle => (unused_rows as f32 / 2.0).floor() as i16,
                 VerticalAlign::Bottom => unused_rows,
             };
 
-            let mut current_row = inside_y + offset;
+            let mut current_row = self_computed_pos_row + offset;
 
             for line in lines.iter_mut() {
                 for child in line.iter_mut() {
