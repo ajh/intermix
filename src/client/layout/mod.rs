@@ -1,11 +1,11 @@
 mod node;
-mod leaf_iter;
+mod node_iters;
 
 use std::slice::Iter;
 use vterm_sys;
 use itertools::Itertools;
 pub use self::node::*;
-pub use self::leaf_iter::*;
+pub use self::node_iters::*;
 
 pub type Size = vterm_sys::ScreenSize;
 pub type Pos = vterm_sys::Pos;

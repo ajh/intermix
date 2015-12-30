@@ -4,14 +4,14 @@ use ::support::layout_painter::*;
 
 mod align;
 mod wrap;
-mod margin_padding;
+mod border_margin_padding;
 
 // Features todo:
 //
-// * [ ] padding
-// * [ ] margin
+// * [x] padding
+// * [x] margin
 // * [ ] title
-// * [ ] border
+// * [x] border
 // * [ ] use xml backend rather than node stuff?
 // * [x] rethink widget vs leaf with id String
 

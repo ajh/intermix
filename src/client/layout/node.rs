@@ -1,11 +1,11 @@
 use std::slice::Iter;
 use vterm_sys;
 use itertools::Itertools;
-use super::{Size, Pos, LeafIter};
+use super::{Size, Pos, Nodes};
 
 pub const GRID_COLUMNS_COUNT: u16 = 12;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum GridWidth {
     /// Fill the width of the parent container
     Max,
@@ -13,7 +13,7 @@ pub enum GridWidth {
     Cols (u16),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Align {
     Left,
     Center,
@@ -23,7 +23,7 @@ impl Default for Align {
     fn default() -> Align { Align::Left }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum VerticalAlign {
     Top,
     Middle,
@@ -41,6 +41,7 @@ pub struct NodeOptions {
     pub width: Option<u16>,
     pub padding: u16,
     pub margin: u16,
+    pub has_border: bool,
 }
 
 /// A Node is a rectangle that gets aligned into a layout with other nodes.
@@ -56,7 +57,7 @@ pub struct NodeOptions {
 ///
 /// Nodes will try to position themselves to the right of a prior sibling node, but will wrap
 /// without enough room.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Node {
     pub align               : Align,
     pub computed_grid_width : u16,
@@ -70,6 +71,7 @@ pub struct Node {
     pub value               : String,
     pub padding             : u16,
     pub margin              : u16,
+    pub has_border              : bool,
 
     pub children: Vec<Node>,
 }
@@ -91,6 +93,7 @@ impl Node {
             width               :  options.width,
             padding             :  options.padding,
             margin              :  options.margin,
+            has_border          :  options.has_border,
         }
     }
 
@@ -111,6 +114,7 @@ impl Node {
             width               :  options.width,
             padding             :  options.padding,
             margin              :  options.margin,
+            has_border          :  options.has_border,
         }
     }
 
@@ -131,6 +135,7 @@ impl Node {
             width               :  options.width,
             padding             :  options.padding,
             margin              :  options.margin,
+            has_border          :  options.has_border,
         }
     }
 
@@ -176,7 +181,7 @@ impl Node {
     ///
     /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
     pub fn calc_width(&mut self, assigned_width: u16, screen_size: &Size) {
-        self.computed_size.cols = assigned_width - self.margin * 2 - self.padding * 2;
+        self.computed_size.cols = assigned_width - self.margin * 2 - self.padding * 2 - if self.has_border { 2 } else { 0 };
 
         // copy these to work around borrowck issues
         let self_size_cols = self.computed_size.cols;
@@ -233,7 +238,7 @@ impl Node {
 
     // This depends on widths already being calculated
     pub fn calc_col_position(&mut self, assigned_col: i16, screen_size: &Size) {
-        self.computed_pos.col = assigned_col + self.margin as i16 + self.padding as i16;
+        self.computed_pos.col = assigned_col + self.margin as i16 + self.padding as i16 + if self.has_border { 1 } else { 0 };
 
         // copy to work around borrowck
         let self_computed_pos_col = self.computed_pos.col;
@@ -273,13 +278,13 @@ impl Node {
         else if !self.children.is_empty() {
             self.computed_size.rows = self.lines()
                 .iter()
-                .map(|line| line.iter().map(|c| c.get_computed_size().rows + c.margin * 2 + c.padding * 2).max().unwrap())
+                .map(|line| line.iter().map(|c| c.get_computed_size().rows + c.margin * 2 + c.padding * 2 + if c.has_border { 2 } else { 0 }).max().unwrap())
                 .fold(0, ::std::ops::Add::add);
         }
     }
 
     pub fn set_row_pos(&mut self, assigned_row: i16, screen_size: &Size) {
-        self.computed_pos.row = assigned_row + self.margin as i16 + self.padding as i16;
+        self.computed_pos.row = assigned_row + self.margin as i16 + self.padding as i16 + if self.has_border { 1 } else { 0 };
 
         if !self.children.is_empty() {
             // copy to work around borrowck
@@ -315,25 +320,6 @@ impl Node {
 
     pub fn is_leaf(&self) -> bool {
         self.children.is_empty()
-    }
-
-    // Return an iterator over all leaf nodes which are descendants of this node
-    pub fn leaf_iter(&self) -> LeafIter {
-        let mut leafs = vec![];
-
-        if self.is_leaf() {
-            leafs.push(self);
-        }
-
-        for child in self.children.iter() {
-            let mut more_leaves = child.leaf_iter().collect::<Vec<&Node>>();
-            leafs.append(&mut more_leaves);
-        }
-
-        LeafIter {
-            nodes: leafs,
-            index: 0,
-        }
     }
 
     /// Return lists of Nodes that are one the same line. When a Node wraps below others it is
@@ -391,6 +377,10 @@ impl Node {
         if line.len() > 0 { output.push(line) }
 
         output
+    }
+
+    pub fn descendants(&self) -> Nodes {
+        Nodes::new(self)
     }
 }
 

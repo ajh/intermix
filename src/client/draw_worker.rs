@@ -59,7 +59,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         trace!("damage for program {}", program_id);
 
         let layout = self.layout.read().unwrap();
-        if let Some(node) = layout.root.leaf_iter().find(|w| w.value == program_id) {
+        if let Some(node) = layout.root.descendants().find(|n| n.is_leaf() && n.value == program_id) {
             self.painter.draw_cells(&cells, &node.computed_pos);
         }
         else {

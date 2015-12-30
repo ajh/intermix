@@ -165,7 +165,7 @@ impl MainWorker {
 
         let found_status_line = {
             let layout = self.layout.read().unwrap();
-            if let Some(node) = layout.root.leaf_iter().find(|n| n.value == "status_line".to_string()) {
+            if let Some(node) = layout.root.descendants().find(|n| n.is_leaf() && n.value == "status_line".to_string()) {
                 true
             } else {
                 false

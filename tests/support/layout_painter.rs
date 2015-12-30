@@ -5,8 +5,31 @@ pub fn draw_layout(layout: &Layout) -> String {
     // scene is 2d vec organized rows then cols
     let mut scene: Vec<Vec<char>> = vec![vec![' '; layout.size.cols as usize]; layout.size.rows as usize];
 
+    for node in layout.root.descendants().filter(|n| n.has_border) {
+        let distance = node.padding + 1;
+        let top      = (node.computed_pos.row as u16 - distance) as usize;
+        let bottom   = (node.computed_pos.row as u16 + node.computed_size.rows - 1 + distance) as usize;
+        let left     = (node.computed_pos.col as u16 - distance) as usize;
+        let right    = (node.computed_pos.col as u16 + node.computed_size.cols - 1 + distance) as usize;
+
+        scene[top][left] = '┌';
+        scene[top][right] = '┐';
+        scene[bottom][left] = '└';
+        scene[bottom][right] = '┘';
+
+        for x in (left + 1..right) {
+            scene[top][x] = '─';
+            scene[bottom][x] = '─';
+        }
+
+        for y in (top + 1..bottom) {
+            scene[y][left] = '│';
+            scene[y][right] = '│';
+        }
+    }
+
     // draw leafs into scene
-    for leaf in layout.root.leaf_iter() {
+    for leaf in layout.root.descendants().filter(|n| n.is_leaf()) {
         if leaf.computed_pos.row as u16 >= layout.size.rows { continue }
         if leaf.computed_pos.col as u16 >= layout.size.cols { continue }
 
@@ -24,9 +47,10 @@ pub fn draw_layout(layout: &Layout) -> String {
                 scene[y as usize][x as usize] = leaf.value.chars().next().unwrap();
             }
         }
+
     }
 
-    // draw border
+    // draw scene border
     let width = scene.first().unwrap().len();
     for line in scene.iter_mut() {
         line.insert(0, '|');
