@@ -7,7 +7,6 @@ pub fn draw_layout(layout: &Layout) -> String {
 
     // draw leafs into scene
     for leaf in layout.root.leaf_iter() {
-        println!("{:?}", leaf);
         if leaf.computed_pos.row as u16 >= layout.size.rows { continue }
         if leaf.computed_pos.col as u16 >= layout.size.cols { continue }
 

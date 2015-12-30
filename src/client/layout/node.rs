@@ -39,8 +39,8 @@ pub struct NodeOptions {
     pub vertical_align: VerticalAlign,
     pub height: Option<u16>,
     pub width: Option<u16>,
-    pub padding: Option<u16>,
-    pub margin: Option<u16>,
+    pub padding: u16,
+    pub margin: u16,
 }
 
 /// A Node is a rectangle that gets aligned into a layout with other nodes.
@@ -68,8 +68,8 @@ pub struct Node {
     pub vertical_align      : VerticalAlign,
     pub width               : Option<u16>,
     pub value               : String,
-    pub padding             : Option<u16>,
-    pub margin              : Option<u16>,
+    pub padding             : u16,
+    pub margin              : u16,
 
     pub children: Vec<Node>,
 }
@@ -138,6 +138,9 @@ impl Node {
     ///
     /// The computed grid column may be smaller than the desired one, when for example a col 9 is
     /// inside a col 6.
+    ///
+    /// assigned grid widths ignore padding, margin and borders. Not sure if that is a good thing
+    /// or not.
     pub fn calc_layout(&mut self, assigned_grid_width: u16) {
         self.computed_grid_width = assigned_grid_width;
 
@@ -165,9 +168,9 @@ impl Node {
 
     /// Here's the algo:
     ///
-    /// 1. iterate through children by rows.
+    /// 1. iterate through children by lines.
     ///
-    /// 2. For each row, figure out a couple things:
+    /// 2. For each lines, figure out:
     /// * how many cols are missing due to rounding errors
     /// * which nodes are the most effected
     ///
@@ -177,14 +180,28 @@ impl Node {
 
         // copy these to work around borrowck issues
         let self_size_cols = self.computed_size.cols;
+        let inside_width = self.computed_size.cols - self.padding * 2;
         let self_computed_grid_width = self.computed_grid_width;
+
+        println!("self_size_cols {} inside_width {} self_computed_grid_width {}", self_size_cols, inside_width, self_computed_grid_width);
 
         for line in &mut self.lines_mut() {
             let mut widths: Vec<WidthInfo> = line.iter()
                 .enumerate()
                 .map(|(i, child)| match child.grid_width {
-                    GridWidth::Cols(c) => WidthInfo::new_from_col(c, screen_size.cols, i),
-                    GridWidth::Max => WidthInfo::new_from_row(self_size_cols, self_computed_grid_width, i)})
+                    GridWidth::Cols(c) => WidthInfo::new(
+                        i,
+                        c,
+                        self_computed_grid_width,
+                        inside_width
+                    ),
+                    GridWidth::Max => WidthInfo::new(
+                        i,
+                        self_computed_grid_width,
+                        self_computed_grid_width,
+                        inside_width,
+                    )
+                })
                 .sort_by(|a,b| b.delta.partial_cmp(&a.delta).unwrap());
 
             let mut unused_cols = {
@@ -192,9 +209,10 @@ impl Node {
                     .map(|t| t.grid_columns)
                     .fold(0, ::std::ops::Add::add);
 
-                let percent = grid_columns as f32 / GRID_COLUMNS_COUNT as f32;
-                let mut expected_width = (screen_size.cols as f32 * percent).round() as u16;
-                if expected_width > self_size_cols { expected_width = self_size_cols }
+                let percent = grid_columns as f32 / self_computed_grid_width as f32;
+                let mut expected_width = (inside_width as f32 * percent).round() as u16;
+
+                if expected_width > inside_width { expected_width = inside_width }
 
                 let computed_width = widths.iter()
                     .map(|t| t.cols)
@@ -220,22 +238,22 @@ impl Node {
         self.computed_pos.col = assigned_col;
 
         // copy to work around borrowck
-        let self_pos_col = self.computed_pos.col;
-        let self_size_cols = self.computed_size.cols;
+        let inside_x = self.computed_pos.col + self.padding as i16;
+        let inside_width = self.computed_size.cols - self.padding * 2;
         let align = self.align.clone();
 
         for line in &mut self.lines_mut() {
             let row_width = line.iter()
                 .map(|c| c.get_computed_size().cols as i16)
                 .fold(0, ::std::ops::Add::add);
-            let unused_cols = self_size_cols as i16 - row_width;
+            let unused_cols = inside_width as i16 - row_width;
             let pos_offet = match align {
                 Align::Left => 0,
                 Align::Center => (unused_cols as f32 / 2.0).floor() as i16,
                 Align::Right => unused_cols,
             };
 
-            let mut col = self_pos_col + pos_offet;
+            let mut col = inside_x + pos_offet;
 
             for child in line {
                 child.calc_col_position(col, screen_size);
@@ -244,6 +262,8 @@ impl Node {
         }
     }
 
+    /// This one is botton up unlike the others which is top down. It bases its height on the
+    /// combined height of its children.
     pub fn calc_height(&mut self, screen_size: &Size) {
         for child in self.children.iter_mut() {
             child.calc_height(screen_size);
@@ -253,10 +273,11 @@ impl Node {
             self.computed_size.rows = self.height.clone().unwrap();
         }
         else if !self.children.is_empty() {
-            self.computed_size.rows = self.lines()
-                .iter()
-                .map(|line| line.iter().map(|c| c.get_computed_size().rows).max().unwrap())
-                .fold(0, ::std::ops::Add::add);
+            let height = self.lines()
+                         .iter()
+                         .map(|line| line.iter().map(|c| c.get_computed_size().rows).max().unwrap())
+                         .fold(0, ::std::ops::Add::add);
+            self.computed_size.rows = height + self.padding * 2;
         }
     }
 
@@ -265,22 +286,22 @@ impl Node {
 
         if !self.children.is_empty() {
             // copy to work around borrowck
-            let self_size_rows = self.computed_size.rows;
+            let inside_height = self.computed_size.rows - self.padding * 2;
             let v_align = self.vertical_align.clone();
-            let self_computed_pos_row = self.computed_pos.row;
+            let inside_y = self.computed_pos.row + self.padding as i16;
 
             let mut lines = self.lines_mut();
             let total_height = lines.iter()
                 .map(|line| line.iter().map(|n| n.get_computed_size().rows).max().unwrap() as i16)
                 .fold(0, ::std::ops::Add::add);
-            let unused_rows = self_size_rows as i16 - total_height;
+            let unused_rows = inside_height as i16 - total_height;
             let offset = match v_align {
                 VerticalAlign::Top => 0,
                 VerticalAlign::Middle => (unused_rows as f32 / 2.0).floor() as i16,
                 VerticalAlign::Bottom => unused_rows,
             };
 
-            let mut current_row = self_computed_pos_row + offset;
+            let mut current_row = inside_y + offset;
 
             for line in lines.iter_mut() {
                 for child in line.iter_mut() {
@@ -386,23 +407,15 @@ struct WidthInfo {
 }
 
 impl WidthInfo {
-    pub fn new_from_col(grid_columns: u16, screen_width: u16, child_index: usize) -> WidthInfo {
-        let percent = grid_columns as f32 / GRID_COLUMNS_COUNT as f32;
-        let width_f32 = screen_width as f32 * percent;
-        let floor = width_f32.floor();
-        WidthInfo {
-            cols: floor as u16,
-            delta: width_f32 - floor,
-            grid_columns: grid_columns,
-            child_index: child_index,
-        }
-    }
+    pub fn new(child_index: usize, grid_columns: u16, parent_grid_columns: u16, parent_inside_width: u16) -> WidthInfo {
+        let percent = grid_columns as f32 / parent_grid_columns as f32;
+        let width_f32 = parent_inside_width as f32 * percent;
+        let calculated_width = width_f32.floor();
 
-    pub fn new_from_row(parent_width: u16, parent_grid_columns: u16, child_index: usize) -> WidthInfo {
         WidthInfo {
-            cols: parent_width,
-            delta: 0.0,
-            grid_columns: parent_grid_columns,
+            cols: calculated_width as u16,
+            delta: width_f32 - calculated_width,
+            grid_columns: grid_columns,
             child_index: child_index,
         }
     }
