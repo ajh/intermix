@@ -82,3 +82,32 @@ fn it_can_have_border_marging_and_padding() {
 .--------.");
 }
 
+
+#[test]
+fn it_can_nest_nodes_with_borders_margins_and_paddings() {
+    ::setup_logging();
+    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), ..Default::default()});
+    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), ..Default::default()});
+    let leaf_c = Node::leaf_v2("c".to_string(), NodeOptions { height: Some(2), ..Default::default()});
+
+    let mut layout = Layout::new(
+        Size { rows: 8, cols: 8},
+        Node::row(NodeOptions { has_border: true, ..Default::default() }, vec![
+            Node::col(3, NodeOptions { margin: 1, ..Default::default() }, vec![leaf_a, leaf_b]),
+            Node::col(9, NodeOptions { has_border: true, ..Default::default() }, vec![leaf_c])
+        ])
+    );
+
+    layout.calculate_layout();
+    assert_scene_eq(&draw_layout(&layout), "
+.--------.
+|        |
+| ┌────┐ |
+| │    │ |
+| │ aa │ |
+| │ aa │ |
+| │    │ |
+| └────┘ |
+|        |
+.--------.");
+}
