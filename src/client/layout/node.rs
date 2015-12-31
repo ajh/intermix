@@ -2,6 +2,7 @@ use std::slice::Iter;
 use vterm_sys;
 use itertools::Itertools;
 use super::{Size, Pos, Nodes};
+use std::cmp::Ordering;
 
 pub const GRID_COLUMNS_COUNT: u16 = 12;
 
@@ -180,7 +181,7 @@ impl Node {
     /// * which nodes are the most effected
     ///
     /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
-    pub fn calc_width(&mut self, assigned_width: u16, screen_size: &Size) {
+    pub fn calc_width(&mut self, assigned_width: u16) {
         self.computed_size.cols = assigned_width - self.margin * 2 - self.padding * 2 - if self.has_border { 2 } else { 0 };
 
         // copy these to work around borrowck issues
@@ -205,7 +206,13 @@ impl Node {
                         self_computed_size_cols,
                     )
                 })
-                .sort_by(|a,b| b.delta.partial_cmp(&a.delta).unwrap());
+                .sort_by(|a,b| {
+                    match b.delta.partial_cmp(&a.delta).unwrap() {
+                        Ordering::Equal   => a.cols.cmp(&b.cols),
+                        Ordering::Less    => Ordering::Less,
+                        Ordering::Greater => Ordering::Greater,
+                    }
+                });
 
             let mut unused_cols = {
                 let grid_columns = widths.iter()
@@ -231,13 +238,13 @@ impl Node {
                     cols += 1;
                 }
 
-                line[info.child_index].calc_width(cols, screen_size);
+                line[info.child_index].calc_width(cols);
             }
         }
     }
 
     // This depends on widths already being calculated
-    pub fn calc_col_position(&mut self, assigned_col: i16, screen_size: &Size) {
+    pub fn calc_col_position(&mut self, assigned_col: i16) {
         self.computed_pos.col = assigned_col + self.margin as i16 + self.padding as i16 + if self.has_border { 1 } else { 0 };
 
         // copy to work around borrowck
@@ -247,7 +254,7 @@ impl Node {
 
         for line in &mut self.lines_mut() {
             let row_width = line.iter()
-                .map(|c| c.get_computed_size().cols as i16)
+                .map(|c| c.outside_width() as i16)
                 .fold(0, ::std::ops::Add::add);
             let unused_cols = self_computed_size_cols as i16 - row_width;
             let pos_offet = match align {
@@ -259,17 +266,17 @@ impl Node {
             let mut col = self_computed_pos_col + pos_offet;
 
             for child in line {
-                child.calc_col_position(col, screen_size);
-                col += child.get_computed_size().cols as i16;
+                child.calc_col_position(col);
+                col += child.outside_width() as i16;
             }
         }
     }
 
     /// This one is botton up unlike the others which is top down. It bases its height on the
     /// combined height of its children.
-    pub fn calc_height(&mut self, screen_size: &Size) {
+    pub fn calc_height(&mut self) {
         for child in self.children.iter_mut() {
-            child.calc_height(screen_size);
+            child.calc_height();
         }
 
         if self.height.is_some() {
@@ -278,12 +285,12 @@ impl Node {
         else if !self.children.is_empty() {
             self.computed_size.rows = self.lines()
                 .iter()
-                .map(|line| line.iter().map(|c| c.get_computed_size().rows + c.margin * 2 + c.padding * 2 + if c.has_border { 2 } else { 0 }).max().unwrap())
+                .map(|line| line.iter().map(|c| c.outside_height()).max().unwrap())
                 .fold(0, ::std::ops::Add::add);
         }
     }
 
-    pub fn set_row_pos(&mut self, assigned_row: i16, screen_size: &Size) {
+    pub fn set_row_pos(&mut self, assigned_row: i16) {
         self.computed_pos.row = assigned_row + self.margin as i16 + self.padding as i16 + if self.has_border { 1 } else { 0 };
 
         if !self.children.is_empty() {
@@ -294,7 +301,7 @@ impl Node {
 
             let mut lines = self.lines_mut();
             let total_height = lines.iter()
-                .map(|line| line.iter().map(|n| n.get_computed_size().rows).max().unwrap() as i16)
+                .map(|line| line.iter().map(|n| n.outside_height()).max().unwrap() as i16)
                 .fold(0, ::std::ops::Add::add);
             let unused_rows = self_computed_size_rows as i16 - total_height;
             let offset = match v_align {
@@ -307,15 +314,11 @@ impl Node {
 
             for line in lines.iter_mut() {
                 for child in line.iter_mut() {
-                    child.set_row_pos(current_row, screen_size);
+                    child.set_row_pos(current_row);
                 }
-                current_row += line.iter().map(|n| n.get_computed_size().rows).max().unwrap() as i16;
+                current_row += line.iter().map(|n| n.outside_height()).max().unwrap() as i16;
             }
         }
-    }
-
-    pub fn get_computed_size(&self) -> &Size {
-        &self.computed_size
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -381,6 +384,14 @@ impl Node {
 
     pub fn descendants(&self) -> Nodes {
         Nodes::new(self)
+    }
+
+    pub fn outside_width(&self) -> u16 {
+        self.computed_size.cols + self.margin * 2 + self.padding * 2 + if self.has_border { 2 } else { 0 }
+    }
+
+    pub fn outside_height(&self) -> u16 {
+        self.computed_size.rows + self.margin * 2 + self.padding * 2 + if self.has_border { 2 } else { 0 }
     }
 }
 

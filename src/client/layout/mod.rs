@@ -52,9 +52,9 @@ impl Layout {
                 (self.size.cols as f32 * percent).round() as u16
             }
         };
-        self.root.calc_width(width, &self.size);
-        self.root.calc_col_position(0, &self.size);
-        self.root.calc_height(&self.size);
-        self.root.set_row_pos(0, &self.size);
+        self.root.calc_width(width);
+        self.root.calc_col_position(0);
+        self.root.calc_height();
+        self.root.set_row_pos(0);
     }
 }
