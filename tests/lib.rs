@@ -11,8 +11,8 @@ mod support;
 
 static mut is_logging_setup: bool = false;
 
-/// this could protect itself from running multiple times
 fn setup_logging() {
+    // protect itself from running multiple times
     unsafe {
         if is_logging_setup { return }
         is_logging_setup = true;

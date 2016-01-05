@@ -57,8 +57,7 @@ impl PtyReader {
             };
 
             let mut bytes_vec: Vec<u8> = vec!();
-            // TODO: fix this lameness
-            for byte in bytes { bytes_vec.push(byte.clone()) };
+            bytes_vec.extend(bytes);
             let msg = VteWorkerMsg::PtyRead { bytes: bytes_vec };
             self.vte_tx.send(msg).unwrap();
         }

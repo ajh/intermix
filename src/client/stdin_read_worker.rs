@@ -37,11 +37,8 @@ impl <F: 'static + Read + Send> StdinReadWorker<F> {
                         break;
                     };
 
-                    // This could be the worst way to do this
-                    let mut bytes: Vec<u8> = vec!();
-                    for byte in &buf[0..num_bytes] {
-                        bytes.push(*byte)
-                    }
+                    let mut bytes: Vec<u8> = vec![];
+                    bytes.extend(&buf[0..num_bytes]);
 
                     let msg = ClientMsg::UserInput { bytes: bytes };
 
