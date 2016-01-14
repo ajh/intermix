@@ -4,7 +4,7 @@ use std::io;
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct NodeData {
-    name: String,
+    pub name: String,
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -25,10 +25,11 @@ pub enum UserAction {
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct EdgeData {
-    action: Option<Action>,
-    codes: Vec<u8>,
-    default: bool,
+    pub action: Option<Action>,
+    pub codes: Vec<u8>,
+    pub default: bool,
 }
+
 impl Default for EdgeData {
     fn default() -> EdgeData {
         EdgeData { action: None, codes: vec![], default: false }
@@ -54,20 +55,8 @@ impl ModalKeyHandler {
     }
 
     pub fn new_with_graph() -> ModalKeyHandler {
-        let mut graph: Graph<NodeData, EdgeData> = Graph::new();
-        let w = graph.add_node(NodeData { name: "welcome".to_string() });
-        let c = graph.add_node(NodeData { name: "command".to_string() });
-        let p = graph.add_node(NodeData { name: "program".to_string() });
-
-        graph.add_edge(w, c, EdgeData { default: true, ..Default::default()});
-
-        graph.add_edge(c, p, EdgeData { action: Some(Action::ProgramStart), codes: vec![99], ..Default::default()});
-        graph.add_edge(c, c, EdgeData { action: Some(Action::Quit), codes: vec![113], ..Default::default()});
-
-        graph.add_edge(p, p, EdgeData { action: Some(Action::ProgramInput), codes: vec![2,2], default: true, ..Default::default()});
-        graph.add_edge(p, c, EdgeData { codes: vec![2,100], ..Default::default()});
-
-        ModalKeyHandler::new(w, graph)
+        let graph = super::graph_intermix::graph();
+        ModalKeyHandler::new(0, graph)
     }
 
     pub fn mode_name(&self) -> &String {
@@ -145,10 +134,10 @@ mod tests {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97], ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97]);
+        h.write("a".as_bytes());
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -156,11 +145,11 @@ mod tests {
     fn when_edge_matches_it_follows_it_to_same_node() {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
-        graph.add_edge(n0_index, n0_index, EdgeData { codes: vec![97], ..Default::default()});
+        graph.add_edge(n0_index, n0_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97]);
+        h.write("a".as_bytes());
         assert_eq!(h.current_node, n0_index);
     }
 
@@ -171,8 +160,8 @@ mod tests {
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97]);
-        assert_eq!(h.actions_queue.first(), Some(&UserAction::UnknownInput { bytes: vec![97] } ));
+        h.write("a".as_bytes());
+        assert_eq!(h.actions_queue.first(), Some(&UserAction::UnknownInput { bytes: "a".to_string().into_bytes() } ));
     }
 
     #[test]
@@ -184,7 +173,7 @@ mod tests {
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97]);
+        h.write("a".as_bytes());
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -194,12 +183,12 @@ mod tests {
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
         let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97], ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
         graph.add_edge(n0_index, n2_index, EdgeData { default: true, ..Default::default()});
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97]);
+        h.write("a".as_bytes());
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -209,12 +198,12 @@ mod tests {
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
         let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97], ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
         graph.add_edge(n0_index, n2_index, EdgeData { default: true, ..Default::default()});
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97]);
+        h.write("a".as_bytes());
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -223,10 +212,10 @@ mod tests {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97, 98], ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97, 98]);
+        h.write("ab".as_bytes());
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -235,11 +224,11 @@ mod tests {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97, 98], ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97]);
-        h.write(&[98]);
+        h.write("a".as_bytes());
+        h.write("b".as_bytes());
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -249,11 +238,11 @@ mod tests {
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
         let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97, 98], ..Default::default()});
-        graph.add_edge(n1_index, n2_index, EdgeData { codes: vec![99, 100], ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default()});
+        graph.add_edge(n1_index, n2_index, EdgeData { codes: "cd".to_string().into_bytes(), ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97, 98, 99, 100]);
+        h.write("abcd".as_bytes());
         assert_eq!(h.current_node, n2_index);
     }
 
@@ -263,11 +252,11 @@ mod tests {
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
         let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97], ..Default::default()});
-        graph.add_edge(n1_index, n2_index, EdgeData { codes: vec![98], ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
+        graph.add_edge(n1_index, n2_index, EdgeData { codes: "b".to_string().into_bytes(), ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97, 98]);
+        h.write("ab".as_bytes());
         assert_eq!(h.current_node, n2_index);
     }
 
@@ -278,8 +267,8 @@ mod tests {
         graph.add_edge(n0_index, n0_index, EdgeData { action: Some(Action::ProgramInput), default: true, ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97]);
-        assert_eq!(h.actions_queue.first(), Some(&UserAction::ProgramInput { bytes: vec![97] } ));
+        h.write("a".as_bytes());
+        assert_eq!(h.actions_queue.first(), Some(&UserAction::ProgramInput { bytes: "a".to_string().into_bytes() } ));
     }
 
     #[test]
@@ -289,7 +278,7 @@ mod tests {
         graph.add_edge(n0_index, n0_index, EdgeData { action: Some(Action::ProgramStart), default: true, ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97]);
+        h.write("a".as_bytes());
         assert_eq!(h.actions_queue.first(), Some(&UserAction::ProgramStart));
     }
 
@@ -300,7 +289,7 @@ mod tests {
         graph.add_edge(n0_index, n0_index, EdgeData { action: Some(Action::Quit), default: true, ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write(&[97]);
+        h.write("a".as_bytes());
         assert_eq!(h.actions_queue.first(), Some(&UserAction::Quit));
     }
 }

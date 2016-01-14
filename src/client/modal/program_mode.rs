@@ -45,4 +45,4 @@ impl Write for ProgramMode {
         self.detector.write(buf)
     }
     fn flush(&mut self) -> io::Result<()> { Ok(()) }
-}
+e
