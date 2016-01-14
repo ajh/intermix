@@ -32,6 +32,7 @@ pub struct InputHandler {
     current_node: NodeIndex,
     graph: Graph<NodeData, EdgeData>,
     tx: Sender<UserAction>,
+    match_buf: Vec<u8>,
 }
 
 impl InputHandler {
@@ -40,6 +41,7 @@ impl InputHandler {
             current_node: first_node_index,
             graph: graph,
             tx: tx,
+            match_buf: vec![],
         }
     }
 }
@@ -47,16 +49,19 @@ impl InputHandler {
 impl Write for InputHandler {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         for byte in buf.iter() {
+            let mut match_buf = self.match_buf.clone();
+            match_buf.push(*byte);
+
             let edge_indexes = self.graph.nodes[self.current_node].edge_indexes.clone();
 
-            if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes == vec![*byte] ) {
+            if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes == match_buf) {
                 self.current_node = self.graph.edges[*i].target;
-            }
-            else if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.default ) {
+            } else if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes.starts_with(&match_buf)) {
+                self.match_buf = match_buf;
+            } else if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.default ) {
                 self.current_node = self.graph.edges[*i].target;
-            }
-            else {
-                self.tx.send(UserAction::UnknownInput { bytes: vec![*byte] });
+            } else {
+                self.tx.send(UserAction::UnknownInput { bytes: match_buf });
             }
         }
 
@@ -80,7 +85,7 @@ mod tests {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { action: None, codes: vec![97], ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97], ..Default::default()});
         let (tx, _) = channel();
         let mut h = InputHandler::new(n0_index, graph, tx);
 
@@ -92,7 +97,7 @@ mod tests {
     fn when_edge_matches_it_follows_it_to_same_node() {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
-        graph.add_edge(n0_index, n0_index, EdgeData { action: None, codes: vec![97], ..Default::default()});
+        graph.add_edge(n0_index, n0_index, EdgeData { codes: vec![97], ..Default::default()});
 
         let (tx, _) = channel();
         let mut h = InputHandler::new(n0_index, graph, tx);
@@ -118,7 +123,7 @@ mod tests {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { action: None, default: true, ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { default: true, ..Default::default()});
 
         let (tx, _) = channel();
         let mut h = InputHandler::new(n0_index, graph, tx);
@@ -133,8 +138,8 @@ mod tests {
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
         let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { action: None, codes: vec![97], ..Default::default()});
-        graph.add_edge(n0_index, n2_index, EdgeData { action: None, default: true, ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97], ..Default::default()});
+        graph.add_edge(n0_index, n2_index, EdgeData { default: true, ..Default::default()});
 
         let (tx, _) = channel();
         let mut h = InputHandler::new(n0_index, graph, tx);
@@ -149,8 +154,8 @@ mod tests {
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
         let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { action: None, codes: vec![97], ..Default::default()});
-        graph.add_edge(n0_index, n2_index, EdgeData { action: None, default: true, ..Default::default()});
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97], ..Default::default()});
+        graph.add_edge(n0_index, n2_index, EdgeData { default: true, ..Default::default()});
 
         let (tx, _) = channel();
         let mut h = InputHandler::new(n0_index, graph, tx);
@@ -158,6 +163,49 @@ mod tests {
         h.write(&[97]);
         assert_eq!(h.current_node, n1_index);
     }
+
+    #[test]
+    fn when_edge_with_multiple_bytes_matches_it_follows_it() {
+        let mut graph: Graph<NodeData, EdgeData> = Graph::new();
+        let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
+        let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97, 98], ..Default::default()});
+        let (tx, _) = channel();
+        let mut h = InputHandler::new(n0_index, graph, tx);
+
+        h.write(&[97, 98]);
+        assert_eq!(h.current_node, n1_index);
+    }
+
+    #[test]
+    fn when_edge_with_multiple_bytes_matches_it_follows_it_across_writes() {
+        let mut graph: Graph<NodeData, EdgeData> = Graph::new();
+        let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
+        let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97, 98], ..Default::default()});
+        let (tx, _) = channel();
+        let mut h = InputHandler::new(n0_index, graph, tx);
+
+        h.write(&[97]);
+        h.write(&[98]);
+        assert_eq!(h.current_node, n1_index);
+    }
+
+    #[test]
+    fn it_can_follow_multiple_edges_in_a_single_write() {
+        let mut graph: Graph<NodeData, EdgeData> = Graph::new();
+        let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
+        let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
+        let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97], ..Default::default()});
+        graph.add_edge(n1_index, n2_index, EdgeData { codes: vec![98], ..Default::default()});
+        let (tx, _) = channel();
+        let mut h = InputHandler::new(n0_index, graph, tx);
+
+        h.write(&[97, 98]);
+        assert_eq!(h.current_node, n2_index);
+    }
+
     // it_sends_edge_action_to_channel
 
     // it_follows_edge_when_code_matches
