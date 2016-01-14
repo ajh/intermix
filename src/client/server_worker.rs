@@ -46,16 +46,16 @@ impl ServerWorker {
             };
 
             match msg {
-                ClientMsg::Quit => break,
-                ClientMsg::ServerAdd { .. } => self.forward_to_main_worker(msg),
-                ClientMsg::ServerUpdate { .. } => self.forward_to_main_worker(msg),
-                ClientMsg::ServerRemove { .. } => self.forward_to_main_worker(msg),
+                ClientMsg::Quit                     => break,
+                ClientMsg::ServerAdd { .. }         => self.forward_to_main_worker(msg),
+                ClientMsg::ServerUpdate { .. }      => self.forward_to_main_worker(msg),
+                ClientMsg::ServerRemove { .. }      => self.forward_to_main_worker(msg),
 
-                ClientMsg::ProgramAdd { .. } => self.forward_to_main_worker(msg),
-                ClientMsg::ProgramUpdate { .. } => self.forward_to_main_worker(msg),
-                ClientMsg::ProgramRemove { .. } => self.forward_to_main_worker(msg),
+                ClientMsg::ProgramAdd { .. }        => self.forward_to_main_worker(msg),
+                ClientMsg::ProgramUpdate { .. }     => self.forward_to_main_worker(msg),
+                ClientMsg::ProgramRemove { .. }     => self.forward_to_main_worker(msg),
 
-                ClientMsg::ProgramDamage { .. } => self.forward_to_draw_worker(msg),
+                ClientMsg::ProgramDamage { .. }     => self.forward_to_draw_worker(msg),
                 ClientMsg::ProgramMoveCursor { .. } => self.forward_to_draw_worker(msg),
 
                 _ => warn!("unhandled msg {:?}", msg),
