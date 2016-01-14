@@ -8,7 +8,7 @@ pub struct NodeData {
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
-pub enum Action {
+pub enum ActionType {
     ProgramInput,
     ProgramStart,
     Quit,
@@ -25,7 +25,7 @@ pub enum UserAction {
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct EdgeData {
-    pub action: Option<Action>,
+    pub action: Option<ActionType>,
     pub codes: Vec<u8>,
     pub default: bool,
 }
@@ -73,7 +73,7 @@ impl Write for ModalKeyHandler {
 
             let edge_indexes = self.graph.nodes[self.current_node].edge_indexes.clone();
             let mut next_node: Option<NodeIndex> = None;
-            let mut action: Option<Action> = None;
+            let mut action: Option<ActionType> = None;
 
             if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes == match_buf) {
                 trace!("exact match");
@@ -99,9 +99,9 @@ impl Write for ModalKeyHandler {
 
             if let Some(a) = action {
                 let user_action = match a {
-                    Action::ProgramInput => UserAction::ProgramInput { bytes: match_buf },
-                    Action::ProgramStart => UserAction::ProgramStart,
-                    Action::Quit => UserAction::Quit,
+                    ActionType::ProgramInput => UserAction::ProgramInput { bytes: match_buf },
+                    ActionType::ProgramStart => UserAction::ProgramStart,
+                    ActionType::Quit => UserAction::Quit,
                 };
                 self.actions_queue.push(user_action);
             }
@@ -264,7 +264,7 @@ mod tests {
     fn when_matching_edge_has_a_program_input_action_it_adds_to_queue() {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
-        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(Action::ProgramInput), default: true, ..Default::default()});
+        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(ActionType::ProgramInput), default: true, ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("a".as_bytes());
@@ -275,7 +275,7 @@ mod tests {
     fn when_matching_edge_has_a_program_start_action_it_adds_to_queue() {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
-        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(Action::ProgramStart), default: true, ..Default::default()});
+        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(ActionType::ProgramStart), default: true, ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("a".as_bytes());
@@ -286,7 +286,7 @@ mod tests {
     fn when_matching_edge_has_a_quit_action_it_adds_to_queue() {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
-        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(Action::Quit), default: true, ..Default::default()});
+        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(ActionType::Quit), default: true, ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("a".as_bytes());

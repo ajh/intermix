@@ -10,10 +10,10 @@ pub fn graph() -> Graph<NodeData, EdgeData> {
 
     graph.add_edge(w, c, EdgeData { default: true, ..Default::default()});
 
-    graph.add_edge(c, p, EdgeData { action: Some(Action::ProgramStart), codes: vec![99], ..Default::default()});
-    graph.add_edge(c, c, EdgeData { action: Some(Action::Quit), codes: vec![113], ..Default::default()});
+    graph.add_edge(c, p, EdgeData { action: Some(ActionType::ProgramStart), codes: vec![99], ..Default::default()});
+    graph.add_edge(c, c, EdgeData { action: Some(ActionType::Quit), codes: vec![113], ..Default::default()});
 
-    graph.add_edge(p, p, EdgeData { action: Some(Action::ProgramInput), codes: vec![2,2], default: true, ..Default::default()});
+    graph.add_edge(p, p, EdgeData { action: Some(ActionType::ProgramInput), codes: vec![2,2], default: true, ..Default::default()});
     graph.add_edge(p, c, EdgeData { codes: vec![2,100], ..Default::default()});
 
     graph

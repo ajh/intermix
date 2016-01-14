@@ -104,9 +104,7 @@ impl MainWorker {
                 ClientMsg::ProgramAdd { server_id, program } => self.add_program(server_id, program),
                 ClientMsg::UserInput { bytes } => {
                     self.modal_key_handler.write(&bytes);
-                    trace!("modal_key_handler {:#?}", self.modal_key_handler);
                     while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
-                        trace!("user_action {:#?}", user_action);
                         match user_action {
                             modal::UserAction::ModeChange { name } => self.change_mode(&name),
                             modal::UserAction::ProgramStart => self.program_start_cmd(),
@@ -122,7 +120,6 @@ impl MainWorker {
     }
 
     fn program_input_cmd(&self, program_id: String, bytes: Vec<u8>) {
-        trace!("sending input to program maybe");
         if let Some(server) = self.servers.iter().find(|s| s.programs.iter().any(|p| p.id == program_id)) {
             trace!("sending input to program {} {:?}", &program_id, &bytes);
             server.tx.send(::server::ServerMsg::ProgramInput {
@@ -133,7 +130,6 @@ impl MainWorker {
     }
 
     fn program_start_cmd(&self) {
-        trace!("starting program maybe");
         if let Some(server) = self.servers.first() {
             trace!("starting program");
             let command_and_args: Vec<String> = vec!["bash".to_string()];
