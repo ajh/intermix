@@ -1,6 +1,8 @@
 mod program_mode;
 mod command_mode;
 mod inband_key_detector;
+mod graph;
+mod new;
 
 use ::client::main_worker::*;
 pub use self::program_mode::*;
