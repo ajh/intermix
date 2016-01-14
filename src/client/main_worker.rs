@@ -6,6 +6,7 @@ use super::modal::*;
 use std::sync::mpsc::*;
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
+use std::io::prelude::*;
 
 /// This worker handles:
 /// * user input
@@ -19,7 +20,7 @@ pub struct MainWorker {
     rx: Receiver<ClientMsg>,
     draw_worker_tx: Sender<ClientMsg>,
     pub servers: Servers,
-    pub mode: Box<Mode>,
+    pub modal_key_handler: modal::ModalKeyHandler,
     pub tty_ioctl_config: TtyIoCtlConfig,
     pub layout: Arc<RwLock<Layout>>,
 }
@@ -56,7 +57,7 @@ impl MainWorker {
             draw_worker_tx: draw_worker_tx,
             rx: rx,
             servers: Default::default(),
-            mode: Box::new(CommandMode { accumulator: vec![] }),
+            modal_key_handler: modal::ModalKeyHandler::new_with_graph(),
             tty_ioctl_config: tty_ioctl_config.clone(),
             layout: layout,
         };
@@ -102,11 +103,14 @@ impl MainWorker {
                 ClientMsg::ServerAdd { server } => self.servers.add_server(server),
                 ClientMsg::ProgramAdd { server_id, program } => self.add_program(server_id, program),
                 ClientMsg::UserInput { bytes } => {
-                    if let Some(cmd) = self.mode.input(bytes) {
-                        match cmd {
-                            UserCmd::ProgramInput { program_id, bytes: fites } => self.program_input_cmd(program_id, fites),
-                            UserCmd::ProgramStart => self.program_start_cmd(),
-                            UserCmd::ModeChange { new_mode } => self.change_mode(&new_mode),
+                    self.modal_key_handler.write(&bytes);
+                    while let Some(action) = self.modal_key_handler.actions_queue.pop() {
+                        match action {
+                            modal::UserAction::ModeChange { name } => self.change_mode(&name),
+                            modal::UserAction::ProgramStart => self.program_start_cmd(),
+                            modal::UserAction::ProgramInput { bytes: fites } => self.program_input_cmd("bash-123".to_string(), fites),
+                            modal::UserAction::Quit => return,
+                            _ => error!("unhandled user action {:?}", action),
                         }
                     }
                 },
@@ -115,17 +119,19 @@ impl MainWorker {
         }
     }
 
-    fn program_input_cmd(&self, program_id: String, yikes: Vec<u8>) {
+    fn program_input_cmd(&self, program_id: String, bytes: Vec<u8>) {
+        trace!("sending input to program maybe");
         if let Some(server) = self.servers.iter().find(|s| s.programs.iter().any(|p| p.id == program_id)) {
-            trace!("sending input to program {} {:?}", &program_id, &yikes);
+            trace!("sending input to program {} {:?}", &program_id, &bytes);
             server.tx.send(::server::ServerMsg::ProgramInput {
                 program_id: program_id,
-                bytes: yikes,
+                bytes: bytes,
             });
         }
     }
 
     fn program_start_cmd(&self) {
+        trace!("starting program maybe");
         if let Some(server) = self.servers.first() {
             trace!("starting program");
             let command_and_args: Vec<String> = vec!["bash".to_string()];
@@ -138,8 +144,6 @@ impl MainWorker {
 
     /// For now we only expect this once, so create a pane and enter program mode aimed at it
     fn add_program(&mut self, server_id: String, program: Program) {
-        self.mode = Box::new(ProgramMode::new(program.id.clone()));
-
         {
             let mut layout = self.layout.write().unwrap();
 
@@ -161,7 +165,7 @@ impl MainWorker {
     }
 
     fn damage_status_line(&self) {
-        trace!("damage_status_line for mode {:?}", self.mode);
+        trace!("damage_status_line for mode {:?}", self.modal_key_handler.mode_name());
 
         let found_status_line = {
             let layout = self.layout.read().unwrap();
@@ -175,7 +179,7 @@ impl MainWorker {
         // Draw it
         if found_status_line {
             let mut cells = vec![];
-            for (i, char) in self.mode.display().chars().enumerate() {
+            for (i, char) in self.modal_key_handler.mode_name().chars().enumerate() {
                 cells.push(vterm_sys::ScreenCell {
                     pos: vterm_sys::Pos { row: 0, col: i as i16 },
                     chars: vec!(char),
@@ -196,12 +200,6 @@ impl MainWorker {
     }
 
     fn change_mode(&mut self, name: &str) {
-        match name {
-            "command" => {
-                self.mode = Box::new(CommandMode::new())
-            }
-            _ => {}
-        }
         self.damage_status_line();
     }
 }
