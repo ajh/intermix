@@ -72,14 +72,14 @@ impl Write for ModalKeyHandler {
             let match_buf = match_buf;
 
             let edge_indexes = self.graph.nodes[self.current_node].edge_indexes.clone();
-            let mut next_node = self.current_node;
+            let mut next_node: Option<NodeIndex> = None;
             let mut action: Option<Action> = None;
 
             if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes == match_buf) {
                 trace!("exact match");
                 self.match_buf.clear();
                 action = self.graph.edges[*i].data.action;
-                next_node = self.graph.edges[*i].target;
+                next_node = Some(self.graph.edges[*i].target);
             }
             else if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes.starts_with(&match_buf)) {
                 trace!("partial match");
@@ -89,7 +89,7 @@ impl Write for ModalKeyHandler {
                 trace!("default edge");
                 self.match_buf.clear();
                 action = self.graph.edges[*i].data.action;
-                next_node = self.graph.edges[*i].target;
+                next_node = Some(self.graph.edges[*i].target);
             }
             else {
                 trace!("unknown input {:?}", match_buf);
@@ -106,15 +106,15 @@ impl Write for ModalKeyHandler {
                 self.actions_queue.push(user_action);
             }
 
-            if self.current_node != next_node {
-                self.current_node = next_node;
+            if let Some(i) = next_node {
+                self.current_node = i;
                 self.actions_queue.push(UserAction::ModeChange {
                     name: self.graph.nodes[self.current_node].data.name.clone()
                 });
             }
         }
 
-        Ok(1)
+        Ok(buf.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
