@@ -80,23 +80,31 @@ impl Write for ModalKeyHandler {
         for byte in buf.iter() {
             let mut match_buf = self.match_buf.clone();
             match_buf.push(*byte);
+            let match_buf = match_buf;
 
             let edge_indexes = self.graph.nodes[self.current_node].edge_indexes.clone();
             let mut next_node = self.current_node;
             let mut action: Option<Action> = None;
 
             if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes == match_buf) {
+                trace!("exact match");
+                self.match_buf.clear();
                 action = self.graph.edges[*i].data.action;
                 next_node = self.graph.edges[*i].target;
             }
             else if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes.starts_with(&match_buf)) {
+                trace!("partial match");
                 self.match_buf = match_buf.clone();
             }
             else if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.default ) {
+                trace!("default edge");
+                self.match_buf.clear();
                 action = self.graph.edges[*i].data.action;
                 next_node = self.graph.edges[*i].target;
             }
             else {
+                trace!("unknown input {:?}", match_buf);
+                self.match_buf.clear();
                 self.actions_queue.push(UserAction::UnknownInput { bytes: match_buf.clone() });
             }
 
@@ -233,6 +241,20 @@ mod tests {
         h.write(&[97]);
         h.write(&[98]);
         assert_eq!(h.current_node, n1_index);
+    }
+
+    #[test]
+    fn it_can_follow_edges_with_multibyte_codes_one_after_the_other() {
+        let mut graph: Graph<NodeData, EdgeData> = Graph::new();
+        let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
+        let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
+        let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
+        graph.add_edge(n0_index, n1_index, EdgeData { codes: vec![97, 98], ..Default::default()});
+        graph.add_edge(n1_index, n2_index, EdgeData { codes: vec![99, 100], ..Default::default()});
+        let mut h = ModalKeyHandler::new(n0_index, graph);
+
+        h.write(&[97, 98, 99, 100]);
+        assert_eq!(h.current_node, n2_index);
     }
 
     #[test]
