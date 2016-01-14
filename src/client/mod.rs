@@ -4,13 +4,13 @@ pub mod stdin_read_worker;
 pub mod tty_painter;
 pub mod server_worker;
 pub mod main_worker;
-pub mod state;
+pub mod servers;
 pub mod layout;
 
 use self::draw_worker::*;
 use self::main_worker::*;
 use self::server_worker::*;
-use self::state::*;
+use self::servers::*;
 use self::stdin_read_worker::*;
 use std::sync::mpsc::*;
 use std::thread::{self, JoinHandle};
@@ -25,8 +25,8 @@ pub enum ClientMsg {
     ServerUpdate { server: Server },
     ServerRemove { server_id: String },
 
-    ProgramAdd { server_id: String, program: Program },
-    ProgramUpdate { server_id: String, program: Program },
+    ProgramAdd { server_id: String, program_id: String },
+    ProgramUpdate { server_id: String, program_id: String },
     ProgramRemove { server_id: String, program_id: String },
     ProgramDamage { program_id: String, cells: Vec<vterm_sys::ScreenCell> },
     ProgramMoveCursor { program_id: String, new: vterm_sys::Pos, old: vterm_sys::Pos, is_visible: bool },

@@ -122,10 +122,7 @@ impl Server {
         if let Some(client) = self.clients.first() {
             client.tx.send(::client::ClientMsg::ProgramAdd {
                 server_id: "some server".to_string(),
-                program: ::client::state::Program {
-                    id: id,
-                    is_subscribed: true,
-                }
+                program_id: id,
             });
         }
     }

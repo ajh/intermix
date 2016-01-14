@@ -58,7 +58,7 @@ fn main() {
     let (client_tx, client) = libintermix::client::Client::spawn(io::stdin(), io::stdout(), tty_ioctl_config);
 
     client_tx.send(libintermix::client::ClientMsg::ServerAdd {
-        server: libintermix::client::state::Server {
+        server: libintermix::client::servers::Server {
             id: "some server".to_string(),
             tx: server_tx.clone(),
             programs: vec![],

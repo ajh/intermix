@@ -5,7 +5,7 @@ use ::support::layout_painter::*;
 #[test]
 fn it_can_align_a_column_left() {
     ::setup_logging();
-    let leaf = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::row(NodeOptions { align: Align::Left, ..Default::default() }, vec![
@@ -24,8 +24,8 @@ fn it_can_align_a_column_left() {
 #[test]
 fn it_can_align_columns_left() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::row(NodeOptions { align: Align::Left, ..Default::default() }, vec![
@@ -44,7 +44,7 @@ fn it_can_align_columns_left() {
 #[test]
 fn it_can_align_a_column_right() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::row(NodeOptions { align: Align::Right, ..Default::default() }, vec![
@@ -63,8 +63,8 @@ fn it_can_align_a_column_right() {
 #[test]
 fn it_can_align_columns_right() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::row(NodeOptions { align: Align::Right, ..Default::default() }, vec![
@@ -84,7 +84,7 @@ fn it_can_align_columns_right() {
 #[test]
 fn it_can_align_a_column_center() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::row(NodeOptions { align: Align::Center, ..Default::default() }, vec![
@@ -103,8 +103,8 @@ fn it_can_align_a_column_center() {
 #[test]
 fn it_can_align_columns_center() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::row(NodeOptions { align: Align::Center, ..Default::default() }, vec![
@@ -124,7 +124,7 @@ fn it_can_align_columns_center() {
 #[test]
 fn it_can_align_a_row_top() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::row(NodeOptions { vertical_align: VerticalAlign::Top, ..Default::default() }, vec![
@@ -143,8 +143,8 @@ fn it_can_align_a_row_top() {
 #[test]
 fn it_can_align_rows_top() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 3, cols: 4},
         Node::row(NodeOptions { vertical_align: VerticalAlign::Top, ..Default::default() }, vec![
@@ -165,7 +165,7 @@ fn it_can_align_rows_top() {
 #[test]
 fn it_can_align_a_row_botton() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::row(NodeOptions { vertical_align: VerticalAlign::Bottom, height: Some(2), ..Default::default() }, vec![
@@ -184,8 +184,8 @@ fn it_can_align_a_row_botton() {
 #[test]
 fn it_can_align_rows_botton() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 3, cols: 4},
         Node::row(NodeOptions { vertical_align: VerticalAlign::Bottom, height: Some(3), ..Default::default() }, vec![
@@ -206,7 +206,7 @@ fn it_can_align_rows_botton() {
 #[test]
 fn it_can_align_a_row_middle() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 3, cols: 4},
         Node::row(NodeOptions { vertical_align: VerticalAlign::Middle, height: Some(3), ..Default::default() }, vec![
@@ -226,8 +226,8 @@ fn it_can_align_a_row_middle() {
 #[test]
 fn it_can_align_rows_center() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 4, cols: 4},
         Node::row(NodeOptions { vertical_align: VerticalAlign::Middle, height: Some(4), ..Default::default() }, vec![

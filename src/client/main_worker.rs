@@ -1,6 +1,6 @@
 use vterm_sys;
 use super::*;
-use super::state::*;
+use super::servers::*;
 use super::layout::*;
 use super::modal::*;
 use std::sync::mpsc::*;
@@ -24,6 +24,8 @@ pub struct MainWorker {
     pub tty_ioctl_config: TtyIoCtlConfig,
     pub layout: Arc<RwLock<Layout>>,
 }
+
+static STATUS_LINE: &'static str = "status_line";
 
 impl MainWorker {
     pub fn spawn(draw_worker_tx: Sender<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Arc<RwLock<Layout>>, JoinHandle<()>) {
@@ -67,25 +69,17 @@ impl MainWorker {
 
     /// creates an initial window, status pane etc
     fn init(&mut self) {
-        // borrowch workaround
-        let rows = self.tty_ioctl_config.rows;
-        let cols = self.tty_ioctl_config.cols;
+        let status_line = Node::leaf(
+            STATUS_LINE.to_string(),
+            NodeOptions { height: Some(1), ..Default::default() }
+        );
 
-        {
-            let mut layout = self.layout.write().unwrap();
-
-            let status_line = Node::leaf_v2(
-                "status_line".to_string(),
-                NodeOptions { height: Some(1), width: Some(cols), ..Default::default() }
-            );
-
-            layout.root
-                .children
-                .push(status_line);
-
-
-            layout.calculate_layout();
-        }
+        let mut layout = self.layout.write().unwrap();
+        layout.root
+            .children
+            .push(status_line);
+        layout.calculate_layout();
+        drop(layout);
 
         self.damage_status_line();
     }
@@ -101,16 +95,16 @@ impl MainWorker {
             match msg {
                 ClientMsg::Quit => break,
                 ClientMsg::ServerAdd { server } => self.servers.add_server(server),
-                ClientMsg::ProgramAdd { server_id, program } => self.add_program(server_id, program),
+                ClientMsg::ProgramAdd { server_id, program_id } => self.add_program(server_id, program_id),
                 ClientMsg::UserInput { bytes } => {
                     self.modal_key_handler.write(&bytes);
                     while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
                         match user_action {
-                            modal::UserAction::ModeChange { name } => self.change_mode(&name),
-                            modal::UserAction::ProgramFocus => self.program_focus_cmd(),
+                            modal::UserAction::ModeChange { name }           => self.change_mode(&name),
+                            modal::UserAction::ProgramFocus                  => self.program_focus_cmd(),
                             modal::UserAction::ProgramInput { bytes: fites } => self.program_input_cmd("bash-123".to_string(), fites),
-                            modal::UserAction::ProgramStart => self.program_start_cmd(),
-                            modal::UserAction::Quit => return,
+                            modal::UserAction::ProgramStart                  => self.program_start_cmd(),
+                            modal::UserAction::Quit                          => error!("user action {:?} is not implemented", user_action),
                             modal::UserAction::UnknownInput { bytes: fites } => error!("unknown input for mode {}: {:?}", self.modal_key_handler.mode_name(), fites),
                         }
                     }
@@ -148,12 +142,12 @@ impl MainWorker {
     }
 
     /// For now we only expect this once, so create a pane and enter program mode aimed at it
-    fn add_program(&mut self, server_id: String, program: Program) {
+    fn add_program(&mut self, server_id: String, program_id: String) {
         {
             let mut layout = self.layout.write().unwrap();
 
-            let leaf = Node::leaf_v2(
-                program.id.clone(),
+            let leaf = Node::leaf(
+                program_id.clone(),
                 NodeOptions { height: Some(24), width: Some(80), ..Default::default() }
             );
 
@@ -164,7 +158,7 @@ impl MainWorker {
             layout.calculate_layout();
         }
 
-        self.servers.add_program(&server_id, program);
+        self.servers.add_program(&server_id, Program { id: program_id, is_subscribed: true });
 
         self.damage_status_line();
     }
@@ -174,7 +168,7 @@ impl MainWorker {
 
         let found_status_line = {
             let layout = self.layout.read().unwrap();
-            if let Some(node) = layout.root.descendants().find(|n| n.is_leaf() && n.value == "status_line".to_string()) {
+            if let Some(node) = layout.root.descendants().find(|n| n.is_leaf() && n.value == STATUS_LINE.to_string()) {
                 true
             } else {
                 false
@@ -196,7 +190,7 @@ impl MainWorker {
             }
 
             self.draw_worker_tx.send(ClientMsg::ProgramDamage {
-                program_id: "status_line".to_string(),
+                program_id: STATUS_LINE.to_string(),
                 cells: cells,
             });
         } else {

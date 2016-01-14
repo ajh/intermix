@@ -4,7 +4,6 @@ use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Arc, RwLock};
 use super::*;
-use super::state::*;
 use super::tty_painter::*;
 use super::layout::*;
 use vterm_sys;

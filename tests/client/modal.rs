@@ -75,7 +75,7 @@ fn client_can_enter_program_mode() {
     // sending this message is hacky
     client_tx.send(ClientMsg::ProgramAdd {
         server_id: "some server".to_string(),
-        program: state::Program { id: "123".to_string(), is_subscribed: true },
+        program_id: "123".to_string(),
     });
 
     assert_status_line_match(&mut vterm, &mut output, Regex::new(r"program").unwrap());
@@ -100,7 +100,7 @@ fn client_can_exit_program_mode() {
     // sending this message is hacky
     client_tx.send(ClientMsg::ProgramAdd {
         server_id: "some server".to_string(),
-        program: state::Program { id: "123".to_string(), is_subscribed: true },
+        program_id: "123".to_string(),
     });
 
     assert_status_line_match(&mut vterm, &mut output, Regex::new(r"command").unwrap());

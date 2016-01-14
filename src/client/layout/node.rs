@@ -79,7 +79,7 @@ pub struct Node {
 
 impl Node {
     /// Create a leaf node
-    pub fn leaf_v2(value: String, options: NodeOptions) -> Node {
+    pub fn leaf(value: String, options: NodeOptions) -> Node {
         Node {
             align               :  options.align,
             children            :  vec![],

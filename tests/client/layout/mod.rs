@@ -18,7 +18,7 @@ mod border_margin_padding;
 #[test]
 fn it_draws_a_root_container() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(Size { rows: 2, cols: 2}, leaf_a);
 
     layout.calculate_layout();
@@ -32,7 +32,7 @@ fn it_draws_a_root_container() {
 #[test]
 fn it_draws_a_root_column() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::col(6, Default::default(), vec![leaf_a])
@@ -49,7 +49,7 @@ fn it_draws_a_root_column() {
 #[test]
 fn it_draws_a_root_row() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 2},
         Node::row(Default::default(), vec![leaf_a])
@@ -66,7 +66,7 @@ fn it_draws_a_root_row() {
 #[test]
 fn it_draws_a_column_inside_a_row() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(3), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(3), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::row(Default::default(), vec![
@@ -85,7 +85,7 @@ fn it_draws_a_column_inside_a_row() {
 #[test]
 fn it_draws_a_row_inside_a_column() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(3), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(3), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 2, cols: 4},
         Node::col(9, Default::default(), vec![
@@ -104,7 +104,7 @@ fn it_draws_a_row_inside_a_column() {
 #[test]
 fn it_draws_a_12_width_col() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
           Node::col(12, Default::default(), vec![leaf_a])
@@ -120,8 +120,8 @@ fn it_draws_a_12_width_col() {
 
 #[test]
 fn it_draws_a_9_and_3_width_col_evenly() {
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
           Node::row(Default::default(), vec![
@@ -140,8 +140,8 @@ fn it_draws_a_9_and_3_width_col_evenly() {
 
 #[test]
 fn it_draws_a_9_and_3_width_col_unevenly() {
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 3},
           Node::row(Default::default(), vec![
@@ -160,8 +160,8 @@ fn it_draws_a_9_and_3_width_col_unevenly() {
 
 #[test]
 fn it_draws_a_3_and_9_width_col_evenly() {
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
           Node::row(Default::default(), vec![
@@ -180,8 +180,8 @@ fn it_draws_a_3_and_9_width_col_evenly() {
 
 #[test]
 fn it_draws_a_3_and_9_width_col_unevenly() {
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 3},
           Node::row(Default::default(), vec![
@@ -200,8 +200,8 @@ fn it_draws_a_3_and_9_width_col_unevenly() {
 
 #[test]
 fn it_draws_a_pair_of_6_width_cols_evenly() {
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 4},
           Node::row(Default::default(), vec![
@@ -220,8 +220,8 @@ fn it_draws_a_pair_of_6_width_cols_evenly() {
 
 #[test]
 fn it_draws_a_pair_of_6_width_cols_unevenly() {
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 3},
           Node::row(Default::default(), vec![
@@ -240,12 +240,12 @@ fn it_draws_a_pair_of_6_width_cols_unevenly() {
 
 #[test]
 fn it_draws_a_bunch_of_columns() {
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
-    let leaf_c = Node::leaf_v2("c".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
-    let leaf_x = Node::leaf_v2("x".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
-    let leaf_y = Node::leaf_v2("y".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
-    let leaf_z = Node::leaf_v2("z".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_c = Node::leaf("c".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_x = Node::leaf("x".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_y = Node::leaf("y".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+    let leaf_z = Node::leaf("z".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 1, cols: 6},
           Node::row(Default::default(), vec![
@@ -267,8 +267,8 @@ fn it_draws_a_bunch_of_columns() {
 
 #[test]
 fn it_draws_rows() {
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 4, cols: 4},
           Node::row(Default::default(), vec![
@@ -288,7 +288,7 @@ fn it_draws_rows() {
 
 #[test]
 fn it_truncates_leaf_with_narrow_container() {
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 1, cols: 2}, leaf_a);
 
@@ -301,7 +301,7 @@ fn it_truncates_leaf_with_narrow_container() {
 
 #[test]
 fn it_truncates_leaf_with_short_container() {
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(4), width: Some(1), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(4), width: Some(1), ..Default::default()});
 
     let mut layout = Layout::new(Size { rows: 2, cols: 1}, leaf_a);
 
@@ -316,7 +316,7 @@ fn it_truncates_leaf_with_short_container() {
 #[test]
 fn it_can_add_to_layout() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     let mut layout = Layout::new(
         Size { rows: 4, cols: 2},
         Node::row(Default::default(), vec![leaf_a])
@@ -331,7 +331,7 @@ fn it_can_add_to_layout() {
 |  |
 .--.");
 
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     layout.root
         .children
         .push(leaf_b);
@@ -350,8 +350,8 @@ fn it_can_add_to_layout() {
 #[test]
 fn it_can_remove_from_layout() {
     ::setup_logging();
-    let leaf_a = Node::leaf_v2("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let leaf_b = Node::leaf_v2("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
 
     let mut layout = Layout::new(
         Size { rows: 4, cols: 2},
@@ -385,12 +385,12 @@ fn it_can_remove_from_layout() {
 
 //#[test]
 //fn it_draws_a_complicated_scene() {
-    //let leaf_a = Node::leaf_v2("a".to_string(), Size { rows: 2, cols: 8});
-    //let leaf_b = Node::leaf_v2("b".to_string(), Size { rows: 2, cols: 4});
-    //let leaf_c = Node::leaf_v2("c".to_string(), Size { rows: 1, cols: 8});
-    //let leaf_x = Node::leaf_v2("x".to_string(), Size { rows: 2, cols: 4});
-    //let leaf_y = Node::leaf_v2("y".to_string(), Size { rows: 4, cols: 4});
-    //let leaf_z = Node::leaf_v2("z".to_string(), Size { rows: 5, cols: 1});
+    //let leaf_a = Node::leaf("a".to_string(), Size { rows: 2, cols: 8});
+    //let leaf_b = Node::leaf("b".to_string(), Size { rows: 2, cols: 4});
+    //let leaf_c = Node::leaf("c".to_string(), Size { rows: 1, cols: 8});
+    //let leaf_x = Node::leaf("x".to_string(), Size { rows: 2, cols: 4});
+    //let leaf_y = Node::leaf("y".to_string(), Size { rows: 4, cols: 4});
+    //let leaf_z = Node::leaf("z".to_string(), Size { rows: 5, cols: 1});
 
     //let mut layout = Layout::new(Size { rows: 10, cols: 12},
           //Node::row(vec![
