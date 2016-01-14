@@ -9,6 +9,7 @@ pub struct NodeData {
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum ActionType {
+    ProgramFocus,
     ProgramInput,
     ProgramStart,
     Quit,
@@ -19,6 +20,7 @@ pub enum UserAction {
     UnknownInput { bytes: Vec<u8> },
     ProgramInput { bytes: Vec<u8> },
     ProgramStart,
+    ProgramFocus,
     ModeChange { name: String },
     Quit,
 }
@@ -101,6 +103,7 @@ impl Write for ModalKeyHandler {
                 let user_action = match a {
                     ActionType::ProgramInput => UserAction::ProgramInput { bytes: match_buf },
                     ActionType::ProgramStart => UserAction::ProgramStart,
+                    ActionType::ProgramFocus => UserAction::ProgramFocus,
                     ActionType::Quit => UserAction::Quit,
                 };
                 self.actions_queue.push(user_action);

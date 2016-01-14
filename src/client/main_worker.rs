@@ -107,8 +107,9 @@ impl MainWorker {
                     while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
                         match user_action {
                             modal::UserAction::ModeChange { name } => self.change_mode(&name),
-                            modal::UserAction::ProgramStart => self.program_start_cmd(),
+                            modal::UserAction::ProgramFocus => self.program_focus_cmd(),
                             modal::UserAction::ProgramInput { bytes: fites } => self.program_input_cmd("bash-123".to_string(), fites),
+                            modal::UserAction::ProgramStart => self.program_start_cmd(),
                             modal::UserAction::Quit => return,
                             modal::UserAction::UnknownInput { bytes: fites } => error!("unknown input for mode {}: {:?}", self.modal_key_handler.mode_name(), fites),
                         }
@@ -137,6 +138,12 @@ impl MainWorker {
                 command_and_args: command_and_args,
                 program_id: "bash-123".to_string(),
             }).unwrap();
+        }
+    }
+
+    fn program_focus_cmd(&self) {
+        if let Some(program) = self.programs().first() {
+            trace!("focusing program {}", program);
         }
     }
 
@@ -199,5 +206,16 @@ impl MainWorker {
 
     fn change_mode(&mut self, name: &str) {
         self.damage_status_line();
+    }
+
+    fn programs(&self) -> Vec<String> {
+        self.layout
+            .read()
+            .unwrap()
+            .root
+            .descendants()
+            .filter(|n| n.is_leaf())
+            .map(|n| n.value.clone())
+            .collect()
     }
 }

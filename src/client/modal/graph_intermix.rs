@@ -14,9 +14,10 @@ pub fn graph() -> Graph<NodeData, EdgeData> {
 
     graph.add_edge(c, p, EdgeData { action: Some(ActionType::ProgramStart), codes: "c".to_string().into_bytes(), ..Default::default()});
     graph.add_edge(c, c, EdgeData { action: Some(ActionType::Quit), codes: "q".to_string().into_bytes(), ..Default::default()});
+    graph.add_edge(c, p, EdgeData { action: Some(ActionType::ProgramFocus), codes: "i".to_string().into_bytes(), ..Default::default()});
+
     // ('up arrow', 'program_select_prev');
     // ('down arrow', 'program_select_next');
-    // ('i', 'program_focus');
     // ('c', 'program_create_and_focus');
     // ('x', 'program_kill');
 
