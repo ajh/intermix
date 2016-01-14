@@ -6,6 +6,8 @@ use time;
 use vterm_sys::*;
 use std::io::prelude::*;
 
+const CTRL_B: u8 = 2u8;
+
 // Build a vterm instance
 fn build_vterm(size: ScreenSize) -> VTerm {
     let mut vterm = VTerm::new(size);
@@ -77,6 +79,31 @@ fn client_can_enter_program_mode() {
     });
 
     assert_status_line_match(&mut vterm, &mut output, Regex::new(r"program").unwrap());
+
+    client.stop();
+}
+
+#[test]
+fn client_can_exit_program_mode() {
+    ::setup_logging();
+    let mut output = TestIO::new();
+    let mut input = TestIO::new();
+    input.write(b"ac");
+    input.write(&[CTRL_B]);
+    input.write(b"c");
+
+    let (client_tx, client) = Client::spawn(input.clone(), output.clone(), TtyIoCtlConfig { rows: 24, cols: 80 });
+
+    // The screen size here is hard coded through the client code. Need to fix that.
+    let mut vterm = build_vterm(ScreenSize { rows: 24, cols: 80 });
+
+    // sending this message is hacky
+    client_tx.send(ClientMsg::ProgramAdd {
+        server_id: "some server".to_string(),
+        program: state::Program { id: "123".to_string(), is_subscribed: true },
+    });
+
+    assert_status_line_match(&mut vterm, &mut output, Regex::new(r"command").unwrap());
 
     client.stop();
 }
