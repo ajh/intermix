@@ -2,18 +2,19 @@ use super::graph::*;
 use std::io::prelude::*;
 use std::io;
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct NodeData {
     name: String,
 }
 
-#[derive(Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Action {
     ProgramInput,
     ProgramStart,
     Quit,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum UserAction {
     UnknownInput { bytes: Vec<u8> },
     ProgramInput { bytes: Vec<u8> },
@@ -22,6 +23,7 @@ pub enum UserAction {
     Quit,
 }
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct EdgeData {
     action: Option<Action>,
     codes: Vec<u8>,
@@ -33,6 +35,7 @@ impl Default for EdgeData {
     }
 }
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct ModalKeyHandler {
     current_node: NodeIndex,
     graph: Graph<NodeData, EdgeData>,
@@ -58,10 +61,10 @@ impl ModalKeyHandler {
 
         graph.add_edge(w, c, EdgeData { default: true, ..Default::default()});
 
-        graph.add_edge(c, p, EdgeData { codes: vec![99], ..Default::default()});
+        graph.add_edge(c, p, EdgeData { action: Some(Action::ProgramStart), codes: vec![99], ..Default::default()});
         graph.add_edge(c, c, EdgeData { action: Some(Action::Quit), codes: vec![113], ..Default::default()});
 
-        graph.add_edge(p, p, EdgeData { codes: vec![2,2], ..Default::default()});
+        graph.add_edge(p, p, EdgeData { action: Some(Action::ProgramInput), codes: vec![2,2], default: true, ..Default::default()});
         graph.add_edge(p, c, EdgeData { codes: vec![2,100], ..Default::default()});
 
         ModalKeyHandler::new(w, graph)
@@ -246,8 +249,36 @@ mod tests {
         assert_eq!(h.current_node, n2_index);
     }
 
-    // it_sends_edge_action_to_channel
+    #[test]
+    fn when_matching_edge_has_a_program_input_action_it_adds_to_queue() {
+        let mut graph: Graph<NodeData, EdgeData> = Graph::new();
+        let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
+        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(Action::ProgramInput), default: true, ..Default::default()});
+        let mut h = ModalKeyHandler::new(n0_index, graph);
 
-    // it_follows_edge_when_code_matches
-    // it_follows_edge_when_default
+        h.write(&[97]);
+        assert_eq!(h.actions_queue.first(), Some(&UserAction::ProgramInput { bytes: vec![97] } ));
+    }
+
+    #[test]
+    fn when_matching_edge_has_a_program_start_action_it_adds_to_queue() {
+        let mut graph: Graph<NodeData, EdgeData> = Graph::new();
+        let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
+        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(Action::ProgramStart), default: true, ..Default::default()});
+        let mut h = ModalKeyHandler::new(n0_index, graph);
+
+        h.write(&[97]);
+        assert_eq!(h.actions_queue.first(), Some(&UserAction::ProgramStart));
+    }
+
+    #[test]
+    fn when_matching_edge_has_a_quit_action_it_adds_to_queue() {
+        let mut graph: Graph<NodeData, EdgeData> = Graph::new();
+        let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
+        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(Action::Quit), default: true, ..Default::default()});
+        let mut h = ModalKeyHandler::new(n0_index, graph);
+
+        h.write(&[97]);
+        assert_eq!(h.actions_queue.first(), Some(&UserAction::Quit));
+    }
 }

@@ -1,16 +1,19 @@
 pub type NodeIndex = usize;
 pub type EdgeIndex = usize;
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct Node<N> {
     pub data: N,
     pub edge_indexes: Vec<EdgeIndex>,
 }
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct Edge<E> {
     pub data: E,
     pub target: NodeIndex,
 }
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct Graph<N,E> {
     pub nodes: Vec<Node<N>>,
     pub edges: Vec<Edge<E>>,

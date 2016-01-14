@@ -104,13 +104,15 @@ impl MainWorker {
                 ClientMsg::ProgramAdd { server_id, program } => self.add_program(server_id, program),
                 ClientMsg::UserInput { bytes } => {
                     self.modal_key_handler.write(&bytes);
-                    while let Some(action) = self.modal_key_handler.actions_queue.pop() {
-                        match action {
+                    trace!("modal_key_handler {:#?}", self.modal_key_handler);
+                    while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
+                        trace!("user_action {:#?}", user_action);
+                        match user_action {
                             modal::UserAction::ModeChange { name } => self.change_mode(&name),
                             modal::UserAction::ProgramStart => self.program_start_cmd(),
                             modal::UserAction::ProgramInput { bytes: fites } => self.program_input_cmd("bash-123".to_string(), fites),
                             modal::UserAction::Quit => return,
-                            _ => error!("unhandled user action {:?}", action),
+                            modal::UserAction::UnknownInput { bytes: fites } => error!("unknown input for mode {}: {:?}", self.modal_key_handler.mode_name(), fites),
                         }
                     }
                 },
