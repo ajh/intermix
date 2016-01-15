@@ -8,7 +8,7 @@ Todo
 * [ ] pane transforms
 * [ ] client - server in separate processes
 * [ ] client connecting to multiple servers
-* [ ] modal UI design
+* [x] modal UI design
 * [ ] v1 multiplexer (see mock.txt.md)
 * [ ] lsof for programs to view open files
 * [ ] raw keyup keydown input behavior
@@ -21,14 +21,14 @@ Todo
 * [ ] dwarf fortress style background pictures
 * [ ] investigate whether vectors store the dynamic data on the stack or
   heap. The message enums may be inefficient.
-* [ ] alias some `vterm_sys` types like ScreenSize for ease of use
+* [x] alias some `vterm_sys` types like ScreenSize for ease of use
 
 Client Server Work
 ==================
 
 * [x] implement server ProgramStart handler
-* [ ] implement a mode
-* [ ] implement debug for ClientMsg and ServerMsg
+* [x] implement a mode
+* [x] implement debug for ClientMsg and ServerMsg
 * [ ] Use a different enum to communicate between
   client::stdin\_read\_worker and client::input\_worker. DRY with
   VteWorkerMsg stuff.
