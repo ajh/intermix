@@ -24,6 +24,7 @@ pub struct MainWorker {
     pub modal_key_handler: modal::ModalKeyHandler,
     pub tty_ioctl_config: TtyIoCtlConfig,
     pub layout: Arc<RwLock<Layout>>,
+    selected_program_id: Option<String>,
 }
 
 static STATUS_LINE: &'static str = "status_line";
@@ -63,6 +64,7 @@ impl MainWorker {
             modal_key_handler: modal::ModalKeyHandler::new_with_graph(),
             tty_ioctl_config: tty_ioctl_config.clone(),
             layout: layout,
+            selected_program_id: None,
         };
         worker.init();
         worker
@@ -141,11 +143,82 @@ impl MainWorker {
         }
     }
 
-    fn program_focus_cmd(&self) {
-        // for now, always focus on the first program
-        if let Some(program_id) = self.leaf_names().first() {
-            trace!("focusing program {}", program_id);
+    /// The main point of the command, which is to direct user keys to the program, has already
+    /// been done by the modal state machine. All we have to do is make sure a program is selected.
+    fn program_focus_cmd(&mut self) {
+        trace!("program_focus_cmd {:?}", self.selected_program_id);
+        let leaf_names: Vec<String> = self.leaf_names().into_iter().filter(|n| n != STATUS_LINE).collect();
+
+        let valid_selection = if let Some(program_id) = self.selected_program_id.clone() {
+            if leaf_names.iter().any(|n| *n == program_id) { true }
+            else { false }
         }
+        else { false };
+
+        if valid_selection {
+            trace!("1");
+            let mut layout = self.layout.write().unwrap();
+            for c in layout.root.children.iter_mut() {
+                if c.value == self.selected_program_id.clone().unwrap() {
+                    c.has_border = true
+                }
+                else {
+                    c.has_border = false
+                }
+            }
+            layout.calculate_layout();
+        }
+        else {
+            trace!("2");
+            self.program_select_next();
+        }
+    }
+
+    fn program_select_next(&mut self) {
+        let leaf_names: Vec<String> = self.leaf_names().into_iter().filter(|n| n != STATUS_LINE).collect();
+
+        if let Some(program_id) = self.selected_program_id.clone() {
+            trace!("3");
+            if let Some(mut i) = leaf_names.iter().position(|n| *n == program_id) {
+                trace!("4");
+                i += 1;
+                if i < leaf_names.len() {
+                    trace!("5");
+                    self.selected_program_id = Some(leaf_names[i].clone());
+                }
+                else {
+                    trace!("6");
+                    self.selected_program_id = Some(leaf_names[0].clone());
+                }
+            }
+            else {
+                trace!("7");
+                self.selected_program_id = None;
+            }
+        }
+
+        if self.selected_program_id.is_none() && leaf_names.len() > 0 {
+            trace!("8");
+            self.selected_program_id = Some(leaf_names[0].clone());
+        }
+
+        if let Some(program_id) = self.selected_program_id.clone() {
+            trace!("9 {}", program_id);
+            let mut layout = self.layout.write().unwrap();
+            for c in layout.root.children.iter_mut() {
+                if c.value == program_id {
+                    trace!("9a {}", c.value);
+                    c.has_border = true
+                }
+                else {
+                    trace!("9b {}", c.value);
+                    c.has_border = false
+                }
+            }
+            layout.calculate_layout();
+        }
+
+        self.draw_worker_tx.send(ClientMsg::LayoutDamage);
     }
 
     fn add_program(&mut self, server_id: String, program_id: String) {

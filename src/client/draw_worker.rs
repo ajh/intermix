@@ -90,10 +90,10 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         }
 
         let distance = node.padding + 1;
-        let top      = (node.computed_pos.row as u16 - distance) as i16;
-        let bottom   = (node.computed_pos.row as u16 + node.computed_size.rows - 1 + distance) as i16;
-        let left     = (node.computed_pos.col as u16 - distance) as i16;
-        let right    = (node.computed_pos.col as u16 + node.computed_size.cols - 1 + distance) as i16;
+        let top      = (node.computed_pos.row - distance as i16);
+        let bottom   = (node.computed_pos.row + node.computed_size.rows as i16 - 1 + distance as i16);
+        let left     = (node.computed_pos.col - distance as i16);
+        let right    = (node.computed_pos.col + node.computed_size.cols as i16 - 1 + distance as i16);
 
         cells.push(Cell { pos: Pos { row: top, col: left }, chars: vec!['┌'], ..Default::default()});
         cells.push(Cell { pos: Pos { row: top, col: right }, chars: vec!['┐'], ..Default::default()});
