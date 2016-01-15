@@ -8,6 +8,8 @@ use super::tty_painter::*;
 use super::layout::*;
 use vterm_sys;
 
+type Cell = vterm_sys::ScreenCell;
+
 /// # todos
 /// * [ ] make message enum more specific
 /// * [ ] Maybe build with initial state to avoid bootstrap data race?
@@ -47,15 +49,16 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
 
             match msg {
                 ClientMsg::Quit => break,
-                ClientMsg::ProgramDamage { program_id, cells } => self.damage(program_id, cells),
+                ClientMsg::ProgramDamage { program_id, cells } => self.program_damage(program_id, cells),
+                ClientMsg::LayoutDamage => self.layout_damage(),
                 ClientMsg::ProgramMoveCursor { program_id, old, new, is_visible } => self.move_cursor(program_id, new, is_visible),
                 _ => warn!("unhandled msg {:?}", msg)
             }
         }
     }
 
-    fn damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>) {
-        trace!("damage for program {}", program_id);
+    fn program_damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>) {
+        trace!("program_damage for {}", program_id);
 
         let layout = self.layout.read().unwrap();
         if let Some(node) = layout.root.descendants().find(|n| n.is_leaf() && n.value == program_id) {
@@ -63,6 +66,48 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         }
         else {
             warn!("didnt find node with value: {:?}", program_id);
+        }
+    }
+
+    fn layout_damage(&mut self) {
+        trace!("layout_damage");
+
+        let layout = self.layout.read().unwrap();
+
+        let mut cells: Vec<Cell> = vec![];
+
+        self.cells_for_node(&mut cells, &layout.root);
+        for node in layout.root.descendants() {
+            self.cells_for_node(&mut cells, node);
+        }
+
+        self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
+    }
+
+    fn cells_for_node(&self, cells: &mut Vec<Cell>, node: &Node) {
+        if !node.has_border {
+            return;
+        }
+
+        let distance = node.padding + 1;
+        let top      = (node.computed_pos.row as u16 - distance) as i16;
+        let bottom   = (node.computed_pos.row as u16 + node.computed_size.rows - 1 + distance) as i16;
+        let left     = (node.computed_pos.col as u16 - distance) as i16;
+        let right    = (node.computed_pos.col as u16 + node.computed_size.cols - 1 + distance) as i16;
+
+        cells.push(Cell { pos: Pos { row: top, col: left }, chars: vec!['┌'], ..Default::default()});
+        cells.push(Cell { pos: Pos { row: top, col: right }, chars: vec!['┐'], ..Default::default()});
+        cells.push(Cell { pos: Pos { row: bottom, col: left }, chars: vec!['└'], ..Default::default()});
+        cells.push(Cell { pos: Pos { row: bottom, col: right }, chars: vec!['┘'], ..Default::default()});
+
+        for x in (left + 1..right) {
+            cells.push(Cell { pos: Pos { row: top, col: x }, chars: vec!['─'], ..Default::default()});
+            cells.push(Cell { pos: Pos { row: bottom, col: x }, chars: vec!['─'], ..Default::default()});
+        }
+
+        for y in (top + 1..bottom) {
+            cells.push(Cell { pos: Pos { row: y, col: left }, chars: vec!['│'], ..Default::default()});
+            cells.push(Cell { pos: Pos { row: y, col: right }, chars: vec!['│'], ..Default::default()});
         }
     }
 

@@ -32,6 +32,8 @@ pub enum ClientMsg {
     ProgramMoveCursor { program_id: String, new: vterm_sys::Pos, old: vterm_sys::Pos, is_visible: bool },
 
     UserInput { bytes: Vec<u8> },
+
+    LayoutDamage,
 }
 
 /// other settings from `man tty_ioctl` could live here

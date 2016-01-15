@@ -81,6 +81,7 @@ impl MainWorker {
             .push(status_line);
         layout.calculate_layout();
         drop(layout);
+        self.draw_worker_tx.send(ClientMsg::LayoutDamage);
 
         self.damage_status_line();
     }
@@ -161,6 +162,7 @@ impl MainWorker {
             .children
             .insert(0, leaf);
         layout.calculate_layout();
+        self.draw_worker_tx.send(ClientMsg::LayoutDamage);
     }
 
     fn damage_status_line(&self) {

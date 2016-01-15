@@ -72,7 +72,7 @@ pub struct Node {
     pub value               : String,
     pub padding             : u16,
     pub margin              : u16,
-    pub has_border              : bool,
+    pub has_border          : bool,
 
     pub children: Vec<Node>,
 }
