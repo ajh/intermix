@@ -1,13 +1,12 @@
 mod node;
 mod nodes;
-mod nodes_mut;
+mod screen;
 
 use std::slice::Iter;
 use vterm_sys;
 use itertools::Itertools;
 pub use self::node::*;
 pub use self::nodes::*;
-pub use self::nodes_mut::*;
 
 pub type Size = vterm_sys::ScreenSize;
 pub type Pos = vterm_sys::Pos;

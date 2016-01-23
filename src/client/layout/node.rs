@@ -206,6 +206,8 @@ impl Node {
                         self_computed_size_cols,
                     )
                 })
+
+                // delta desc, cols asc
                 .sort_by(|a,b| {
                     match b.delta.partial_cmp(&a.delta).unwrap() {
                         Ordering::Equal   => a.cols.cmp(&b.cols),

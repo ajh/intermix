@@ -22,6 +22,7 @@ term = "0.2.12"
 termios = "0.2"
 uuid = "0.1"
 vterm-sys = "0"
+sxd-document = "0.2"
 
 [dev-dependencies]
 regex = "0.1.41"
