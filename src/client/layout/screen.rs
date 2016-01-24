@@ -33,7 +33,7 @@ impl Screen {
     pub fn flush_changes(&self) {
         self.layout_children(self.root().elements(), GRID_COLUMNS_COUNT);
         self.compute_children_widths(self.root().lines(), GRID_COLUMNS_COUNT, self.size.cols as i16);
-        // calc width
+        self.compute_x_position(self.root().lines(), 0, self.size.cols as i16);
         // calc col position
         // calc height
         // set row pos
@@ -77,7 +77,7 @@ impl Screen {
                 let percent = child.grid_width().unwrap() as f32 / parent_grid_width as f32;
                 let width = (parent_width as f32 * percent).floor() as i16;
 
-                child.set_width(width);
+                child.set_computed_width(width);
 
                 line_width += width;
                 line_grid_columns_count += child.grid_width().unwrap();
@@ -94,7 +94,7 @@ impl Screen {
             };
 
             // add them back in fairly
-            line.sort_by(|a,b| a.width().unwrap().cmp(&b.width().unwrap()));
+            line.sort_by(|a,b| a.computed_width().unwrap().cmp(&b.computed_width().unwrap()));
 
             for child in line.iter() {
                 if unused_cols > 0 {
@@ -104,7 +104,7 @@ impl Screen {
                     break
                 }
 
-                child.set_width(child.width().unwrap() + 1);
+                child.set_computed_width(child.computed_width().unwrap() + 1);
             }
 
             // recurse
@@ -112,7 +112,27 @@ impl Screen {
                 self.compute_children_widths(
                     child.lines(),
                     child.computed_grid_width().unwrap(),
-                    child.width().unwrap());
+                    child.computed_width().unwrap());
+            }
+        }
+    }
+
+    fn compute_x_position(&self, lines: Vec<Vec<dom::Element>>, parent_x: i16, parent_width: i16) {
+        for line in lines {
+            let line_width = line.iter()
+                .map(|e| e.outside_width().unwrap() as i16)
+                .fold(0, ::std::ops::Add::add);
+            let unused_cols = parent_width - line_width;
+            let offset = 0; // todo alignment
+
+            let mut x = parent_x + offset;
+
+            for element in line {
+                element.set_computed_x(x);
+                self.compute_x_position(
+                    element.lines(),
+                    element.computed_x().unwrap(),
+                    element.computed_width().unwrap());
             }
         }
     }
@@ -177,61 +197,59 @@ impl<'d> ElementContainer for dom::Root<'d> {
 
 pub trait ScreenElement {
     fn computed_grid_width(&self) -> Option<i16>;
+    fn computed_width(&self) -> Option<i16>;
+    fn computed_x(&self) -> Option<i16>;
+    fn computed_y(&self) -> Option<i16>;
     fn grid_width(&self) -> Option<i16>;
     fn is_new_line(&self) -> bool;
+    fn outside_width(&self) -> Option<i16>;
     fn set_computed_grid_width(&self, i16);
+    fn set_computed_width(&self, i16);
+    fn set_computed_x(&self, i16);
+    fn set_computed_y(&self, i16);
     fn set_grid_width(&self, i16);
     fn set_is_new_line(&self, bool);
     fn set_width(&self, i16);
     fn width(&self) -> Option<i16>;
 }
 
-impl<'d> ScreenElement for dom::Element<'d> {
-    fn computed_grid_width(&self) -> Option<i16> {
-        if let Some(val) = self.attribute_value("computed_grid_width") {
-            val.parse::<i16>().ok()
+macro_rules! accessor_optional_i16 {
+    // Can this be less redundent?
+    ($getter_name:ident, $setter_name:ident, $xml_name:expr) => {
+        fn $getter_name(&self) -> Option<i16> {
+            if let Some(val) = self.attribute_value($xml_name) {
+                val.parse::<i16>().ok()
+            }
+            else {
+                None
+            }
         }
-        else {
-            None
-        }
-    }
 
-    fn grid_width(&self) -> Option<i16> {
-        if let Some(val) = self.attribute_value("grid_width") {
-            val.parse::<i16>().ok()
-        }
-        else {
-            None
+        fn $setter_name(&self, val: i16) {
+            self.set_attribute_value($xml_name, &val.to_string());
         }
     }
+}
+
+impl<'d> ScreenElement for dom::Element<'d> {
+    accessor_optional_i16!(computed_grid_width,  set_computed_grid_width,  "computed_grid_width");
+    accessor_optional_i16!(computed_width,       set_computed_width,       "computed_width");
+    accessor_optional_i16!(computed_x,           set_computed_x,           "computed_x");
+    accessor_optional_i16!(computed_y,           set_computed_y,           "computed_y");
+    accessor_optional_i16!(grid_width,           set_grid_width,           "grid_width");
+    accessor_optional_i16!(width,                set_width,                "width");
 
     fn is_new_line(&self) -> bool {
       self.attribute_value("new_line").unwrap_or("false") == "true"
     }
 
-    fn set_computed_grid_width(&self, val: i16) {
-        self.set_attribute_value("computed_grid_width", &val.to_string());
-    }
-
-    fn set_grid_width(&self, val: i16) {
-        self.set_attribute_value("grid_width", &val.to_string());
+    fn outside_width(&self) -> Option<i16> {
+        // add box model stuff later
+        self.computed_width()
     }
 
     fn set_is_new_line(&self, val: bool) {
         self.set_attribute_value("new_line", if val { "true" } else { "" });
-    }
-
-    fn set_width(&self, val: i16) {
-        self.set_attribute_value("width", &val.to_string());
-    }
-
-    fn width(&self) -> Option<i16> {
-        if let Some(val) = self.attribute_value("width") {
-            val.parse::<i16>().ok()
-        }
-        else {
-            None
-        }
     }
 }
 
