@@ -68,30 +68,29 @@ impl Screen {
     /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
     fn compute_children_widths(&self, lines: Vec<Vec<dom::Element>>, parent_grid_width: i16, parent_width: i16) {
         for mut line in lines {
+            let mut line_width = 0;
+            let mut line_grid_columns_count = 0;
+
             // calculate provisionary widths
             for child in line.iter() {
                 let mut width = 2;
                 let percent = child.grid_width().unwrap() as f32 / parent_grid_width as f32;
                 let width = (parent_width as f32 * percent).floor() as i16;
+
                 child.set_width(width);
+
+                line_width += width;
+                line_grid_columns_count += child.grid_width().unwrap();
             }
 
             // figure how many columns are unused due to rounding errors
             let mut unused_cols = {
-                let columns_in_line = line.iter()
-                    .map(|e| e.computed_grid_width().unwrap())
-                    .fold(0, ::std::ops::Add::add);
-
-                let percent = columns_in_line as f32 / parent_grid_width as f32;
+                let percent = line_grid_columns_count as f32 / parent_grid_width as f32;
 
                 let mut expected_width = (parent_width as f32 * percent).round() as i16;
                 if expected_width > parent_width { expected_width = parent_width }
 
-                let width_of_line = line.iter()
-                    .map(|e| e.width().unwrap())
-                    .fold(0, ::std::ops::Add::add);
-
-                expected_width - width_of_line
+                expected_width - line_width
             };
 
             // add them back in fairly
