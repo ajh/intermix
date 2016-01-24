@@ -384,6 +384,30 @@ mod tests {
         // scene is 2d vec organized rows then cols
         let mut scene: Vec<Vec<char>> = vec![vec![' '; screen.size.cols as usize]; screen.size.rows as usize];
 
+        let xpath = ScreenXPathEngine::new(screen.document());
+        for node in xpath.find("box") {
+            let element = node.element().unwrap();
+            println!("{:?}", element);
+            if element.computed_x().unwrap() >= screen.size.cols as i16 { continue }
+            if element.computed_y().unwrap() >= screen.size.rows as i16 { continue }
+
+            let col_end = *[element.computed_x().unwrap() + element.computed_width().unwrap(), screen.size.cols as i16]
+                .iter()
+                .min()
+                .unwrap();
+            let row_end = *[element.computed_y().unwrap() + element.computed_height().unwrap(), screen.size.rows as i16]
+                .iter()
+                .min()
+                .unwrap();
+
+            for y in (element.computed_y().unwrap()..row_end) {
+                for x in (element.computed_x().unwrap()..col_end) {
+                    let name = element.attribute_value("name").unwrap();
+                    scene[y as usize][x as usize] = name.chars().next().unwrap();
+                }
+            }
+        }
+
         // draw scene border
         {
             let width = scene.first().unwrap().len();
@@ -399,32 +423,6 @@ mod tests {
             scene.insert(0, top_bottom.clone());
             scene.push(top_bottom);
         }
-
-        let xpath = ScreenXPathEngine::new(screen.document());
-        for node in xpath.find("box") {
-            let element = node.element().unwrap();
-            println!("{:?}", element);
-        }
-
-        //for element in screen.root.descendants().filter(|n| n.is_leaf()) {
-            //if element.computed_pos.row as u16 >= layout.size.rows { continue }
-            //if element.computed_pos.col as u16 >= layout.size.cols { continue }
-
-            //let row_end = *[(element.computed_pos.row as u16) + element.computed_size.rows, layout.size.rows]
-                //.iter()
-                //.min()
-                //.unwrap();
-            //let col_end = *[(element.computed_pos.col as u16) + element.computed_size.cols, layout.size.cols]
-                //.iter()
-                //.min()
-                //.unwrap();
-
-            //for y in ((element.computed_pos.row as u16)..row_end) {
-                //for x in ((element.computed_pos.col as u16)..col_end) {
-                    //scene[y as usize][x as usize] = element.value.chars().next().unwrap();
-                //}
-            //}
-        //}
 
         // convert 2d vec into a newline separated string
         scene.iter()
