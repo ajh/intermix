@@ -1,5 +1,7 @@
 use vterm_sys;
 use sxd_document::{dom, Package};
+use sxd_xpath;
+use std::collections::HashMap;
 
 pub type Size = vterm_sys::ScreenSize;
 pub type Pos = vterm_sys::Pos;
@@ -11,6 +13,50 @@ pub const GRID_COLUMNS_COUNT: i16 = 12;
 pub struct Screen {
     pub size: Size,
     package: Package,
+}
+
+pub struct ScreenXPathEngine<'d> {
+    document: dom::Document<'d>,
+    functions: sxd_xpath::Functions,
+    variables: sxd_xpath::Variables<'d>,
+    namespaces: sxd_xpath::Namespaces,
+    factory: sxd_xpath::Factory,
+}
+
+impl<'d> ScreenXPathEngine<'d> {
+    pub fn new(document: dom::Document<'d>) -> ScreenXPathEngine<'d> {
+        let mut fns = HashMap::new();
+        sxd_xpath::function::register_core_functions(&mut fns);
+        ScreenXPathEngine {
+            document: document,
+            functions: fns,
+            variables: HashMap::new(),
+            namespaces: HashMap::new(),
+            factory: sxd_xpath::Factory::new(),
+        }
+    }
+
+    /// return Nodeset or panic if expression doesn't return one
+    pub fn find(&self, xpath: &str) -> sxd_xpath::nodeset::Nodeset<'d> {
+        match self.evaluate(xpath) {
+            sxd_xpath::Value::Nodeset(n) => n,
+            _ => panic!("xpath expression didnt result in a nodeset"),
+        }
+    }
+
+    /// Return a Value for the expression
+    pub fn evaluate(&self, xpath: &str) -> sxd_xpath::Value<'d> {
+        let root = self.document.root();
+        let context = sxd_xpath::EvaluationContext::new(
+            self.document.root(),
+            &self.functions,
+            &self.variables,
+            &self.namespaces,
+            );
+
+        let xpath = self.factory.build(xpath).unwrap().unwrap();
+        xpath.evaluate(&context).ok().unwrap()
+    }
 }
 
 impl Screen {
@@ -175,8 +221,27 @@ impl Screen {
 }
 
 pub trait ElementContainer {
+    // return vec of child elements
     fn elements(&self) -> Vec<dom::Element>;
-    fn lines(&self) -> Vec<Vec<dom::Element>>;
+
+    // return vec of child elements organized into horizontal lines
+    fn lines(&self) -> Vec<Vec<dom::Element>> {
+        let mut output = vec![];
+        let mut line = vec![];
+
+        for child in self.elements().into_iter() {
+            if child.is_new_line() && line.len() > 0 {
+                output.push(line);
+                line = vec![];
+            }
+
+            line.push(child);
+        }
+
+        if line.len() > 0 { output.push(line) }
+
+        output
+    }
 }
 
 impl<'d> ElementContainer for dom::Element<'d> {
@@ -185,24 +250,6 @@ impl<'d> ElementContainer for dom::Element<'d> {
             .into_iter()
             .filter_map(|c| c.element()).collect()
     }
-
-    fn lines(&self) -> Vec<Vec<dom::Element>> {
-        let mut output = vec![];
-        let mut line = vec![];
-
-        for child in self.elements().into_iter() {
-            if child.is_new_line() && line.len() > 0 {
-                output.push(line);
-                line = vec![];
-            }
-
-            line.push(child);
-        }
-
-        if line.len() > 0 { output.push(line) }
-
-        output
-    }
 }
 
 impl<'d> ElementContainer for dom::Root<'d> {
@@ -210,24 +257,6 @@ impl<'d> ElementContainer for dom::Root<'d> {
         self.children()
             .into_iter()
             .filter_map(|c| c.element()).collect()
-    }
-
-    fn lines(&self) -> Vec<Vec<dom::Element>> {
-        let mut output = vec![];
-        let mut line = vec![];
-
-        for child in self.elements().into_iter() {
-            if child.is_new_line() && line.len() > 0 {
-                output.push(line);
-                line = vec![];
-            }
-
-            line.push(child);
-        }
-
-        if line.len() > 0 { output.push(line) }
-
-        output
     }
 }
 
@@ -303,7 +332,10 @@ impl<'d> ScreenElement for dom::Element<'d> {
 }
 
 mod tests {
+    use std::collections::HashMap;
     use super::*;
+    use sxd_document::{self, dom};
+    use sxd_xpath;
 
     fn assert_scene_eq(actual: &str, expected: &str) {
         let actual = actual.trim();
@@ -314,8 +346,8 @@ mod tests {
         }
     }
 
-    fn debug_document(document: & ::sxd_document::dom::Document) {
-        ::sxd_document::writer::format_document(document, &mut ::std::io::stdout()).unwrap();
+    fn debug_document(document: & dom::Document) {
+        sxd_document::writer::format_document(document, &mut ::std::io::stdout()).unwrap();
     }
 
     #[test]
@@ -353,18 +385,46 @@ mod tests {
         let mut scene: Vec<Vec<char>> = vec![vec![' '; screen.size.cols as usize]; screen.size.rows as usize];
 
         // draw scene border
-        let width = scene.first().unwrap().len();
-        for line in scene.iter_mut() {
-            line.insert(0, '~');
-            line.push('~');
+        {
+            let width = scene.first().unwrap().len();
+            for line in scene.iter_mut() {
+                line.insert(0, '~');
+                line.push('~');
+            }
+
+            let mut top_bottom = vec!['~'; width];
+            top_bottom.insert(0, '~');
+            top_bottom.push('~');
+
+            scene.insert(0, top_bottom.clone());
+            scene.push(top_bottom);
         }
 
-        let mut top_bottom = vec!['~'; width];
-        top_bottom.insert(0, '~');
-        top_bottom.push('~');
+        let xpath = ScreenXPathEngine::new(screen.document());
+        for node in xpath.find("box") {
+            let element = node.element().unwrap();
+            println!("{:?}", element);
+        }
 
-        scene.insert(0, top_bottom.clone());
-        scene.push(top_bottom);
+        //for element in screen.root.descendants().filter(|n| n.is_leaf()) {
+            //if element.computed_pos.row as u16 >= layout.size.rows { continue }
+            //if element.computed_pos.col as u16 >= layout.size.cols { continue }
+
+            //let row_end = *[(element.computed_pos.row as u16) + element.computed_size.rows, layout.size.rows]
+                //.iter()
+                //.min()
+                //.unwrap();
+            //let col_end = *[(element.computed_pos.col as u16) + element.computed_size.cols, layout.size.cols]
+                //.iter()
+                //.min()
+                //.unwrap();
+
+            //for y in ((element.computed_pos.row as u16)..row_end) {
+                //for x in ((element.computed_pos.col as u16)..col_end) {
+                    //scene[y as usize][x as usize] = element.value.chars().next().unwrap();
+                //}
+            //}
+        //}
 
         // convert 2d vec into a newline separated string
         scene.iter()

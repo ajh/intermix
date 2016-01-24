@@ -13,6 +13,7 @@ extern crate termios;
 extern crate uuid;
 extern crate vterm_sys;
 extern crate sxd_document;
+extern crate sxd_xpath;
 
 use vterm_sys::*;
 use std::io;
