@@ -355,10 +355,10 @@ mod tests {
         let screen = Screen::new(Size { rows: 2, cols: 2});
         screen.flush_changes();
         assert_scene_eq(&draw_screen(&screen), "
-~~~~
-~  ~
-~  ~
-~~~~");
+····
+·  ·
+·  ·
+····");
     }
 
     #[test]
@@ -374,10 +374,10 @@ mod tests {
         debug_document(&screen.document());
 
         assert_scene_eq(&draw_screen(&screen), "
-~~~~
-~aa~
-~aa~
-~~~~");
+····
+·aa·
+·aa·
+····");
     }
 
     fn draw_screen(screen: &Screen) -> String {
@@ -412,13 +412,13 @@ mod tests {
         {
             let width = scene.first().unwrap().len();
             for line in scene.iter_mut() {
-                line.insert(0, '~');
-                line.push('~');
+                line.insert(0, '·');
+                line.push('·');
             }
 
-            let mut top_bottom = vec!['~'; width];
-            top_bottom.insert(0, '~');
-            top_bottom.push('~');
+            let mut top_bottom = vec!['·'; width];
+            top_bottom.insert(0, '·');
+            top_bottom.push('·');
 
             scene.insert(0, top_bottom.clone());
             scene.push(top_bottom);
