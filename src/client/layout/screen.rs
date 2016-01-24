@@ -34,9 +34,8 @@ impl Screen {
         self.layout_children(self.root().elements(), GRID_COLUMNS_COUNT);
         self.compute_children_widths(self.root().lines(), GRID_COLUMNS_COUNT, self.size.cols as i16);
         self.compute_x_position(self.root().lines(), 0, self.size.cols as i16);
-        // calc col position
-        // calc height
-        // set row pos
+        self.compute_children_heights(self.root().lines());
+        self.compute_y_position(self.root().lines(), 0, self.size.rows as i16);
     }
 
     fn layout_children(&self, children: Vec<dom::Element>, parent_grid_width: i16) {
@@ -120,7 +119,7 @@ impl Screen {
     fn compute_x_position(&self, lines: Vec<Vec<dom::Element>>, parent_x: i16, parent_width: i16) {
         for line in lines {
             let line_width = line.iter()
-                .map(|e| e.outside_width().unwrap() as i16)
+                .map(|e| e.outside_width().unwrap())
                 .fold(0, ::std::ops::Add::add);
             let unused_cols = parent_width - line_width;
             let offset = 0; // todo alignment
@@ -134,6 +133,43 @@ impl Screen {
                     element.computed_x().unwrap(),
                     element.computed_width().unwrap());
             }
+        }
+    }
+
+    /// This one is botton up unlike the others which is top down. It returns the height of its
+    /// children.
+    fn compute_children_heights(&self, lines: Vec<Vec<dom::Element>>) -> i16 {
+        for line in lines.iter() {
+            for child in line.iter() {
+                let h = self.compute_children_heights(child.lines());
+                child.set_computed_height(if let Some(i) = child.height() { i } else { h });
+            }
+        }
+
+        lines.iter()
+            .map(|line| line.iter().map(|c| c.outside_height().unwrap()).max().unwrap())
+            .fold(0, ::std::ops::Add::add)
+    }
+
+    fn compute_y_position(&self, lines: Vec<Vec<dom::Element>>, parent_y: i16, parent_height: i16) {
+        let lines_height = lines.iter()
+            .map(|line| line.iter().map(|n| n.outside_height().unwrap()).max().unwrap())
+            .fold(0, ::std::ops::Add::add);
+        let unused_rows = parent_height - lines_height;
+        let offset = 0; // todo alignment
+
+        let mut y = parent_y + offset;
+
+        for line in lines.iter() {
+            for element in line.iter() {
+                element.set_computed_y(y);
+                self.compute_y_position(
+                    element.lines(),
+                    element.computed_y().unwrap(),
+                    element.computed_height().unwrap());
+            }
+
+            y += line.iter().map(|n| n.outside_height().unwrap()).max().unwrap();
         }
     }
 }
@@ -196,21 +232,27 @@ impl<'d> ElementContainer for dom::Root<'d> {
 }
 
 pub trait ScreenElement {
-    fn computed_grid_width(&self) -> Option<i16>;
-    fn computed_width(&self) -> Option<i16>;
-    fn computed_x(&self) -> Option<i16>;
-    fn computed_y(&self) -> Option<i16>;
-    fn grid_width(&self) -> Option<i16>;
-    fn is_new_line(&self) -> bool;
-    fn outside_width(&self) -> Option<i16>;
+    fn computed_grid_width(&self)           -> Option<i16>;
+    fn computed_height(&self)               -> Option<i16>;
+    fn computed_width(&self)                -> Option<i16>;
+    fn computed_x(&self)                    -> Option<i16>;
+    fn computed_y(&self)                    -> Option<i16>;
+    fn grid_width(&self)                    -> Option<i16>;
+    fn height(&self)                        -> Option<i16>;
+    fn is_new_line(&self)                   -> bool;
+    fn outside_height(&self)                -> Option<i16>;
+    fn outside_width(&self)                 -> Option<i16>;
+    fn width(&self)                         -> Option<i16>;
+
     fn set_computed_grid_width(&self, i16);
+    fn set_computed_height(&self, i16);
     fn set_computed_width(&self, i16);
     fn set_computed_x(&self, i16);
     fn set_computed_y(&self, i16);
     fn set_grid_width(&self, i16);
+    fn set_height(&self, i16);
     fn set_is_new_line(&self, bool);
     fn set_width(&self, i16);
-    fn width(&self) -> Option<i16>;
 }
 
 macro_rules! accessor_optional_i16 {
@@ -233,14 +275,21 @@ macro_rules! accessor_optional_i16 {
 
 impl<'d> ScreenElement for dom::Element<'d> {
     accessor_optional_i16!(computed_grid_width,  set_computed_grid_width,  "computed_grid_width");
+    accessor_optional_i16!(computed_height,      set_computed_height,      "computed_height");
     accessor_optional_i16!(computed_width,       set_computed_width,       "computed_width");
     accessor_optional_i16!(computed_x,           set_computed_x,           "computed_x");
     accessor_optional_i16!(computed_y,           set_computed_y,           "computed_y");
     accessor_optional_i16!(grid_width,           set_grid_width,           "grid_width");
+    accessor_optional_i16!(height,               set_height,               "height");
     accessor_optional_i16!(width,                set_width,                "width");
 
     fn is_new_line(&self) -> bool {
       self.attribute_value("new_line").unwrap_or("false") == "true"
+    }
+
+    fn outside_height(&self) -> Option<i16> {
+        // add box model stuff later
+        self.computed_height()
     }
 
     fn outside_width(&self) -> Option<i16> {
@@ -286,6 +335,7 @@ mod tests {
         let row = screen.document().create_element("box");
         row.set_attribute_value("name", "a");
         row.set_grid_width(12);
+        row.set_height(2);
         screen.root().append_child(row);
         screen.flush_changes();
 
