@@ -4,6 +4,7 @@
 
 #[macro_use] extern crate log;
 extern crate docopt;
+extern crate ego_tree;
 extern crate itertools;
 extern crate libc;
 extern crate pty;
@@ -12,8 +13,6 @@ extern crate term;
 extern crate termios;
 extern crate uuid;
 extern crate vterm_sys;
-extern crate sxd_document;
-extern crate sxd_xpath;
 
 use vterm_sys::*;
 use std::io;
