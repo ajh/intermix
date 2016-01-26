@@ -10,13 +10,13 @@ pub const GRID_COLUMNS_COUNT: i16 = 12;
 #[derive(Debug)]
 pub struct Screen {
     pub size: Size,
-    tree: ego_tree::Tree<Box>,
+    tree: ego_tree::Tree<Wrap>,
 }
 
 impl Screen {
     pub fn new(size: Size) -> Screen {
         // Maybe a Builder to clean this up? Or new takes an Option struct with defaults?
-        let mut root = Box::new();
+        let mut root = Wrap::new();
         root.set_computed_grid_width(GRID_COLUMNS_COUNT);
         root.set_computed_height(size.rows as i16);
         root.set_computed_width(size.cols as i16);
@@ -34,11 +34,11 @@ impl Screen {
         }
     }
 
-    pub fn tree(&self) -> &ego_tree::Tree<Box> {
+    pub fn tree(&self) -> &ego_tree::Tree<Wrap> {
         &self.tree
     }
 
-    pub fn tree_mut(&mut self) -> &mut ego_tree::Tree<Box> {
+    pub fn tree_mut(&mut self) -> &mut ego_tree::Tree<Wrap> {
         &mut self.tree
     }
 
@@ -53,27 +53,27 @@ impl Screen {
     }
 
     /// Assigns computed_grid_width and is_new_line values
-    fn compute_layout(&mut self, parent_id: ego_tree::NodeId<Box>) {
+    fn compute_layout(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let parent_grid_width = self.tree.get(parent_id).value().computed_grid_width().unwrap();
 
         let mut columns_in_line = 0;
 
-        let child_ids: Vec<ego_tree::NodeId<Box>> = self.tree.get(parent_id).children().map(|c| c.id()).collect();
+        let child_ids: Vec<ego_tree::NodeId<Wrap>> = self.tree.get(parent_id).children().map(|c| c.id()).collect();
         for child_id in child_ids {
             {
                 let mut child_node = self.tree.get_mut(child_id);
-                let mut child_box = child_node.value();
+                let mut child_wrap = child_node.value();
 
-                let mut grid_width = child_box.grid_width().unwrap_or(GRID_COLUMNS_COUNT);
+                let mut grid_width = child_wrap.grid_width().unwrap_or(GRID_COLUMNS_COUNT);
                 if grid_width > parent_grid_width {
                     grid_width = parent_grid_width
                 };
-                child_box.set_computed_grid_width(grid_width);
+                child_wrap.set_computed_grid_width(grid_width);
 
                 columns_in_line += grid_width;
                 if columns_in_line > parent_grid_width {
                     columns_in_line = 0;
-                    child_box.set_is_new_line(true);
+                    child_wrap.set_is_new_line(true);
                 }
             }
 
@@ -90,7 +90,7 @@ impl Screen {
     /// * which nodes are the most effected
     ///
     /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
-    fn compute_width(&mut self, parent_id: ego_tree::NodeId<Box>) {
+    fn compute_width(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let mut lines = self.tree.get(parent_id).lines();
         let parent_grid_width = self.tree.get(parent_id).value().computed_grid_width().unwrap();
         let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
@@ -103,14 +103,14 @@ impl Screen {
             // calculate provisionary widths
             for child_id in line.iter() {
                 let mut child_ref = self.tree.get_mut(*child_id);
-                let mut child_box = child_ref.value();
-                let percent = child_box.grid_width().unwrap() as f32 / parent_grid_width as f32;
+                let mut child_wrap = child_ref.value();
+                let percent = child_wrap.grid_width().unwrap() as f32 / parent_grid_width as f32;
                 let width = (parent_width as f32 * percent).floor() as i16;
 
-                child_box.set_computed_width(width);
+                child_wrap.set_computed_width(width);
 
                 line_width += width;
-                line_grid_columns_count += child_box.grid_width().unwrap();
+                line_grid_columns_count += child_wrap.grid_width().unwrap();
             }
 
             // figure how many columns are unused due to rounding errors
@@ -126,15 +126,15 @@ impl Screen {
             // add them back in fairly
             line.sort_by(|a,b| {
                 let a_ref = self.tree.get(*a);
-                let a_box = a_ref.value();
+                let a_wrap = a_ref.value();
                 let b_ref = self.tree.get(*b);
-                let b_box = b_ref.value();
-                a_box.computed_width().unwrap().cmp(&b_box.computed_width().unwrap())
+                let b_wrap = b_ref.value();
+                a_wrap.computed_width().unwrap().cmp(&b_wrap.computed_width().unwrap())
             });
 
             for child_id in line.iter() {
                 let mut child_ref = self.tree.get_mut(*child_id);
-                let mut child_box = child_ref.value();
+                let mut child_wrap = child_ref.value();
 
                 if unused_cols > 0 {
                     unused_cols -= 1;
@@ -143,8 +143,8 @@ impl Screen {
                     break
                 }
 
-                let val = child_box.computed_width().unwrap() + 1;
-                child_box.set_computed_width(val);
+                let val = child_wrap.computed_width().unwrap() + 1;
+                child_wrap.set_computed_width(val);
             }
 
             // recurse
@@ -154,14 +154,12 @@ impl Screen {
         }
     }
 
-    fn compute_x_position(&mut self, parent_id: ego_tree::NodeId<Box>) {
+    fn compute_x_position(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let mut lines = self.tree.get(parent_id).lines();
         let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
         let parent_x = self.tree.get(parent_id).value().computed_x().unwrap();
 
         for line in lines {
-                //let a_ref = self.tree.get(*a);
-                //let a_box = a_ref.value();
             let line_width = line.iter()
                 .map(|id| self.tree.get(*id).value())
                 .map(|b| b.outside_width().unwrap())
@@ -174,8 +172,8 @@ impl Screen {
             for id in line {
                 {
                     let mut child_ref = self.tree.get_mut(id);
-                    let mut child_box = child_ref.value();
-                    child_box.set_computed_x(x);
+                    let mut child_wrap = child_ref.value();
+                    child_wrap.set_computed_x(x);
                 }
 
                 self.compute_x_position(id);
@@ -185,7 +183,7 @@ impl Screen {
 
     /// This one is botton up unlike the others which is top down. It returns the height of its
     /// children.
-    fn compute_height(&mut self, parent_id: ego_tree::NodeId<Box>) -> i16 {
+    fn compute_height(&mut self, parent_id: ego_tree::NodeId<Wrap>) -> i16 {
         let mut lines = self.tree.get(parent_id).lines();
 
         for line in lines.iter() {
@@ -193,9 +191,9 @@ impl Screen {
                 let children_height = self.compute_height(*child_id);
 
                 let mut child_ref = self.tree.get_mut(*child_id);
-                let mut child_box = child_ref.value();
-                let h = if let Some(i) = child_box.height() { i } else { children_height };
-                child_box.set_computed_height(h);
+                let mut child_wrap = child_ref.value();
+                let h = if let Some(i) = child_wrap.height() { i } else { children_height };
+                child_wrap.set_computed_height(h);
             }
         }
 
@@ -204,7 +202,7 @@ impl Screen {
             .fold(0, ::std::ops::Add::add)
     }
 
-    fn compute_y_position(&mut self, parent_id: ego_tree::NodeId<Box>) {
+    fn compute_y_position(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let mut lines = self.tree.get(parent_id).lines();
         let parent_height = self.tree.get(parent_id).value().computed_height().unwrap();
         let parent_y = self.tree.get(parent_id).value().computed_y().unwrap();
@@ -221,8 +219,8 @@ impl Screen {
             for child_id in line.iter() {
                 {
                     let mut child_ref = self.tree.get_mut(*child_id);
-                    let mut child_box = child_ref.value();
-                    child_box.set_computed_y(y);
+                    let mut child_wrap = child_ref.value();
+                    child_wrap.set_computed_y(y);
                 }
 
                 self.compute_y_position(*child_id);
@@ -233,13 +231,13 @@ impl Screen {
     }
 }
 
-pub trait BoxContainer {
+pub trait LineContainer {
     // return vec of child elements organized into horizontal lines
-    fn lines(&self) -> Vec<Vec<ego_tree::NodeId<Box>>>;
+    fn lines(&self) -> Vec<Vec<ego_tree::NodeId<Wrap>>>;
 }
 
-impl<'a> BoxContainer for ego_tree::NodeRef<'a, Box> {
-    fn lines(&self) -> Vec<Vec<ego_tree::NodeId<Box>>> {
+impl<'a> LineContainer for ego_tree::NodeRef<'a, Wrap> {
+    fn lines(&self) -> Vec<Vec<ego_tree::NodeId<Wrap>>> {
         let mut output = vec![];
         let mut line = vec![];
 
@@ -259,7 +257,7 @@ impl<'a> BoxContainer for ego_tree::NodeRef<'a, Box> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Box {
+pub struct Wrap {
     computed_grid_width:  Option<i16>,
     computed_height:      Option<i16>,
     computed_width:       Option<i16>,
@@ -285,8 +283,8 @@ macro_rules! accessor_optional_i16 {
     }
 }
 
-impl Box {
-    pub fn new() -> Box {
+impl Wrap {
+    pub fn new() -> Wrap {
         Default::default()
     }
 
@@ -326,9 +324,9 @@ impl Box {
     }
 }
 
-impl Default for Box {
-    fn default() -> Box {
-        Box {
+impl Default for Wrap {
+    fn default() -> Wrap {
+        Wrap {
             name:                 String::new(), // maybe a uuid?
             computed_grid_width:  None,
             computed_height:      None,
@@ -340,5 +338,67 @@ impl Default for Box {
             is_new_line:          false,
             width:                None,
         }
+    }
+}
+
+pub struct WrapBuilder {
+    name: Option<String>,
+    grid_width: Option<i16>,
+    height: Option<i16>,
+    width: Option<i16>,
+}
+
+impl WrapBuilder {
+    /// call this to create a column
+    pub fn col(val: i16) -> WrapBuilder {
+        WrapBuilder {
+            name: None,
+            grid_width: Some(val),
+            height: None,
+            width: None,
+        }
+    }
+
+    /// call this to create a row
+    pub fn row() -> WrapBuilder {
+        WrapBuilder {
+            name: None,
+            grid_width: Some(GRID_COLUMNS_COUNT),
+            height: None,
+            width: None,
+        }
+    }
+
+    /// call this if you don't want to specifiy a grid width
+    pub fn new() -> WrapBuilder {
+        WrapBuilder {
+            name: None,
+            grid_width: None,
+            height: None,
+            width: None,
+        }
+    }
+
+    pub fn name(mut self, name: String) -> WrapBuilder {
+        self.name = Some(name);
+        self
+    }
+    pub fn height(mut self, val: i16) -> WrapBuilder {
+        self.height = Some(val);
+        self
+    }
+    pub fn width(mut self, val: i16) -> WrapBuilder {
+        self.height = Some(val);
+        self
+    }
+    pub fn build(self) -> Wrap {
+        let mut wrap = Wrap::new();
+
+        if self.name.is_some()       { wrap.set_name(self.name.unwrap()); }
+        if self.grid_width.is_some() { wrap.set_grid_width(self.grid_width.unwrap()); }
+        if self.height.is_some()     { wrap.set_height(self.height.unwrap()); }
+        if self.width.is_some()      { wrap.set_width(self.width.unwrap()); }
+
+        wrap
     }
 }

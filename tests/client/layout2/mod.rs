@@ -24,10 +24,10 @@ fn it_draws_a_root() {
 
 #[test]
 fn it_draws_only_a_row() {
-    let mut row = Box::new();
-    row.set_name("a".to_string());
-    row.set_grid_width(12);
-    row.set_height(2);
+    let row = WrapBuilder::row()
+        .name("a".to_string())
+        .height(2)
+        .build();
 
     let mut screen = Screen::new(Size { rows: 2, cols: 2});
     screen.tree_mut().root_mut().append(row);
@@ -44,13 +44,13 @@ fn it_draws_only_a_row() {
 
 #[test]
 fn it_draws_only_a_col() {
-    let mut row = Box::new();
-    row.set_name("a".to_string());
-    row.set_grid_width(6);
-    row.set_height(2);
+    let col = WrapBuilder::col(6)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
     let mut screen = Screen::new(Size { rows: 2, cols: 4});
-    screen.tree_mut().root_mut().append(row);
+    screen.tree_mut().root_mut().append(col);
     screen.flush_changes();
 
     println!("{:#?}", screen.tree());
@@ -61,41 +61,6 @@ fn it_draws_only_a_col() {
 ·aa  ·
 ······");
 }
-
-
-//#[test]
-//fn it_draws_a_root_column() {
-    //::setup_logging();
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    //let mut layout = Layout::new(
-        //Size { rows: 2, cols: 4},
-        //Node::col(6, Default::default(), vec![leaf_a])
-    //);
-
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//.----.
-//|aa  |
-//|aa  |
-//.----.");
-//}
-
-//#[test]
-//fn it_draws_a_root_row() {
-    //::setup_logging();
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    //let mut layout = Layout::new(
-        //Size { rows: 2, cols: 2},
-        //Node::row(Default::default(), vec![leaf_a])
-    //);
-
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//.--.
-//|aa|
-//|aa|
-//.--.");
-//}
 
 //#[test]
 //fn it_draws_a_column_inside_a_row() {
