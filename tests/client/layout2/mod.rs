@@ -33,8 +33,6 @@ fn it_draws_only_a_row() {
     screen.tree_mut().root_mut().append(row);
     screen.flush_changes();
 
-    println!("{:#?}", screen.tree());
-
     assert_scene_eq(&draw_screen(&screen), "
 ····
 ·aa·
@@ -52,8 +50,6 @@ fn it_draws_only_a_col() {
     let mut screen = Screen::new(Size { rows: 2, cols: 4});
     screen.tree_mut().root_mut().append(col);
     screen.flush_changes();
-
-    println!("{:#?}", screen.tree());
 
     assert_scene_eq(&draw_screen(&screen), "
 ······
@@ -85,7 +81,6 @@ fn it_draws_a_column_inside_a_row() {
 #[test]
 fn it_draws_a_row_inside_a_column() {
     let col = WrapBuilder::col(9).build();
-    println!("{:#?}", col);
 
     let row = WrapBuilder::row()
         .name("a".to_string())
@@ -138,8 +133,6 @@ fn it_draws_a_9_and_3_width_col_evenly() {
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
-    println!("{:#?}", screen.tree());
-
     assert_scene_eq(&draw_screen(&screen), "
 ······
 ·aaab·
@@ -164,8 +157,6 @@ fn it_draws_a_9_and_3_width_col_unevenly() {
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
-    println!("{:#?}", screen.tree());
-
     assert_scene_eq(&draw_screen(&screen), "
 ·····
 ·aab·
@@ -173,13 +164,14 @@ fn it_draws_a_9_and_3_width_col_unevenly() {
 ·····");
 }
 
-fn it_draws_a_3_and_2_width_col_evenly() {
-    let col_b = WrapBuilder::col(3)
+#[test]
+fn it_draws_a_3_and_9_width_col_evenly() {
+    let col_a = WrapBuilder::col(3)
         .name("a".to_string())
         .height(2)
         .build();
 
-    let col_a = WrapBuilder::col(9)
+    let col_b = WrapBuilder::col(9)
         .name("b".to_string())
         .height(2)
         .build();
@@ -189,8 +181,6 @@ fn it_draws_a_3_and_2_width_col_evenly() {
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
-    println!("{:#?}", screen.tree());
-
     assert_scene_eq(&draw_screen(&screen), "
 ······
 ·abbb·
@@ -198,13 +188,14 @@ fn it_draws_a_3_and_2_width_col_evenly() {
 ······");
 }
 
-fn it_draws_a_3_and_2_width_col_unevenly() {
-    let col_b = WrapBuilder::col(3)
+#[test]
+fn it_draws_a_3_and_9_width_col_unevenly() {
+    let col_a = WrapBuilder::col(3)
         .name("a".to_string())
         .height(2)
         .build();
 
-    let col_a = WrapBuilder::col(9)
+    let col_b = WrapBuilder::col(9)
         .name("b".to_string())
         .height(2)
         .build();
@@ -214,8 +205,6 @@ fn it_draws_a_3_and_2_width_col_unevenly() {
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
-    println!("{:#?}", screen.tree());
-
     assert_scene_eq(&draw_screen(&screen), "
 ·····
 ·abb·
@@ -223,13 +212,14 @@ fn it_draws_a_3_and_2_width_col_unevenly() {
 ·····");
 }
 
+#[test]
 fn it_draws_a_pair_of_6_width_cols_evenly() {
-    let col_b = WrapBuilder::col(6)
+    let col_a = WrapBuilder::col(6)
         .name("a".to_string())
         .height(2)
         .build();
 
-    let col_a = WrapBuilder::col(6)
+    let col_b = WrapBuilder::col(6)
         .name("b".to_string())
         .height(2)
         .build();
@@ -239,8 +229,6 @@ fn it_draws_a_pair_of_6_width_cols_evenly() {
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
-    println!("{:#?}", screen.tree());
-
     assert_scene_eq(&draw_screen(&screen), "
 ······
 ·aabb·
@@ -248,13 +236,14 @@ fn it_draws_a_pair_of_6_width_cols_evenly() {
 ······");
 }
 
+#[test]
 fn it_draws_a_pair_of_6_width_cols_unevenly() {
-    let col_b = WrapBuilder::col(6)
+    let col_a = WrapBuilder::col(6)
         .name("a".to_string())
         .height(2)
         .build();
 
-    let col_a = WrapBuilder::col(6)
+    let col_b = WrapBuilder::col(6)
         .name("b".to_string())
         .height(2)
         .build();
@@ -264,11 +253,12 @@ fn it_draws_a_pair_of_6_width_cols_unevenly() {
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
+    // This outcome should probably be undefined
     assert_scene_eq(&draw_screen(&screen), "
-······
-·abb·
-·abb·
-······");
+·····
+·aab·
+·aab·
+·····");
 }
 
 #[test]
@@ -310,8 +300,6 @@ fn it_draws_a_bunch_of_rows() {
         screen.tree_mut().root_mut().append(row);
     }
     screen.flush_changes();
-
-    println!("{:#?}", screen.tree());
 
     assert_scene_eq(&draw_screen(&screen), "
 ···
