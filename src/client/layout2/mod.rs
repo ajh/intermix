@@ -73,7 +73,7 @@ impl Screen {
 
                 columns_in_line += grid_width;
                 if columns_in_line > parent_grid_width {
-                    columns_in_line = 0;
+                    columns_in_line = grid_width;
                     child_wrap.set_is_new_line(true);
                 }
             }
@@ -97,7 +97,6 @@ impl Screen {
         let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
 
         for mut line in lines {
-            println!("{:?}", line);
             let mut line_width = 0;
             let mut line_grid_columns_count = 0;
 
@@ -105,7 +104,7 @@ impl Screen {
             for child_id in line.iter() {
                 let mut child_ref = self.tree.get_mut(*child_id);
                 let mut child_wrap = child_ref.value();
-                let percent = child_wrap.grid_width().unwrap() as f32 / parent_grid_width as f32;
+                let percent = *[child_wrap.grid_width().unwrap(), parent_grid_width].into_iter().min().unwrap() as f32 / parent_grid_width as f32;
                 let width = (parent_width as f32 * percent).floor() as i16;
 
                 child_wrap.set_computed_width(width);
@@ -165,6 +164,7 @@ impl Screen {
                 .map(|id| self.tree.get(*id).value())
                 .map(|b| b.outside_width().unwrap())
                 .fold(0, ::std::ops::Add::add);
+            println!("line_width {}", line_width);
             let unused_cols = parent_width - line_width;
             let offset = 0; // todo alignment
 
@@ -175,6 +175,7 @@ impl Screen {
                     let mut child_ref = self.tree.get_mut(id);
                     let mut child_wrap = child_ref.value();
                     child_wrap.set_computed_x(x);
+                    x += child_wrap.computed_width().unwrap();
                 }
 
                 self.compute_x_position(id);

@@ -85,6 +85,7 @@ fn it_draws_a_column_inside_a_row() {
 #[test]
 fn it_draws_a_row_inside_a_column() {
     let col = WrapBuilder::col(9).build();
+    println!("{:#?}", col);
 
     let row = WrapBuilder::row()
         .name("a".to_string())
@@ -127,7 +128,7 @@ fn it_draws_a_9_and_3_width_col_evenly() {
         .height(2)
         .build();
 
-    let col_b = WrapBuilder::col(9)
+    let col_b = WrapBuilder::col(3)
         .name("b".to_string())
         .height(2)
         .build();
@@ -137,6 +138,8 @@ fn it_draws_a_9_and_3_width_col_evenly() {
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
+    println!("{:#?}", screen.tree());
+
     assert_scene_eq(&draw_screen(&screen), "
 ······
 ·aaab·
@@ -144,274 +147,208 @@ fn it_draws_a_9_and_3_width_col_evenly() {
 ······");
 }
 
-//#[test]
-//fn it_draws_a_9_and_3_width_col_unevenly() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+#[test]
+fn it_draws_a_9_and_3_width_col_unevenly() {
+    let col_a = WrapBuilder::col(9)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    //let mut layout = Layout::new(Size { rows: 2, cols: 3},
-          //Node::row(Default::default(), vec![
-              //Node::col(9, Default::default(), vec![leaf_a]),
-              //Node::col(3, Default::default(), vec![leaf_b]),
-          //])
-    //);
+    let col_b = WrapBuilder::col(3)
+        .name("b".to_string())
+        .height(2)
+        .build();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//·····
-//·aab·
-//·aab·
-//·····");
-//}
+    let mut screen = Screen::new(Size { rows: 2, cols: 3});
+    screen.tree_mut().root_mut().append(col_a);
+    screen.tree_mut().root_mut().append(col_b);
+    screen.flush_changes();
 
-//#[test]
-//fn it_draws_a_3_and_9_width_col_evenly() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    println!("{:#?}", screen.tree());
 
-    //let mut layout = Layout::new(Size { rows: 2, cols: 4},
-          //Node::row(Default::default(), vec![
-              //Node::col(3, Default::default(), vec![leaf_a]),
-              //Node::col(9, Default::default(), vec![leaf_b]),
-          //])
-    //);
+    assert_scene_eq(&draw_screen(&screen), "
+·····
+·aab·
+·aab·
+·····");
+}
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//······
-//·abbb·
-//·abbb·
-//······");
-//}
+fn it_draws_a_3_and_2_width_col_evenly() {
+    let col_b = WrapBuilder::col(3)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-//#[test]
-//fn it_draws_a_3_and_9_width_col_unevenly() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let col_a = WrapBuilder::col(9)
+        .name("b".to_string())
+        .height(2)
+        .build();
 
-    //let mut layout = Layout::new(Size { rows: 2, cols: 3},
-          //Node::row(Default::default(), vec![
-              //Node::col(3, Default::default(), vec![leaf_a]),
-              //Node::col(9, Default::default(), vec![leaf_b]),
-          //])
-    //);
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().append(col_a);
+    screen.tree_mut().root_mut().append(col_b);
+    screen.flush_changes();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//·····
-//·abb·
-//·abb·
-//·····");
-//}
+    println!("{:#?}", screen.tree());
 
-//#[test]
-//fn it_draws_a_pair_of_6_width_cols_evenly() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·abbb·
+·abbb·
+······");
+}
 
-    //let mut layout = Layout::new(Size { rows: 2, cols: 4},
-          //Node::row(Default::default(), vec![
-              //Node::col(6, Default::default(), vec![leaf_a]),
-              //Node::col(6, Default::default(), vec![leaf_b]),
-          //])
-    //);
+fn it_draws_a_3_and_2_width_col_unevenly() {
+    let col_b = WrapBuilder::col(3)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//······
-//·aabb·
-//·aabb·
-//······");
-//}
+    let col_a = WrapBuilder::col(9)
+        .name("b".to_string())
+        .height(2)
+        .build();
 
-//#[test]
-//fn it_draws_a_pair_of_6_width_cols_unevenly() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let mut screen = Screen::new(Size { rows: 2, cols: 3});
+    screen.tree_mut().root_mut().append(col_a);
+    screen.tree_mut().root_mut().append(col_b);
+    screen.flush_changes();
 
-    //let mut layout = Layout::new(Size { rows: 2, cols: 3},
-          //Node::row(Default::default(), vec![
-              //Node::col(6, Default::default(), vec![leaf_a]),
-              //Node::col(6, Default::default(), vec![leaf_b]),
-          //])
-    //);
+    println!("{:#?}", screen.tree());
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//·····
-//·aab·
-//·aab·
-//·····");
-//}
+    assert_scene_eq(&draw_screen(&screen), "
+·····
+·abb·
+·abb·
+·····");
+}
 
-//#[test]
-//fn it_draws_a_bunch_of_columns() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
-    //let leaf_c = Node::leaf("c".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
-    //let leaf_x = Node::leaf("x".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
-    //let leaf_y = Node::leaf("y".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
-    //let leaf_z = Node::leaf("z".to_string(), NodeOptions { height: Some(1), width: Some(1), ..Default::default()});
+fn it_draws_a_pair_of_6_width_cols_evenly() {
+    let col_b = WrapBuilder::col(6)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    //let mut layout = Layout::new(Size { rows: 1, cols: 6},
-          //Node::row(Default::default(), vec![
-              //Node::col(2, Default::default(), vec![leaf_a]),
-              //Node::col(2, Default::default(), vec![leaf_b]),
-              //Node::col(2, Default::default(), vec![leaf_c]),
-              //Node::col(2, Default::default(), vec![leaf_x]),
-              //Node::col(2, Default::default(), vec![leaf_y]),
-              //Node::col(2, Default::default(), vec![leaf_z]),
-          //])
-    //);
+    let col_a = WrapBuilder::col(6)
+        .name("b".to_string())
+        .height(2)
+        .build();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//········
-//·abcxyz·
-//········");
-//}
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().append(col_a);
+    screen.tree_mut().root_mut().append(col_b);
+    screen.flush_changes();
 
-//#[test]
-//fn it_draws_rows() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    println!("{:#?}", screen.tree());
 
-    //let mut layout = Layout::new(Size { rows: 4, cols: 4},
-          //Node::row(Default::default(), vec![
-              //Node::row(Default::default(), vec![leaf_a]),
-              //Node::row(Default::default(), vec![leaf_b]),
-          //])
-      //);
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//······
-//·aaaa·
-//·aaaa·
-//·bbbb·
-//·bbbb·
-//······");
-//}
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·aabb·
+·aabb·
+······");
+}
 
-//#[test]
-//fn it_truncates_leaf_with_narrow_container() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
+fn it_draws_a_pair_of_6_width_cols_unevenly() {
+    let col_b = WrapBuilder::col(6)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    //let mut layout = Layout::new(Size { rows: 1, cols: 2}, leaf_a);
+    let col_a = WrapBuilder::col(6)
+        .name("b".to_string())
+        .height(2)
+        .build();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//····
-//·aa·
-//····");
-//}
+    let mut screen = Screen::new(Size { rows: 2, cols: 3});
+    screen.tree_mut().root_mut().append(col_a);
+    screen.tree_mut().root_mut().append(col_b);
+    screen.flush_changes();
 
-//#[test]
-//fn it_truncates_leaf_with_short_container() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(4), width: Some(1), ..Default::default()});
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·abb·
+·abb·
+······");
+}
 
-    //let mut layout = Layout::new(Size { rows: 2, cols: 1}, leaf_a);
+#[test]
+fn it_draws_a_bunch_of_columns() {
+    let cols = vec![
+        WrapBuilder::col(2).name("a".to_string()).height(1).build(),
+        WrapBuilder::col(2).name("b".to_string()).height(1).build(),
+        WrapBuilder::col(2).name("c".to_string()).height(1).build(),
+        WrapBuilder::col(2).name("x".to_string()).height(1).build(),
+        WrapBuilder::col(2).name("y".to_string()).height(1).build(),
+        WrapBuilder::col(2).name("z".to_string()).height(1).build(),
+    ];
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//··.
-//·a·
-//·a·
-//··.");
-//}
+    let mut screen = Screen::new(Size { rows: 1, cols: 6});
+    for col in cols {
+        screen.tree_mut().root_mut().append(col);
+    }
+    screen.flush_changes();
 
-//#[test]
-//fn it_can_add_to_layout() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    //let mut layout = Layout::new(
-        //Size { rows: 4, cols: 2},
-        //Node::row(Default::default(), vec![leaf_a])
-    //);
+    assert_scene_eq(&draw_screen(&screen), "
+········
+·abcxyz·
+········");
+}
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//····
-//·aa·
-//·aa·
-//·  ·
-//·  ·
-//····");
+#[test]
+fn it_draws_a_bunch_of_rows() {
+    let rows = vec![
+        WrapBuilder::row().name("a".to_string()).height(1).build(),
+        WrapBuilder::row().name("b".to_string()).height(1).build(),
+        WrapBuilder::row().name("c".to_string()).height(1).build(),
+        WrapBuilder::row().name("x".to_string()).height(1).build(),
+        WrapBuilder::row().name("y".to_string()).height(1).build(),
+        WrapBuilder::row().name("z".to_string()).height(1).build(),
+    ];
 
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    //layout.root
-        //.children
-        //.push(leaf_b);
-    //layout.calculate_layout();
+    let mut screen = Screen::new(Size { rows: 6, cols: 1});
+    for row in rows {
+        screen.tree_mut().root_mut().append(row);
+    }
+    screen.flush_changes();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//····
-//·aa·
-//·aa·
-//·bb·
-//·bb·
-//····");
-//}
+    println!("{:#?}", screen.tree());
 
-//#[test]
-//fn it_can_remove_from_layout() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
+    assert_scene_eq(&draw_screen(&screen), "
+···
+·a·
+·b·
+·c·
+·x·
+·y·
+·z·
+···");
+}
 
-    //let mut layout = Layout::new(
-        //Size { rows: 4, cols: 2},
-        //Node::row(Default::default(), vec![
-              //leaf_a,
-              //leaf_b,
-        //])
-    //);
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//····
-//·aa·
-//·aa·
-//·bb·
-//·bb·
-//····");
+#[test]
+fn it_truncates_leaf_with_narrow_container() {
+    let leaf = WrapBuilder::row().name("a".to_string()).width(3).height(1).build();
 
-    //layout.root
-        //.children
-        //.remove(1);
+    let mut screen = Screen::new(Size { rows: 1, cols: 2});
+    screen.tree_mut().root_mut().append(leaf);
+    screen.flush_changes();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//····
-//·aa·
-//·aa·
-//·  ·
-//·  ·
-//····");
-//}
+    assert_scene_eq(&draw_screen(&screen), "
+····
+·aa·
+····");
+}
 
-////#[test]
-////fn it_draws_a_complicated_scene() {
-    ////let leaf_a = Node::leaf("a".to_string(), Size { rows: 2, cols: 8});
-    ////let leaf_b = Node::leaf("b".to_string(), Size { rows: 2, cols: 4});
-    ////let leaf_c = Node::leaf("c".to_string(), Size { rows: 1, cols: 8});
-    ////let leaf_x = Node::leaf("x".to_string(), Size { rows: 2, cols: 4});
-    ////let leaf_y = Node::leaf("y".to_string(), Size { rows: 4, cols: 4});
-    ////let leaf_z = Node::leaf("z".to_string(), Size { rows: 5, cols: 1});
+#[test]
+fn it_truncates_leaf_with_short_container() {
+    let leaf = WrapBuilder::row().name("a".to_string()).height(4).build();
 
-    ////let mut layout = Layout::new(Size { rows: 10, cols: 12},
-          ////Node::row(vec![
-              ////Node::row(vec![
-                  ////Node::col(4, vec![leaf_a, leaf_b]),
-                  ////Node::col(8, vec![
-                      ////Node::row(vec![leaf_c]),
-                      ////Node::row(vec![leaf_x]),
-                  ////]),
-              ////]),
-              ////Node::row(vec![
-                  ////Node::col(4, vec![leaf_y]),
-                  ////Node::col(2, vec![]),
-                  ////Node::col(6, vec![leaf_z]),
-              ////])
-          ////])
-    ////);
-    ////
-    ////blah blah blah
-////}
+    let mut screen = Screen::new(Size { rows: 2, cols: 1});
+    screen.tree_mut().root_mut().append(leaf);
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+···
+·a·
+·a·
+···");
+}
