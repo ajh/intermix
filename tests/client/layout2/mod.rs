@@ -2,6 +2,8 @@ use libintermix::client::layout2::*;
 use ::support::layout::*;
 use ::support::layout2_painter::*;
 
+mod align;
+
 // Features todo:
 //
 // * [x] padding

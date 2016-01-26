@@ -1,46 +1,45 @@
-use libintermix::client::layout::*;
+use libintermix::client::layout2::*;
 use ::support::layout::*;
-use ::support::layout_painter::*;
+use ::support::layout2_painter::*;
 
-//#[test]
-//fn it_can_align_a_column_left() {
-    //::setup_logging();
-    //let leaf = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    //let mut layout = Layout::new(
-        //Size { rows: 2, cols: 4},
-        //Node::row(NodeOptions { align: Align::Left, ..Default::default() }, vec![
-            //Node::col(6, Default::default(), vec![leaf]),
-        //])
-    //);
+#[test]
+fn it_can_align_a_column_left() {
+    let col = WrapBuilder::col(6)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//······
-//·aa  ·
-//·aa  ·
-//······");
-//}
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().append(col);
+    screen.flush_changes();
 
-//#[test]
-//fn it_can_align_columns_left() {
-    //::setup_logging();
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    //let mut layout = Layout::new(
-        //Size { rows: 2, cols: 4},
-        //Node::row(NodeOptions { align: Align::Left, ..Default::default() }, vec![
-            //Node::col(3, Default::default(), vec![leaf_a]),
-            //Node::col(3, Default::default(), vec![leaf_b])
-        //])
-    //);
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·aa  ·
+·aa  ·
+······");
+}
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//······
-//·ab  ·
-//·ab  ·
-//······");
-//}
+#[test]
+fn it_can_align_columns_left() {
+    let cols = vec![
+        WrapBuilder::col(3).name("a".to_string()).height(2).build(),
+        WrapBuilder::col(3).name("b".to_string()).height(2).build(),
+    ];
+
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    for col in cols {
+        screen.tree_mut().root_mut().append(col);
+    }
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·ab  ·
+·ab  ·
+······");
+}
+
 //#[test]
 //fn it_can_align_a_column_right() {
     //::setup_logging();
