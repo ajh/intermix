@@ -1,20 +1,28 @@
-use libintermix::client::layout::*;
+use libintermix::client::layout2::*;
 use ::support::layout::*;
-use ::support::layout_painter::*;
+use ::support::layout2_painter::*;
 
 #[test]
 fn it_wraps_content_in_leftmost_column() {
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_a = WrapBuilder::col(9)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    let mut layout = Layout::new(Size { rows: 4, cols: 4},
-          Node::col(12, Default::default(), vec![
-              Node::col(9, Default::default(), vec![leaf_a]),
-              Node::col(6, Default::default(), vec![leaf_b]),
-          ])
-      );
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
+    let leaf_b = WrapBuilder::col(6)
+        .name("b".to_string())
+        .height(2)
+        .build();
+
+    let mut screen = Screen::new(Size { rows: 4, cols: 4});
+    screen.tree_mut().root_mut().append(WrapBuilder::col(9).build())
+        .append(leaf_a);
+    screen.tree_mut().root_mut().append(WrapBuilder::col(6).build())
+        .append(leaf_b);
+
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
 ······
 ·aaa ·
 ·aaa ·
@@ -25,18 +33,26 @@ fn it_wraps_content_in_leftmost_column() {
 
 #[test]
 fn it_wraps_content_in_rightmost_column() {
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    let leaf_a = WrapBuilder::col(6)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    let mut layout = Layout::new(Size { rows: 4, cols: 4}, Node::row(Default::default(), vec![
-          Node::col(3, Default::default(), vec![]),
-          Node::col(9, Default::default(), vec![
-              Node::col(6, Default::default(), vec![leaf_a]),
-              Node::col(9, Default::default(), vec![leaf_b]),
-          ])
-    ]));
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
+    let leaf_b = WrapBuilder::col(9)
+        .name("b".to_string())
+        .height(2)
+        .build();
+
+    let mut screen = Screen::new(Size { rows: 4, cols: 4});
+    screen.tree_mut().root_mut().value().set_align(Align::Right);
+    screen.tree_mut().root_mut().append(WrapBuilder::col(9).build())
+        .append(leaf_a);
+    screen.tree_mut().root_mut().append(WrapBuilder::col(9).build())
+        .append(leaf_b);
+
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
 ······
 · aa ·
 · aa ·

@@ -21,11 +21,11 @@ impl Screen {
             .width(size.cols as i16)
             .height(size.rows as i16)
             .build();
-        root.set_computed_grid_width(GRID_COLUMNS_COUNT);
-        root.set_computed_height(size.rows as i16);
-        root.set_computed_width(size.cols as i16);
-        root.set_computed_x(0);
-        root.set_computed_y(0);
+        root.set_computed_grid_width(Some(GRID_COLUMNS_COUNT));
+        root.set_computed_height(Some(size.rows as i16));
+        root.set_computed_width(Some(size.cols as i16));
+        root.set_computed_x(Some(0));
+        root.set_computed_y(Some(0));
         root.set_is_new_line(false);
 
         Screen {
@@ -69,7 +69,7 @@ impl Screen {
                 if grid_width > parent_grid_width {
                     grid_width = parent_grid_width
                 };
-                child_wrap.set_computed_grid_width(grid_width);
+                child_wrap.set_computed_grid_width(Some(grid_width));
 
                 columns_in_line += grid_width;
                 if columns_in_line > parent_grid_width {
@@ -107,7 +107,7 @@ impl Screen {
                 let percent = *[child_wrap.grid_width().unwrap(), parent_grid_width].into_iter().min().unwrap() as f32 / parent_grid_width as f32;
                 let width = (parent_width as f32 * percent).floor() as i16;
 
-                child_wrap.set_computed_width(width);
+                child_wrap.set_computed_width(Some(width));
 
                 line_width += width;
                 line_grid_columns_count += child_wrap.grid_width().unwrap();
@@ -144,7 +144,7 @@ impl Screen {
                 }
 
                 let val = child_wrap.computed_width().unwrap() + 1;
-                child_wrap.set_computed_width(val);
+                child_wrap.set_computed_width(Some(val));
             }
 
             // recurse
@@ -178,7 +178,7 @@ impl Screen {
                 {
                     let mut child_ref = self.tree.get_mut(id);
                     let mut child_wrap = child_ref.value();
-                    child_wrap.set_computed_x(x);
+                    child_wrap.set_computed_x(Some(x));
                     x += child_wrap.computed_width().unwrap();
                 }
 
@@ -199,7 +199,7 @@ impl Screen {
                 let mut child_ref = self.tree.get_mut(*child_id);
                 let mut child_wrap = child_ref.value();
                 let h = if let Some(i) = child_wrap.height() { i } else { children_height };
-                child_wrap.set_computed_height(h);
+                child_wrap.set_computed_height(Some(h));
             }
         }
 
@@ -231,7 +231,7 @@ impl Screen {
                 {
                     let mut child_ref = self.tree.get_mut(*child_id);
                     let mut child_wrap = child_ref.value();
-                    child_wrap.set_computed_y(y);
+                    child_wrap.set_computed_y(Some(y));
                 }
 
                 self.compute_y_position(*child_id);
@@ -306,15 +306,28 @@ pub struct Wrap {
     width:                Option<i16>,
 }
 
-macro_rules! accessor_optional_i16 {
+macro_rules! fn_option_accessor {
     // Can this be less redundent?
-    ($field_name:ident, $setter_name:ident) => {
-        pub fn $field_name(&self) -> Option<i16> {
+    ($field_name:ident, $setter_name:ident, $type_name:ident) => {
+        pub fn $field_name(&self) -> Option<$type_name> {
             self.$field_name
         }
 
-        pub fn $setter_name(&mut self, val: i16) {
-            self.$field_name = Some(val)
+        pub fn $setter_name(&mut self, val: Option<$type_name>) {
+            self.$field_name = val
+        }
+    }
+}
+
+macro_rules! fn_accessor {
+    // Can this be less redundent?
+    ($field_name:ident, $writer_name:ident, $type_name:ident) => {
+        pub fn $field_name(&self) -> $type_name {
+            self.$field_name
+        }
+
+        pub fn $writer_name(&mut self, val: $type_name) {
+            self.$field_name = val
         }
     }
 }
@@ -324,14 +337,19 @@ impl Wrap {
         Default::default()
     }
 
-    accessor_optional_i16!(computed_grid_width,  set_computed_grid_width);
-    accessor_optional_i16!(computed_height,      set_computed_height);
-    accessor_optional_i16!(computed_width,       set_computed_width);
-    accessor_optional_i16!(computed_x,           set_computed_x);
-    accessor_optional_i16!(computed_y,           set_computed_y);
-    accessor_optional_i16!(grid_width,           set_grid_width);
-    accessor_optional_i16!(height,               set_height);
-    accessor_optional_i16!(width,                set_width);
+    fn_option_accessor!(computed_grid_width,  set_computed_grid_width, i16);
+    fn_option_accessor!(computed_height,      set_computed_height, i16);
+    fn_option_accessor!(computed_width,       set_computed_width, i16);
+    fn_option_accessor!(computed_x,           set_computed_x, i16);
+    fn_option_accessor!(computed_y,           set_computed_y, i16);
+    fn_option_accessor!(grid_width,           set_grid_width, i16);
+    fn_option_accessor!(height,               set_height, i16);
+    fn_option_accessor!(width,                set_width, i16);
+
+    fn_accessor!(has_border, set_has_border, bool);
+    fn_accessor!(is_new_line, set_is_new_line, bool);
+    fn_accessor!(align, set_align, Align);
+    fn_accessor!(vertical_align, set_vertical_align, VerticalAlign);
 
     pub fn name(&self) -> &String {
         &self.name
@@ -339,10 +357,6 @@ impl Wrap {
 
     pub fn set_name(&mut self, val: String) {
         self.name = val
-    }
-
-    pub fn is_new_line(&self) -> bool {
-      self.is_new_line
     }
 
     pub fn outside_height(&self) -> Option<i16> {
@@ -353,26 +367,6 @@ impl Wrap {
     pub fn outside_width(&self) -> Option<i16> {
         // add box model stuff later
         self.computed_width()
-    }
-
-    pub fn set_is_new_line(&mut self, val: bool) {
-        self.is_new_line = val
-    }
-
-    pub fn align(&self) -> Align {
-        self.align
-    }
-
-    pub fn set_align(&mut self, val: Align) {
-        self.align = val;
-    }
-
-    pub fn vertical_align(&self) -> VerticalAlign {
-        self.vertical_align
-    }
-
-    pub fn set_vertical_align(&mut self, val: VerticalAlign) {
-        self.vertical_align = val;
     }
 }
 
@@ -464,9 +458,9 @@ impl WrapBuilder {
         let mut wrap = Wrap::new();
 
         if self.name.is_some()       { wrap.set_name(self.name.unwrap()); }
-        if self.grid_width.is_some() { wrap.set_grid_width(self.grid_width.unwrap()); }
-        if self.height.is_some()     { wrap.set_height(self.height.unwrap()); }
-        if self.width.is_some()      { wrap.set_width(self.width.unwrap()); }
+        if self.grid_width.is_some() { wrap.set_grid_width(self.grid_width); }
+        if self.height.is_some()     { wrap.set_height(self.height); }
+        if self.width.is_some()      { wrap.set_width(self.width); }
 
         wrap
     }
