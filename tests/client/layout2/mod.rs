@@ -62,80 +62,87 @@ fn it_draws_only_a_col() {
 ······");
 }
 
-//#[test]
-//fn it_draws_a_column_inside_a_row() {
-    //::setup_logging();
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(3), ..Default::default()});
-    //let mut layout = Layout::new(
-        //Size { rows: 2, cols: 4},
-        //Node::row(Default::default(), vec![
-            //Node::col(9, Default::default(), vec![leaf_a])
-        //])
-    //);
+#[test]
+fn it_draws_a_column_inside_a_row() {
+    let row = WrapBuilder::row().build();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//.----.
-//|aaa |
-//|aaa |
-//.----.");
-//}
+    let col = WrapBuilder::col(9)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-//#[test]
-//fn it_draws_a_row_inside_a_column() {
-    //::setup_logging();
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(3), ..Default::default()});
-    //let mut layout = Layout::new(
-        //Size { rows: 2, cols: 4},
-        //Node::col(9, Default::default(), vec![
-            //Node::row(Default::default(), vec![leaf_a])
-        //])
-    //);
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().append(row).append(col);
+    screen.flush_changes();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//.----.
-//|aaa |
-//|aaa |
-//.----.");
-//}
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·aaa ·
+·aaa ·
+······");
+}
 
-//#[test]
-//fn it_draws_a_12_width_col() {
-    //::setup_logging();
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+#[test]
+fn it_draws_a_row_inside_a_column() {
+    let col = WrapBuilder::col(9).build();
 
-    //let mut layout = Layout::new(Size { rows: 2, cols: 4},
-          //Node::col(12, Default::default(), vec![leaf_a])
-    //);
+    let row = WrapBuilder::row()
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//.----.
-//|aaaa|
-//|aaaa|
-//.----.");
-//}
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().append(col).append(row);
+    screen.flush_changes();
 
-//#[test]
-//fn it_draws_a_9_and_3_width_col_evenly() {
-    //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
-    //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(4), ..Default::default()});
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·aaa ·
+·aaa ·
+······");
+}
 
-    //let mut layout = Layout::new(Size { rows: 2, cols: 4},
-          //Node::row(Default::default(), vec![
-              //Node::col(9, Default::default(), vec![leaf_a]),
-              //Node::col(3, Default::default(), vec![leaf_b]),
-          //])
-    //);
+#[test]
+fn it_draws_a_12_width_col() {
+    let col = WrapBuilder::col(12)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    //layout.calculate_layout();
-    //assert_scene_eq(&draw_layout(&layout), "
-//.----.
-//|aaab|
-//|aaab|
-//.----.");
-//}
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().append(col);
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·aaaa·
+·aaaa·
+······");
+}
+
+#[test]
+fn it_draws_a_9_and_3_width_col_evenly() {
+    let col_a = WrapBuilder::col(9)
+        .name("a".to_string())
+        .height(2)
+        .build();
+
+    let col_b = WrapBuilder::col(9)
+        .name("b".to_string())
+        .height(2)
+        .build();
+
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().append(col_a);
+    screen.tree_mut().root_mut().append(col_b);
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·aaab·
+·aaab·
+······");
+}
 
 //#[test]
 //fn it_draws_a_9_and_3_width_col_unevenly() {
@@ -151,10 +158,10 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.---.
-//|aab|
-//|aab|
-//.---.");
+//·····
+//·aab·
+//·aab·
+//·····");
 //}
 
 //#[test]
@@ -171,10 +178,10 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.----.
-//|abbb|
-//|abbb|
-//.----.");
+//······
+//·abbb·
+//·abbb·
+//······");
 //}
 
 //#[test]
@@ -191,10 +198,10 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.---.
-//|abb|
-//|abb|
-//.---.");
+//·····
+//·abb·
+//·abb·
+//·····");
 //}
 
 //#[test]
@@ -211,10 +218,10 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.----.
-//|aabb|
-//|aabb|
-//.----.");
+//······
+//·aabb·
+//·aabb·
+//······");
 //}
 
 //#[test]
@@ -231,10 +238,10 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.---.
-//|aab|
-//|aab|
-//.---.");
+//·····
+//·aab·
+//·aab·
+//·····");
 //}
 
 //#[test]
@@ -259,9 +266,9 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.------.
-//|abcxyz|
-//.------.");
+//········
+//·abcxyz·
+//········");
 //}
 
 //#[test]
@@ -277,12 +284,12 @@ fn it_draws_only_a_col() {
       //);
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.----.
-//|aaaa|
-//|aaaa|
-//|bbbb|
-//|bbbb|
-//.----.");
+//······
+//·aaaa·
+//·aaaa·
+//·bbbb·
+//·bbbb·
+//······");
 //}
 
 //#[test]
@@ -293,9 +300,9 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.--.
-//|aa|
-//.--.");
+//····
+//·aa·
+//····");
 //}
 
 //#[test]
@@ -306,15 +313,14 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.-.
-//|a|
-//|a|
-//.-.");
+//··.
+//·a·
+//·a·
+//··.");
 //}
 
 //#[test]
 //fn it_can_add_to_layout() {
-    //::setup_logging();
     //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     //let mut layout = Layout::new(
         //Size { rows: 4, cols: 2},
@@ -323,12 +329,12 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.--.
-//|aa|
-//|aa|
-//|  |
-//|  |
-//.--.");
+//····
+//·aa·
+//·aa·
+//·  ·
+//·  ·
+//····");
 
     //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     //layout.root
@@ -338,17 +344,16 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.--.
-//|aa|
-//|aa|
-//|bb|
-//|bb|
-//.--.");
+//····
+//·aa·
+//·aa·
+//·bb·
+//·bb·
+//····");
 //}
 
 //#[test]
 //fn it_can_remove_from_layout() {
-    //::setup_logging();
     //let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
     //let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
 
@@ -361,12 +366,12 @@ fn it_draws_only_a_col() {
     //);
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.--.
-//|aa|
-//|aa|
-//|bb|
-//|bb|
-//.--.");
+//····
+//·aa·
+//·aa·
+//·bb·
+//·bb·
+//····");
 
     //layout.root
         //.children
@@ -374,12 +379,12 @@ fn it_draws_only_a_col() {
 
     //layout.calculate_layout();
     //assert_scene_eq(&draw_layout(&layout), "
-//.--.
-//|aa|
-//|aa|
-//|  |
-//|  |
-//.--.");
+//····
+//·aa·
+//·aa·
+//·  ·
+//·  ·
+//····");
 //}
 
 ////#[test]

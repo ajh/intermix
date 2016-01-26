@@ -38,6 +38,7 @@ impl Screen {
         &self.tree
     }
 
+    // I'd like to explore Returning a new type around Tree which calls flush_changes when dropped.
     pub fn tree_mut(&mut self) -> &mut ego_tree::Tree<Wrap> {
         &mut self.tree
     }
