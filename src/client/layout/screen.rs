@@ -47,9 +47,9 @@ impl Screen {
         let root_id = self.tree.root().id();
         self.compute_layout(root_id);
         self.compute_width(root_id);
-        //self.compute_x_position(self.root().lines(), 0, self.size.cols as i16);
-        //self.compute_children_heights(self.root().lines());
-        //self.compute_y_position(self.root().lines(), 0, self.size.rows as i16);
+        self.compute_x_position(root_id);
+        self.compute_height(root_id);
+        self.compute_y_position(root_id);
     }
 
     /// Assigns computed_grid_width and is_new_line values
@@ -91,118 +91,146 @@ impl Screen {
     ///
     /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
     fn compute_width(&mut self, parent_id: ego_tree::NodeId<Box>) {
+        let mut lines = self.tree.get(parent_id).lines();
         let parent_grid_width = self.tree.get(parent_id).value().computed_grid_width().unwrap();
         let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
-        let lines = self.tree.get(parent_id).lines();
 
-        for line in lines {
+        for mut line in lines {
             println!("{:?}", line);
+            let mut line_width = 0;
+            let mut line_grid_columns_count = 0;
+
+            // calculate provisionary widths
+            for child_id in line.iter() {
+                let mut child_ref = self.tree.get_mut(*child_id);
+                let mut child_box = child_ref.value();
+                let percent = child_box.grid_width().unwrap() as f32 / parent_grid_width as f32;
+                let width = (parent_width as f32 * percent).floor() as i16;
+
+                child_box.set_computed_width(width);
+
+                line_width += width;
+                line_grid_columns_count += child_box.grid_width().unwrap();
+            }
+
+            // figure how many columns are unused due to rounding errors
+            let mut unused_cols = {
+                let percent = line_grid_columns_count as f32 / parent_grid_width as f32;
+
+                let mut expected_width = (parent_width as f32 * percent).round() as i16;
+                if expected_width > parent_width { expected_width = parent_width }
+
+                expected_width - line_width
+            };
+
+            // add them back in fairly
+            line.sort_by(|a,b| {
+                let a_ref = self.tree.get(*a);
+                let a_box = a_ref.value();
+                let b_ref = self.tree.get(*b);
+                let b_box = b_ref.value();
+                a_box.computed_width().unwrap().cmp(&b_box.computed_width().unwrap())
+            });
+
+            for child_id in line.iter() {
+                let mut child_ref = self.tree.get_mut(*child_id);
+                let mut child_box = child_ref.value();
+
+                if unused_cols > 0 {
+                    unused_cols -= 1;
+                }
+                else {
+                    break
+                }
+
+                let val = child_box.computed_width().unwrap() + 1;
+                child_box.set_computed_width(val);
+            }
+
+            // recurse
+            for child_id in line {
+                self.compute_width(child_id);
+            }
         }
-            //let mut line_width = 0;
-            //let mut line_grid_columns_count = 0;
-
-            //// calculate provisionary widths
-            //for child in line.iter() {
-                //let mut width = 2;
-                //let percent = child.grid_width().unwrap() as f32 / parent_grid_width as f32;
-                //let width = (parent_width as f32 * percent).floor() as i16;
-
-                //child.set_computed_width(width);
-
-                //line_width += width;
-                //line_grid_columns_count += child.grid_width().unwrap();
-            //}
-
-            //// figure how many columns are unused due to rounding errors
-            //let mut unused_cols = {
-                //let percent = line_grid_columns_count as f32 / parent_grid_width as f32;
-
-                //let mut expected_width = (parent_width as f32 * percent).round() as i16;
-                //if expected_width > parent_width { expected_width = parent_width }
-
-                //expected_width - line_width
-            //};
-
-            //// add them back in fairly
-            //line.sort_by(|a,b| a.computed_width().unwrap().cmp(&b.computed_width().unwrap()));
-
-            //for child in line.iter() {
-                //if unused_cols > 0 {
-                    //unused_cols -= 1;
-                //}
-                //else {
-                    //break
-                //}
-
-                //child.set_computed_width(child.computed_width().unwrap() + 1);
-            //}
-
-            //// recurse
-            //for child in line {
-                //self.compute_children_widths(
-                    //child.lines(),
-                    //child.computed_grid_width().unwrap(),
-                    //child.computed_width().unwrap());
-            //}
-        //}
     }
 
-    //fn compute_x_position(&self, lines: Vec<Vec<dom::Element>>, parent_x: i16, parent_width: i16) {
-        //for line in lines {
-            //let line_width = line.iter()
-                //.map(|e| e.outside_width().unwrap())
-                //.fold(0, ::std::ops::Add::add);
-            //let unused_cols = parent_width - line_width;
-            //let offset = 0; // todo alignment
+    fn compute_x_position(&mut self, parent_id: ego_tree::NodeId<Box>) {
+        let mut lines = self.tree.get(parent_id).lines();
+        let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
+        let parent_x = self.tree.get(parent_id).value().computed_x().unwrap();
 
-            //let mut x = parent_x + offset;
+        for line in lines {
+                //let a_ref = self.tree.get(*a);
+                //let a_box = a_ref.value();
+            let line_width = line.iter()
+                .map(|id| self.tree.get(*id).value())
+                .map(|b| b.outside_width().unwrap())
+                .fold(0, ::std::ops::Add::add);
+            let unused_cols = parent_width - line_width;
+            let offset = 0; // todo alignment
 
-            //for element in line {
-                //element.set_computed_x(x);
-                //self.compute_x_position(
-                    //element.lines(),
-                    //element.computed_x().unwrap(),
-                    //element.computed_width().unwrap());
-            //}
-        //}
-    //}
+            let mut x = parent_x + offset;
 
-    ///// This one is botton up unlike the others which is top down. It returns the height of its
-    ///// children.
-    //fn compute_children_heights(&self, lines: Vec<Vec<dom::Element>>) -> i16 {
-        //for line in lines.iter() {
-            //for child in line.iter() {
-                //let h = self.compute_children_heights(child.lines());
-                //child.set_computed_height(if let Some(i) = child.height() { i } else { h });
-            //}
-        //}
+            for id in line {
+                {
+                    let mut child_ref = self.tree.get_mut(id);
+                    let mut child_box = child_ref.value();
+                    child_box.set_computed_x(x);
+                }
 
-        //lines.iter()
-            //.map(|line| line.iter().map(|c| c.outside_height().unwrap()).max().unwrap())
-            //.fold(0, ::std::ops::Add::add)
-    //}
+                self.compute_x_position(id);
+            }
+        }
+    }
 
-    //fn compute_y_position(&self, lines: Vec<Vec<dom::Element>>, parent_y: i16, parent_height: i16) {
-        //let lines_height = lines.iter()
-            //.map(|line| line.iter().map(|n| n.outside_height().unwrap()).max().unwrap())
-            //.fold(0, ::std::ops::Add::add);
-        //let unused_rows = parent_height - lines_height;
-        //let offset = 0; // todo alignment
+    /// This one is botton up unlike the others which is top down. It returns the height of its
+    /// children.
+    fn compute_height(&mut self, parent_id: ego_tree::NodeId<Box>) -> i16 {
+        let mut lines = self.tree.get(parent_id).lines();
 
-        //let mut y = parent_y + offset;
+        for line in lines.iter() {
+            for child_id in line.iter() {
+                let children_height = self.compute_height(*child_id);
 
-        //for line in lines.iter() {
-            //for element in line.iter() {
-                //element.set_computed_y(y);
-                //self.compute_y_position(
-                    //element.lines(),
-                    //element.computed_y().unwrap(),
-                    //element.computed_height().unwrap());
-            //}
+                let mut child_ref = self.tree.get_mut(*child_id);
+                let mut child_box = child_ref.value();
+                let h = if let Some(i) = child_box.height() { i } else { children_height };
+                child_box.set_computed_height(h);
+            }
+        }
 
-            //y += line.iter().map(|n| n.outside_height().unwrap()).max().unwrap();
-        //}
-    //}
+        lines.iter()
+            .map(|line| line.iter().map(|id| self.tree.get(*id).value()).map(|b| b.outside_height().unwrap()).max().unwrap())
+            .fold(0, ::std::ops::Add::add)
+    }
+
+    fn compute_y_position(&mut self, parent_id: ego_tree::NodeId<Box>) {
+        let mut lines = self.tree.get(parent_id).lines();
+        let parent_height = self.tree.get(parent_id).value().computed_height().unwrap();
+        let parent_y = self.tree.get(parent_id).value().computed_y().unwrap();
+
+        let lines_height = lines.iter()
+            .map(|line| line.iter().map(|id| self.tree.get(*id).value()).map(|n| n.outside_height().unwrap()).max().unwrap())
+            .fold(0, ::std::ops::Add::add);
+        let unused_rows = parent_height - lines_height;
+        let offset = 0; // todo alignment
+
+        let mut y = parent_y + offset;
+
+        for line in lines.iter() {
+            for child_id in line.iter() {
+                {
+                    let mut child_ref = self.tree.get_mut(*child_id);
+                    let mut child_box = child_ref.value();
+                    child_box.set_computed_y(y);
+                }
+
+                self.compute_y_position(*child_id);
+            }
+
+            y += line.iter().map(|id| self.tree.get(*id).value()).map(|n| n.outside_height().unwrap()).max().unwrap();
+        }
+    }
 }
 
 pub trait BoxContainer {
@@ -350,6 +378,8 @@ mod tests {
         screen.tree_mut().root_mut().append(row);
         screen.flush_changes();
 
+        println!("{:#?}", screen.tree());
+
         assert_scene_eq(&draw_screen(&screen), "
 ····
 ·aa·
@@ -363,7 +393,6 @@ mod tests {
 
         let leafs: Vec<&Box> = screen.tree().nodes().filter(|n| n.parent().is_some() && !n.has_children()).map(|n| n.value()).collect();
         for leaf in leafs {
-            println!("{:#?}", leaf);
             if leaf.computed_x().unwrap() >= screen.size.cols as i16 { continue }
             if leaf.computed_y().unwrap() >= screen.size.rows as i16 { continue }
 
