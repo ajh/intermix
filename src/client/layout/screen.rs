@@ -15,50 +15,89 @@ pub struct Screen {
 
 impl Screen {
     pub fn new(size: Size) -> Screen {
+        // Maybe a Builder to clean this up? Or new takes an Option struct with defaults?
+        let mut root = Box::new();
+        root.set_computed_grid_width(GRID_COLUMNS_COUNT);
+        root.set_computed_height(size.rows as i16);
+        root.set_computed_width(size.cols as i16);
+        root.set_computed_x(0);
+        root.set_computed_y(0);
+        root.set_grid_width(GRID_COLUMNS_COUNT);
+        root.set_height(size.rows as i16);
+        root.set_is_new_line(false);
+        root.set_name("root".to_string());
+        root.set_width(size.cols as i16);
+
         Screen {
             size: size,
-            tree: ego_tree::Tree::new(Default::default()),
+            tree: ego_tree::Tree::new(root),
         }
     }
 
+    pub fn tree(&self) -> &ego_tree::Tree<Box> {
+        &self.tree
+    }
+
+    pub fn tree_mut(&mut self) -> &mut ego_tree::Tree<Box> {
+        &mut self.tree
+    }
+
     /// recalculate layout to account for changes to the screen
-    pub fn flush_changes(&self) {
-        //self.layout_children(self.root().elements(), GRID_COLUMNS_COUNT);
-        //self.compute_children_widths(self.root().lines(), GRID_COLUMNS_COUNT, self.size.cols as i16);
+    pub fn flush_changes(&mut self) {
+        let root_id = self.tree.root().id();
+        self.compute_layout(root_id);
+        self.compute_width(root_id);
         //self.compute_x_position(self.root().lines(), 0, self.size.cols as i16);
         //self.compute_children_heights(self.root().lines());
         //self.compute_y_position(self.root().lines(), 0, self.size.rows as i16);
     }
 
-    //fn layout_children(&self, children: Vec<dom::Element>, parent_grid_width: i16) {
-        //let mut columns_in_line = 0;
+    /// Assigns computed_grid_width and is_new_line values
+    fn compute_layout(&mut self, parent_id: ego_tree::NodeId<Box>) {
+        let parent_grid_width = self.tree.get(parent_id).value().computed_grid_width().unwrap();
 
-        //for child in children {
-            //let mut grid_width = child.grid_width().unwrap_or(12);
-            //if grid_width > parent_grid_width { grid_width = parent_grid_width };
-            //child.set_computed_grid_width(grid_width);
+        let mut columns_in_line = 0;
 
-            //columns_in_line += grid_width;
-            //if columns_in_line > parent_grid_width {
-                //columns_in_line = 0;
-                //child.set_is_new_line(true);
-            //}
+        let child_ids: Vec<ego_tree::NodeId<Box>> = self.tree.get(parent_id).children().map(|c| c.id()).collect();
+        for child_id in child_ids {
+            {
+                let mut child_node = self.tree.get_mut(child_id);
+                let mut child_box = child_node.value();
 
-            //self.layout_children(child.elements(), grid_width);
-        //}
-    //}
+                let mut grid_width = child_box.grid_width().unwrap_or(GRID_COLUMNS_COUNT);
+                if grid_width > parent_grid_width {
+                    grid_width = parent_grid_width
+                };
+                child_box.set_computed_grid_width(grid_width);
 
-    ///// Here's the algo:
-    /////
-    ///// 1. iterate through children by lines.
-    /////
-    ///// 2. For each lines, figure out:
-    ///// * how many cols are missing due to rounding errors
-    ///// * which nodes are the most effected
-    /////
-    ///// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
-    //fn compute_children_widths(&self, lines: Vec<Vec<dom::Element>>, parent_grid_width: i16, parent_width: i16) {
-        //for mut line in lines {
+                columns_in_line += grid_width;
+                if columns_in_line > parent_grid_width {
+                    columns_in_line = 0;
+                    child_box.set_is_new_line(true);
+                }
+            }
+
+            self.compute_layout(child_id);
+        }
+    }
+
+    /// Here's the algo:
+    ///
+    /// 1. iterate through children by lines.
+    ///
+    /// 2. For each lines, figure out:
+    /// * how many cols are missing due to rounding errors
+    /// * which nodes are the most effected
+    ///
+    /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
+    fn compute_width(&mut self, parent_id: ego_tree::NodeId<Box>) {
+        let parent_grid_width = self.tree.get(parent_id).value().computed_grid_width().unwrap();
+        let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
+        let lines = self.tree.get(parent_id).lines();
+
+        for line in lines {
+            println!("{:?}", line);
+        }
             //let mut line_width = 0;
             //let mut line_grid_columns_count = 0;
 
@@ -106,7 +145,7 @@ impl Screen {
                     //child.computed_width().unwrap());
             //}
         //}
-    //}
+    }
 
     //fn compute_x_position(&self, lines: Vec<Vec<dom::Element>>, parent_x: i16, parent_width: i16) {
         //for line in lines {
@@ -166,112 +205,95 @@ impl Screen {
     //}
 }
 
-//pub trait ElementContainer {
-    //// return vec of child elements
-    //fn elements(&self) -> Vec<dom::Element>;
+pub trait BoxContainer {
+    // return vec of child elements organized into horizontal lines
+    fn lines(&self) -> Vec<Vec<ego_tree::NodeId<Box>>>;
+}
 
-    //// return vec of child elements organized into horizontal lines
-    //fn lines(&self) -> Vec<Vec<dom::Element>> {
-        //let mut output = vec![];
-        //let mut line = vec![];
+impl<'a> BoxContainer for ego_tree::NodeRef<'a, Box> {
+    fn lines(&self) -> Vec<Vec<ego_tree::NodeId<Box>>> {
+        let mut output = vec![];
+        let mut line = vec![];
 
-        //for child in self.elements().into_iter() {
-            //if child.is_new_line() && line.len() > 0 {
-                //output.push(line);
-                //line = vec![];
-            //}
+        for child in self.children() {
+            if child.value().is_new_line() && line.len() > 0 {
+                output.push(line);
+                line = vec![];
+            }
 
-            //line.push(child);
-        //}
+            line.push(child.id());
+        }
 
-        //if line.len() > 0 { output.push(line) }
+        if line.len() > 0 { output.push(line) }
 
-        //output
-    //}
-//}
-
-//impl<'d> ElementContainer for dom::Element<'d> {
-    //fn elements(&self) -> Vec<dom::Element> {
-        //self.children()
-            //.into_iter()
-            //.filter_map(|c| c.element()).collect()
-    //}
-//}
-
-//impl<'d> ElementContainer for dom::Root<'d> {
-    //fn elements(&self) -> Vec<dom::Element> {
-        //self.children()
-            //.into_iter()
-            //.filter_map(|c| c.element()).collect()
-    //}
-//}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum GridWidth {
-    /// Fill the width of the parent container
-    Max,
-    /// Be at most this many grid columns wide.
-    Cols (i16),
+        output
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-struct Box {
+pub struct Box {
     computed_grid_width:  Option<i16>,
     computed_height:      Option<i16>,
     computed_width:       Option<i16>,
     computed_x:           Option<i16>,
     computed_y:           Option<i16>,
-    grid_width:           GridWidth,
+    grid_width:           Option<i16>,
     height:               Option<i16>,
     is_new_line:          bool,
+    name:                 String,
     width:                Option<i16>,
 }
 
 macro_rules! accessor_optional_i16 {
     // Can this be less redundent?
     ($field_name:ident, $setter_name:ident) => {
-        fn $field_name(&self) -> Option<i16> {
+        pub fn $field_name(&self) -> Option<i16> {
             self.$field_name
         }
 
-        fn $setter_name(&mut self, val: i16) {
+        pub fn $setter_name(&mut self, val: i16) {
             self.$field_name = Some(val)
         }
     }
 }
 
 impl Box {
+    pub fn new() -> Box {
+        Default::default()
+    }
+
     accessor_optional_i16!(computed_grid_width,  set_computed_grid_width);
     accessor_optional_i16!(computed_height,      set_computed_height);
     accessor_optional_i16!(computed_width,       set_computed_width);
     accessor_optional_i16!(computed_x,           set_computed_x);
     accessor_optional_i16!(computed_y,           set_computed_y);
+    accessor_optional_i16!(grid_width,           set_grid_width);
     accessor_optional_i16!(height,               set_height);
     accessor_optional_i16!(width,                set_width);
 
-    fn grid_width(&self) -> GridWidth {
-        self.grid_width
+    pub fn name(&self) -> &String {
+        &self.name
     }
 
-    fn set_grid_width(&mut self, val: GridWidth) {
-        self.grid_width = val
+    pub fn set_name(&mut self, val: String) {
+        self.name = val
     }
 
-    fn is_new_line(&self) -> bool {
+    pub fn is_new_line(&self) -> bool {
       self.is_new_line
     }
 
-    fn outside_height(&self) -> Option<i16> {
+    pub fn outside_height(&self) -> Option<i16> {
         // add box model stuff later
         self.computed_height()
     }
 
-    fn outside_width(&self) -> Option<i16> {
+    pub fn outside_width(&self) -> Option<i16> {
         // add box model stuff later
         self.computed_width()
     }
 
-    fn set_is_new_line(&mut self, val: bool) {
+    pub fn set_is_new_line(&mut self, val: bool) {
         self.is_new_line = val
     }
 }
@@ -279,12 +301,13 @@ impl Box {
 impl Default for Box {
     fn default() -> Box {
         Box {
+            name:                 String::new(), // maybe a uuid?
             computed_grid_width:  None,
             computed_height:      None,
             computed_width:       None,
             computed_x:           None,
             computed_y:           None,
-            grid_width:           GridWidth::Max,
+            grid_width:           None,
             height:               None,
             is_new_line:          false,
             width:                None,
@@ -294,6 +317,7 @@ impl Default for Box {
 
 mod tests {
     use super::*;
+    use ego_tree;
 
     fn assert_scene_eq(actual: &str, expected: &str) {
         let actual = actual.trim();
@@ -306,7 +330,7 @@ mod tests {
 
     #[test]
     fn it_draws_an_empty_document() {
-        let screen = Screen::new(Size { rows: 2, cols: 2});
+        let mut screen = Screen::new(Size { rows: 2, cols: 2});
         screen.flush_changes();
         assert_scene_eq(&draw_screen(&screen), "
 ····
@@ -317,12 +341,13 @@ mod tests {
 
     #[test]
     fn it_draws_a_single_row() {
-        let screen = Screen::new(Size { rows: 2, cols: 2});
-        let row = screen.document().create_element("box");
-        row.set_attribute_value("name", "a");
+        let mut row = Box::new();
+        row.set_name("a".to_string());
         row.set_grid_width(12);
         row.set_height(2);
-        screen.root().append_child(row);
+
+        let mut screen = Screen::new(Size { rows: 2, cols: 2});
+        screen.tree_mut().root_mut().append(row);
         screen.flush_changes();
 
         assert_scene_eq(&draw_screen(&screen), "
@@ -336,28 +361,27 @@ mod tests {
         // scene is 2d vec organized rows then cols
         let mut scene: Vec<Vec<char>> = vec![vec![' '; screen.size.cols as usize]; screen.size.rows as usize];
 
-        //for node in xpath.find("box") {
-            //let element = node.element().unwrap();
-            //println!("{:?}", element);
-            //if element.computed_x().unwrap() >= screen.size.cols as i16 { continue }
-            //if element.computed_y().unwrap() >= screen.size.rows as i16 { continue }
+        let leafs: Vec<&Box> = screen.tree().nodes().filter(|n| n.parent().is_some() && !n.has_children()).map(|n| n.value()).collect();
+        for leaf in leafs {
+            println!("{:#?}", leaf);
+            if leaf.computed_x().unwrap() >= screen.size.cols as i16 { continue }
+            if leaf.computed_y().unwrap() >= screen.size.rows as i16 { continue }
 
-            //let col_end = *[element.computed_x().unwrap() + element.computed_width().unwrap(), screen.size.cols as i16]
-                //.iter()
-                //.min()
-                //.unwrap();
-            //let row_end = *[element.computed_y().unwrap() + element.computed_height().unwrap(), screen.size.rows as i16]
-                //.iter()
-                //.min()
-                //.unwrap();
+            let col_end = *[leaf.computed_x().unwrap() + leaf.computed_width().unwrap(), screen.size.cols as i16]
+                .iter()
+                .min()
+                .unwrap();
+            let row_end = *[leaf.computed_y().unwrap() + leaf.computed_height().unwrap(), screen.size.rows as i16]
+                .iter()
+                .min()
+                .unwrap();
 
-            //for y in (element.computed_y().unwrap()..row_end) {
-                //for x in (element.computed_x().unwrap()..col_end) {
-                    //let name = element.attribute_value("name").unwrap();
-                    //scene[y as usize][x as usize] = name.chars().next().unwrap();
-                //}
-            //}
-        //}
+            for y in (leaf.computed_y().unwrap()..row_end) {
+                for x in (leaf.computed_x().unwrap()..col_end) {
+                    scene[y as usize][x as usize] = leaf.name().chars().next().unwrap();
+                }
+            }
+        }
 
         // draw scene border
         {
