@@ -1,6 +1,5 @@
 mod node;
 mod nodes;
-mod screen;
 
 use std::slice::Iter;
 use vterm_sys;

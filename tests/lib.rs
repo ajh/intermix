@@ -4,6 +4,7 @@ extern crate libintermix;
 extern crate log4rs;
 extern crate vterm_sys;
 extern crate time;
+extern crate ego_tree;
 
 mod client;
 mod server;
