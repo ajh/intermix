@@ -16,17 +16,17 @@ pub struct Screen {
 impl Screen {
     pub fn new(size: Size) -> Screen {
         // Maybe a Builder to clean this up? Or new takes an Option struct with defaults?
-        let mut root = Wrap::new();
+        let mut root = WrapBuilder::row()
+            .name("root".to_string())
+            .width(size.cols as i16)
+            .height(size.rows as i16)
+            .build();
         root.set_computed_grid_width(GRID_COLUMNS_COUNT);
         root.set_computed_height(size.rows as i16);
         root.set_computed_width(size.cols as i16);
         root.set_computed_x(0);
         root.set_computed_y(0);
-        root.set_grid_width(GRID_COLUMNS_COUNT);
-        root.set_height(size.rows as i16);
         root.set_is_new_line(false);
-        root.set_name("root".to_string());
-        root.set_width(size.cols as i16);
 
         Screen {
             size: size,
@@ -158,15 +158,19 @@ impl Screen {
         let mut lines = self.tree.get(parent_id).lines();
         let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
         let parent_x = self.tree.get(parent_id).value().computed_x().unwrap();
+        let parent_align = self.tree.get(parent_id).value().align();
 
         for line in lines {
             let line_width = line.iter()
                 .map(|id| self.tree.get(*id).value())
                 .map(|b| b.outside_width().unwrap())
                 .fold(0, ::std::ops::Add::add);
-            println!("line_width {}", line_width);
             let unused_cols = parent_width - line_width;
-            let offset = 0; // todo alignment
+            let offset = match parent_align {
+                Align::Left => 0,
+                Align::Center => (unused_cols as f32 / 2.0).round() as i16,
+                Align::Right => unused_cols,
+            };
 
             let mut x = parent_x + offset;
 
@@ -208,12 +212,17 @@ impl Screen {
         let mut lines = self.tree.get(parent_id).lines();
         let parent_height = self.tree.get(parent_id).value().computed_height().unwrap();
         let parent_y = self.tree.get(parent_id).value().computed_y().unwrap();
+        let parent_vertical_align = self.tree.get(parent_id).value().vertical_align();
 
         let lines_height = lines.iter()
             .map(|line| line.iter().map(|id| self.tree.get(*id).value()).map(|n| n.outside_height().unwrap()).max().unwrap())
             .fold(0, ::std::ops::Add::add);
         let unused_rows = parent_height - lines_height;
-        let offset = 0; // todo alignment
+        let offset = match parent_vertical_align {
+            VerticalAlign::Top => 0,
+            VerticalAlign::Middle => (unused_rows as f32 / 2.0).round() as i16,
+            VerticalAlign::Bottom => unused_rows,
+        };
 
         let mut y = parent_y + offset;
 
@@ -258,17 +267,42 @@ impl<'a> LineContainer for ego_tree::NodeRef<'a, Wrap> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Align {
+    Left,
+    Center,
+    Right,
+}
+impl Default for Align {
+    fn default() -> Align { Align::Left }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum VerticalAlign {
+    Top,
+    Middle,
+    Bottom,
+}
+impl Default for VerticalAlign {
+    fn default() -> VerticalAlign { VerticalAlign::Top }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Wrap {
+    align:                Align,
     computed_grid_width:  Option<i16>,
     computed_height:      Option<i16>,
     computed_width:       Option<i16>,
     computed_x:           Option<i16>,
     computed_y:           Option<i16>,
     grid_width:           Option<i16>,
+    has_border:           bool,
     height:               Option<i16>,
     is_new_line:          bool,
+    margin:               i16,
     name:                 String,
+    padding:              i16,
+    vertical_align:       VerticalAlign,
     width:                Option<i16>,
 }
 
@@ -324,75 +358,108 @@ impl Wrap {
     pub fn set_is_new_line(&mut self, val: bool) {
         self.is_new_line = val
     }
+
+    pub fn align(&self) -> Align {
+        self.align
+    }
+
+    pub fn set_align(&mut self, val: Align) {
+        self.align = val;
+    }
+
+    pub fn vertical_align(&self) -> VerticalAlign {
+        self.vertical_align
+    }
+
+    pub fn set_vertical_align(&mut self, val: VerticalAlign) {
+        self.vertical_align = val;
+    }
 }
 
 impl Default for Wrap {
     fn default() -> Wrap {
         Wrap {
-            name:                 String::new(), // maybe a uuid?
+            align:                Default::default(),
             computed_grid_width:  None,
             computed_height:      None,
             computed_width:       None,
             computed_x:           None,
             computed_y:           None,
             grid_width:           None,
+            has_border:           false,
             height:               None,
             is_new_line:          false,
+            margin:               0,
+            name:                 String::new(), // maybe a uuid?
+            padding:              0,
+            vertical_align:       Default::default(),
             width:                None,
         }
     }
 }
 
 pub struct WrapBuilder {
-    name: Option<String>,
-    grid_width: Option<i16>,
-    height: Option<i16>,
-    width: Option<i16>,
+    align:           Option<Align>,
+    grid_width:      Option<i16>,
+    has_border:      Option<bool>,
+    height:          Option<i16>,
+    margin:          Option<i16>,
+    name:            Option<String>,
+    padding:         Option<i16>,
+    vertical_align:  Option<VerticalAlign>,
+    width:           Option<i16>,
+}
+
+macro_rules! fn_writer {
+    ($field_name:ident, $type_name:ident) => {
+        pub fn $field_name(mut self, val: $type_name) -> WrapBuilder {
+            self.$field_name = Some(val);
+            self
+        }
+    }
 }
 
 impl WrapBuilder {
     /// call this to create a column
     pub fn col(val: i16) -> WrapBuilder {
         WrapBuilder {
-            name: None,
-            grid_width: Some(val),
-            height: None,
-            width: None,
+            align:           None,
+            grid_width:      Some(val),
+            has_border:      None,
+            height:          None,
+            margin:          None,
+            name:            None,
+            padding:         None,
+            vertical_align:  None,
+            width:           None,
         }
     }
 
     /// call this to create a row
     pub fn row() -> WrapBuilder {
         WrapBuilder {
-            name: None,
-            grid_width: Some(GRID_COLUMNS_COUNT),
-            height: None,
-            width: None,
+            align:           None,
+            grid_width:      Some(GRID_COLUMNS_COUNT),
+            has_border:      None,
+            height:          None,
+            margin:          None,
+            name:            None,
+            padding:         None,
+            vertical_align:  None,
+            width:           None,
         }
     }
 
-    /// call this if you don't want to specifiy a grid width
-    pub fn new() -> WrapBuilder {
-        WrapBuilder {
-            name: None,
-            grid_width: None,
-            height: None,
-            width: None,
-        }
-    }
+    fn_writer!(align,           Align);
+    fn_writer!(grid_width,      i16);
+    fn_writer!(has_border,      bool);
+    fn_writer!(height,          i16);
+    fn_writer!(margin,          i16);
+    fn_writer!(name,            String);
+    fn_writer!(padding,         i16);
+    fn_writer!(vertical_align,  VerticalAlign);
+    fn_writer!(width,           i16);
 
-    pub fn name(mut self, name: String) -> WrapBuilder {
-        self.name = Some(name);
-        self
-    }
-    pub fn height(mut self, val: i16) -> WrapBuilder {
-        self.height = Some(val);
-        self
-    }
-    pub fn width(mut self, val: i16) -> WrapBuilder {
-        self.height = Some(val);
-        self
-    }
     pub fn build(self) -> Wrap {
         let mut wrap = Wrap::new();
 
