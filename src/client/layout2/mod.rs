@@ -15,12 +15,7 @@ pub struct Screen {
 
 impl Screen {
     pub fn new(size: Size) -> Screen {
-        // Maybe a Builder to clean this up? Or new takes an Option struct with defaults?
-        let mut root = WrapBuilder::row()
-            .name("root".to_string())
-            .width(size.cols as i16)
-            .height(size.rows as i16)
-            .build();
+        let root = WrapBuilder::row().name("root".to_string()).build();
 
         Screen {
             size: size,
@@ -148,7 +143,7 @@ impl Screen {
                 let a_wrap = a_ref.value();
                 let b_ref = self.tree.get(*b);
                 let b_wrap = b_ref.value();
-                a_wrap.computed_width().unwrap().cmp(&b_wrap.computed_width().unwrap())
+                a_wrap.outside_width().unwrap().cmp(&b_wrap.outside_width().unwrap())
             });
 
             for child_id in line.iter() {
@@ -202,7 +197,7 @@ impl Screen {
                     let mut child_ref = self.tree.get_mut(id);
                     let mut child_wrap = child_ref.value();
                     child_wrap.set_outside_x(Some(x));
-                    x += child_wrap.computed_width().unwrap();
+                    x += child_wrap.outside_width().unwrap();
                 }
 
                 self.compute_x_position(id);
@@ -227,7 +222,7 @@ impl Screen {
                 let mut child_ref = self.tree.get_mut(*child_id);
                 let mut child_wrap = child_ref.value();
                 let h = if let Some(i) = child_wrap.height() { i } else { children_height };
-                child_wrap.set_outside_height(Some(h));
+                child_wrap.set_computed_height(Some(h));
             }
         }
 
@@ -601,10 +596,15 @@ impl WrapBuilder {
     pub fn build(self) -> Wrap {
         let mut wrap = Wrap::new();
 
-        if self.name.is_some()       { wrap.set_name(self.name.unwrap()); }
-        if self.grid_width.is_some() { wrap.set_grid_width(self.grid_width); }
-        if self.height.is_some()     { wrap.set_height(self.height); }
-        if self.width.is_some()      { wrap.set_width(self.width); }
+        if self.align.is_some()          { wrap.set_align(self.align.unwrap()) }
+        if self.grid_width.is_some()     { wrap.set_grid_width(self.grid_width) }
+        if self.has_border.is_some()     { wrap.set_has_border(self.has_border.unwrap()) }
+        if self.height.is_some()         { wrap.set_height(self.height) }
+        if self.margin.is_some()         { wrap.set_margin(self.margin.unwrap()) }
+        if self.name.is_some()           { wrap.set_name(self.name.unwrap()) }
+        if self.padding.is_some()        { wrap.set_padding(self.padding.unwrap()) }
+        if self.vertical_align.is_some() { wrap.set_vertical_align(self.vertical_align.unwrap()) }
+        if self.width.is_some()          { wrap.set_width(self.width) }
 
         wrap
     }
