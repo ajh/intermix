@@ -21,12 +21,6 @@ impl Screen {
             .width(size.cols as i16)
             .height(size.rows as i16)
             .build();
-        root.set_computed_grid_width(Some(GRID_COLUMNS_COUNT));
-        root.set_computed_height(Some(size.rows as i16));
-        root.set_computed_width(Some(size.cols as i16));
-        root.set_computed_x(Some(0));
-        root.set_computed_y(Some(0));
-        root.set_is_new_line(false);
 
         Screen {
             size: size,
@@ -45,6 +39,7 @@ impl Screen {
 
     /// recalculate layout to account for changes to the screen
     pub fn flush_changes(&mut self) {
+        self.update_root_wrap();
         let root_id = self.tree.root().id();
         self.compute_layout(root_id);
         self.compute_width(root_id);
@@ -53,7 +48,26 @@ impl Screen {
         self.compute_y_position(root_id);
     }
 
-    /// Assigns computed_grid_width and is_new_line values
+    /// Update the root separaetly from the others because it makes the recursive code simpiler,
+    /// and it may have new margin etc settings that effect its values.
+    fn update_root_wrap(&mut self) {
+        let mut root_ref = self.tree.root_mut();
+        let mut root_wrap = root_ref.value();
+
+        let grid_width = root_wrap.grid_width();
+        root_wrap.set_computed_grid_width(grid_width);
+        root_wrap.set_is_new_line(false);
+        root_wrap.set_outside_width(Some(self.size.cols as i16));
+        root_wrap.set_outside_x(Some(0));
+        root_wrap.set_outside_height(Some(self.size.rows as i16));
+        root_wrap.set_outside_y(Some(0));
+    }
+
+    /// Assigns:
+    ///
+    /// * computed_grid_width
+    /// * is_new_line
+    ///
     fn compute_layout(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let parent_grid_width = self.tree.get(parent_id).value().computed_grid_width().unwrap();
 
@@ -91,6 +105,11 @@ impl Screen {
     /// * which nodes are the most effected
     ///
     /// 3. Assign widths to child nodes, adding back the missing columns to the most effect nodes.
+    ///
+    /// Assigns:
+    ///
+    /// * set_outside_width
+    ///
     fn compute_width(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let mut lines = self.tree.get(parent_id).lines();
         let parent_grid_width = self.tree.get(parent_id).value().computed_grid_width().unwrap();
@@ -107,7 +126,7 @@ impl Screen {
                 let percent = *[child_wrap.grid_width().unwrap(), parent_grid_width].into_iter().min().unwrap() as f32 / parent_grid_width as f32;
                 let width = (parent_width as f32 * percent).floor() as i16;
 
-                child_wrap.set_computed_width(Some(width));
+                child_wrap.set_outside_width(Some(width));
 
                 line_width += width;
                 line_grid_columns_count += child_wrap.grid_width().unwrap();
@@ -143,8 +162,8 @@ impl Screen {
                     break
                 }
 
-                let val = child_wrap.computed_width().unwrap() + 1;
-                child_wrap.set_computed_width(Some(val));
+                let val = child_wrap.outside_width().unwrap() + 1;
+                child_wrap.set_outside_width(Some(val));
             }
 
             // recurse
@@ -154,6 +173,10 @@ impl Screen {
         }
     }
 
+    /// Assigns:
+    ///
+    /// * set_outside_x
+    ///
     fn compute_x_position(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let mut lines = self.tree.get(parent_id).lines();
         let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
@@ -178,7 +201,7 @@ impl Screen {
                 {
                     let mut child_ref = self.tree.get_mut(id);
                     let mut child_wrap = child_ref.value();
-                    child_wrap.set_computed_x(Some(x));
+                    child_wrap.set_outside_x(Some(x));
                     x += child_wrap.computed_width().unwrap();
                 }
 
@@ -189,6 +212,11 @@ impl Screen {
 
     /// This one is botton up unlike the others which is top down. It returns the height of its
     /// children.
+    ///
+    /// Assigns:
+    ///
+    /// * set_outside_height
+    ///
     fn compute_height(&mut self, parent_id: ego_tree::NodeId<Wrap>) -> i16 {
         let mut lines = self.tree.get(parent_id).lines();
 
@@ -199,7 +227,7 @@ impl Screen {
                 let mut child_ref = self.tree.get_mut(*child_id);
                 let mut child_wrap = child_ref.value();
                 let h = if let Some(i) = child_wrap.height() { i } else { children_height };
-                child_wrap.set_computed_height(Some(h));
+                child_wrap.set_outside_height(Some(h));
             }
         }
 
@@ -208,6 +236,10 @@ impl Screen {
             .fold(0, ::std::ops::Add::add)
     }
 
+    /// Assigns:
+    ///
+    /// * set_outside_y
+    ///
     fn compute_y_position(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let mut lines = self.tree.get(parent_id).lines();
         let parent_height = self.tree.get(parent_id).value().computed_height().unwrap();
@@ -231,7 +263,7 @@ impl Screen {
                 {
                     let mut child_ref = self.tree.get_mut(*child_id);
                     let mut child_wrap = child_ref.value();
-                    child_wrap.set_computed_y(Some(y));
+                    child_wrap.set_outside_y(Some(y));
                 }
 
                 self.compute_y_position(*child_id);
@@ -346,10 +378,12 @@ impl Wrap {
     fn_option_accessor!(height,               set_height, i16);
     fn_option_accessor!(width,                set_width, i16);
 
-    fn_accessor!(has_border, set_has_border, bool);
-    fn_accessor!(is_new_line, set_is_new_line, bool);
-    fn_accessor!(align, set_align, Align);
-    fn_accessor!(vertical_align, set_vertical_align, VerticalAlign);
+    fn_accessor!(align,           set_align,           Align);
+    fn_accessor!(has_border,      set_has_border,      bool);
+    fn_accessor!(is_new_line,     set_is_new_line,     bool);
+    fn_accessor!(margin,          set_margin,          i16);
+    fn_accessor!(padding,         set_padding,         i16);
+    fn_accessor!(vertical_align,  set_vertical_align,  VerticalAlign);
 
     pub fn name(&self) -> &String {
         &self.name
@@ -360,13 +394,123 @@ impl Wrap {
     }
 
     pub fn outside_height(&self) -> Option<i16> {
-        // add box model stuff later
-        self.computed_height()
+        if let Some(mut h) = self.computed_height() {
+            h += 2 * (self.margin + self.padding + if self.has_border { 1 } else { 0 });
+            Some(h)
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn set_outside_height(&mut self, val: Option<i16>) {
+        if let Some(mut v) = val {
+            v -= 2 * (self.margin + self.padding + if self.has_border { 1 } else { 0 });
+            self.set_computed_height(Some(v));
+        }
+        else {
+            self.set_computed_height(None);
+        }
     }
 
     pub fn outside_width(&self) -> Option<i16> {
-        // add box model stuff later
-        self.computed_width()
+        if let Some(mut w) = self.computed_width() {
+            w += 2 * (self.margin + self.padding + if self.has_border { 1 } else { 0 });
+            Some(w)
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn set_outside_width(&mut self, val: Option<i16>) {
+        if let Some(mut v) = val {
+            v -= 2 * (self.margin + self.padding + if self.has_border { 1 } else { 0 });
+            self.set_computed_width(Some(v));
+        }
+        else {
+            self.set_computed_width(None);
+        }
+    }
+
+    pub fn outside_x(&self) -> Option<i16> {
+        if let Some(mut x) = self.computed_x() {
+            x -= self.margin + self.padding + if self.has_border { 1 } else { 0 };
+            Some(x)
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn set_outside_x(&mut self, val: Option<i16>) {
+        if let Some(mut v) = val {
+            v += self.margin + self.padding + if self.has_border { 1 } else { 0 };
+            self.set_computed_x(Some(v));
+        }
+        else {
+            self.set_computed_x(None);
+        }
+    }
+
+    pub fn outside_y(&self) -> Option<i16> {
+        if let Some(mut y) = self.computed_y() {
+            y -= self.margin + self.padding + if self.has_border { 1 } else { 0 };
+            Some(y)
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn set_outside_y(&mut self, val: Option<i16>) {
+        if let Some(mut v) = val {
+            v += self.margin + self.padding + if self.has_border { 1 } else { 0 };
+            self.set_computed_y(Some(v));
+        }
+        else {
+            self.set_computed_y(None);
+        }
+    }
+
+    pub fn border_height(&self) -> Option<i16> {
+        if let Some(mut h) = self.computed_height() {
+            h += 2 * (self.padding + if self.has_border { 1 } else { 0 });
+            Some(h)
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn border_width(&self) -> Option<i16> {
+        if let Some(mut w) = self.computed_width() {
+            w += 2 * (self.padding + if self.has_border { 1 } else { 0 });
+            Some(w)
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn border_x(&self) -> Option<i16> {
+        if let Some(mut x) = self.computed_x() {
+            x -= self.padding + if self.has_border { 1 } else { 0 };
+            Some(x)
+        }
+        else {
+            None
+        }
+    }
+
+    pub fn border_y(&self) -> Option<i16> {
+        if let Some(mut y) = self.computed_y() {
+            y -= self.padding + if self.has_border { 1 } else { 0 };
+            Some(y)
+        }
+        else {
+            None
+        }
     }
 }
 

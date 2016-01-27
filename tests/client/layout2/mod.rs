@@ -3,7 +3,7 @@ use ::support::layout::*;
 use ::support::layout2_painter::*;
 
 mod align;
-//mod border_margin_padding;
+mod border_margin_padding;
 mod line_wrap;
 
 // Features todo:
