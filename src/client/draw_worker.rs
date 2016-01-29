@@ -18,11 +18,11 @@ type Cell = vterm_sys::ScreenCell;
 pub struct DrawWorker<F: 'static + Write + Send> {
     rx: Receiver<ClientMsg>,
     painter: TtyPainter<F>,
-    layout: Arc<RwLock<Layout>>,
+    layout: Arc<RwLock<layout2::Screen>>,
 }
 
 impl <F: 'static + Write + Send> DrawWorker<F> {
-    pub fn spawn(io: F, rx: Receiver<ClientMsg>, layout: Arc<RwLock<Layout>>) -> thread::JoinHandle<()> {
+    pub fn spawn(io: F, rx: Receiver<ClientMsg>, layout: Arc<RwLock<layout2::Screen>>) -> thread::JoinHandle<()> {
         info!("spawning draw worker");
         thread::spawn(move || {
             let mut worker = DrawWorker::new(rx, io, layout);
@@ -31,7 +31,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         })
     }
 
-    fn new(rx: Receiver<ClientMsg>, io: F, layout: Arc<RwLock<Layout>>) -> DrawWorker<F> {
+    fn new(rx: Receiver<ClientMsg>, io: F, layout: Arc<RwLock<layout2::Screen>>) -> DrawWorker<F> {
         DrawWorker {
             rx: rx,
             painter: TtyPainter::new(io),
@@ -61,8 +61,8 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         trace!("program_damage for {}", program_id);
 
         let layout = self.layout.read().unwrap();
-        if let Some(node) = layout.root.descendants().find(|n| n.is_leaf() && n.value == program_id) {
-            self.painter.draw_cells(&cells, &node.computed_pos);
+        if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
+            self.painter.draw_cells(&cells, &Pos { row: wrap.computed_y().unwrap(), col: wrap.computed_x().unwrap()});
         }
         else {
             warn!("didnt find node with value: {:?}", program_id);
@@ -76,24 +76,29 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
 
         let mut cells: Vec<Cell> = vec![];
 
-        self.cells_for_node(&mut cells, &layout.root);
-        for node in layout.root.descendants() {
-            self.cells_for_node(&mut cells, node);
+        for wrap in layout.tree().values() {
+            self.border_cells_for_node(&mut cells, wrap, &layout.size);
         }
 
-        self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
+        //self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
     }
 
-    fn cells_for_node(&self, cells: &mut Vec<Cell>, node: &Node) {
-        if !node.has_border {
+    fn border_cells_for_node(&self, cells: &mut Vec<Cell>, wrap: &layout2::Wrap, size: &Size) {
+        if !wrap.has_border() {
             return;
         }
 
-        let distance = node.padding + 1;
-        let top      = (node.computed_pos.row - distance as i16);
-        let bottom   = (node.computed_pos.row + node.computed_size.rows as i16 - 1 + distance as i16);
-        let left     = (node.computed_pos.col - distance as i16);
-        let right    = (node.computed_pos.col + node.computed_size.cols as i16 - 1 + distance as i16);
+        let mut top = wrap.border_y().unwrap();
+        if top < 0 { top = 0 }
+
+        let mut bottom = (wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1);
+        if bottom >= size.rows as i16 { bottom = size.rows as i16 - 1 }
+
+        let mut left = wrap.border_x().unwrap();
+        if left < 0 { left = 0 }
+
+        let mut right = (wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1);
+        if right >= size.cols as i16 { right = size.cols as i16 - 1 }
 
         cells.push(Cell { pos: Pos { row: top, col: left }, chars: vec!['┌'], ..Default::default()});
         cells.push(Cell { pos: Pos { row: top, col: right }, chars: vec!['┐'], ..Default::default()});

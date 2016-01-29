@@ -23,27 +23,16 @@ pub struct MainWorker {
     pub servers: Servers,
     pub modal_key_handler: modal::ModalKeyHandler,
     pub tty_ioctl_config: TtyIoCtlConfig,
-    pub layout: Arc<RwLock<Layout>>,
+    pub layout: Arc<RwLock<layout2::Screen>>,
     selected_program_id: Option<String>,
 }
 
 static STATUS_LINE: &'static str = "status_line";
 
 impl MainWorker {
-    pub fn spawn(draw_worker_tx: Sender<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Arc<RwLock<Layout>>, JoinHandle<()>) {
+    pub fn spawn(draw_worker_tx: Sender<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Arc<RwLock<layout2::Screen>>, JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
-        let layout = Arc::new(RwLock::new(Layout::new(
-                    Size {
-                        rows: tty_ioctl_config.rows,
-                        cols: tty_ioctl_config.cols,
-                    },
-                    Node::row(
-                        NodeOptions {
-                            vertical_align: VerticalAlign::Bottom,
-                            height: Some(tty_ioctl_config.rows),
-                            ..Default::default()},
-                        vec![]
-                    ))));
+        let layout = Arc::new(RwLock::new(layout2::Screen::new(Size { rows: tty_ioctl_config.rows, cols: tty_ioctl_config.cols })));
         let layout_clone = layout.clone();
 
         info!("spawning main worker");
@@ -56,7 +45,7 @@ impl MainWorker {
         (tx, layout_clone, handle)
     }
 
-    fn new(draw_worker_tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig, layout: Arc<RwLock<Layout>>) -> MainWorker {
+    fn new(draw_worker_tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig, layout: Arc<RwLock<layout2::Screen>>) -> MainWorker {
         let mut worker = MainWorker {
             draw_worker_tx: draw_worker_tx,
             rx: rx,
@@ -72,19 +61,15 @@ impl MainWorker {
 
     /// creates an initial window, status pane etc
     fn init(&mut self) {
-        let status_line = Node::leaf(
-            STATUS_LINE.to_string(),
-            NodeOptions { height: Some(1), ..Default::default() }
-        );
+        let status_line = layout2::WrapBuilder::row().name(STATUS_LINE.to_string()).height(1).build();
 
-        let mut layout = self.layout.write().unwrap();
-        layout.root
-            .children
-            .push(status_line);
-        layout.calculate_layout();
-        drop(layout);
+        {
+            let mut layout = self.layout.write().unwrap();
+            layout.tree_mut().root_mut().append(status_line);
+            layout.flush_changes();
+        }
+
         self.draw_worker_tx.send(ClientMsg::LayoutDamage);
-
         self.damage_status_line();
     }
 
@@ -101,8 +86,11 @@ impl MainWorker {
                 ClientMsg::ServerAdd { server } => self.servers.add_server(server),
                 ClientMsg::ProgramAdd { server_id, program_id } => self.add_program(server_id, program_id),
                 ClientMsg::UserInput { bytes } => {
+                    trace!("0");
                     self.modal_key_handler.write(&bytes); // todo check result here
+                    trace!("1");
                     while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
+                        trace!("2");
                         match user_action {
                             modal::UserAction::ModeChange { name }           => self.mode_change(&name),
                             modal::UserAction::ProgramFocus                  => self.program_focus_cmd(),
@@ -119,15 +107,21 @@ impl MainWorker {
     }
 
     fn program_input_cmd(&self, bytes: Vec<u8>) {
-        // for now, always send bytes to the first program
-        if let Some(program_id) = self.leaf_names().first() {
-            if let Some(server) = self.servers.iter().find(|s| s.programs.iter().any(|p| p.id == *program_id)) {
-                trace!("sending input to program {} {:?}", &program_id, &bytes);
+        if let Some(program_id) = self.selected_program_id.clone() {
+            trace!("3");
+            if let Some(server) = self.servers.iter().find(|s| s.programs.iter().any(|p| p.id == program_id)) {
+                trace!("sending input to program {} {:?}", program_id, bytes);
                 server.tx.send(::server::ServerMsg::ProgramInput {
-                    program_id: program_id.clone(),
+                    program_id: program_id,
                     bytes: bytes,
                 });
             }
+            else {
+                warn!("server doesn't have a program called {:?}", program_id);
+            }
+        }
+        else {
+            warn!("program input without selected program");
         }
     }
 
@@ -156,20 +150,18 @@ impl MainWorker {
         else { false };
 
         if valid_selection {
-            trace!("1");
             let mut layout = self.layout.write().unwrap();
-            for c in layout.root.children.iter_mut() {
-                if c.value == self.selected_program_id.clone().unwrap() {
-                    c.has_border = true
+            for mut wrap in layout.tree_mut().values_mut() {
+                if *wrap.name() == self.selected_program_id.clone().unwrap() {
+                    wrap.set_has_border(true)
                 }
                 else {
-                    c.has_border = false
+                    wrap.set_has_border(false)
                 }
             }
-            layout.calculate_layout();
+            layout.flush_changes();
         }
         else {
-            trace!("2");
             self.program_select_next();
         }
     }
@@ -178,44 +170,35 @@ impl MainWorker {
         let leaf_names: Vec<String> = self.leaf_names().into_iter().filter(|n| n != STATUS_LINE).collect();
 
         if let Some(program_id) = self.selected_program_id.clone() {
-            trace!("3");
             if let Some(mut i) = leaf_names.iter().position(|n| *n == program_id) {
-                trace!("4");
                 i += 1;
                 if i < leaf_names.len() {
-                    trace!("5");
                     self.selected_program_id = Some(leaf_names[i].clone());
                 }
                 else {
-                    trace!("6");
                     self.selected_program_id = Some(leaf_names[0].clone());
                 }
             }
             else {
-                trace!("7");
                 self.selected_program_id = None;
             }
         }
 
         if self.selected_program_id.is_none() && leaf_names.len() > 0 {
-            trace!("8");
             self.selected_program_id = Some(leaf_names[0].clone());
         }
 
         if let Some(program_id) = self.selected_program_id.clone() {
-            trace!("9 {}", program_id);
             let mut layout = self.layout.write().unwrap();
-            for c in layout.root.children.iter_mut() {
-                if c.value == program_id {
-                    trace!("9a {}", c.value);
-                    c.has_border = true
+            for mut wrap in layout.tree_mut().values_mut() {
+                if *wrap.name() == self.selected_program_id.clone().unwrap() {
+                    wrap.set_has_border(true)
                 }
                 else {
-                    trace!("9b {}", c.value);
-                    c.has_border = false
+                    wrap.set_has_border(false)
                 }
             }
-            layout.calculate_layout();
+            layout.flush_changes();
         }
 
         self.draw_worker_tx.send(ClientMsg::LayoutDamage);
@@ -224,17 +207,11 @@ impl MainWorker {
     fn add_program(&mut self, server_id: String, program_id: String) {
         self.servers.add_program(&server_id, Program { id: program_id.clone(), is_subscribed: true });
 
-        // for now, always show it in a pane
-        let leaf = Node::leaf(
-            program_id.clone(),
-            NodeOptions { height: Some(24), width: Some(80), ..Default::default() }
-        );
-
+        let wrap = layout2::WrapBuilder::row().name(program_id.clone()).height(24).width(80).build();
         let mut layout = self.layout.write().unwrap();
-        layout.root
-            .children
-            .insert(0, leaf);
-        layout.calculate_layout();
+        layout.tree_mut().root_mut().prepend(wrap);
+        layout.flush_changes();
+
         self.draw_worker_tx.send(ClientMsg::LayoutDamage);
     }
 
@@ -243,11 +220,7 @@ impl MainWorker {
 
         let found_status_line = {
             let layout = self.layout.read().unwrap();
-            if let Some(node) = layout.root.descendants().find(|n| n.is_leaf() && n.value == STATUS_LINE.to_string()) {
-                true
-            } else {
-                false
-            }
+            layout.tree().values().find(|n| *n.name() == STATUS_LINE.to_string()).is_some()
         };
 
         if !found_status_line {
@@ -283,10 +256,9 @@ impl MainWorker {
         self.layout
             .read()
             .unwrap()
-            .root
-            .descendants()
-            .filter(|n| n.is_leaf())
-            .map(|n| n.value.clone())
+            .tree()
+            .values()
+            .map(|w| w.name().clone())
             .collect()
     }
 }
