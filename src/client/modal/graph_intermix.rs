@@ -12,7 +12,7 @@ pub fn graph() -> Graph<NodeData, EdgeData> {
 
     graph.add_edge(w, c, EdgeData { default: true, ..Default::default()});
 
-    graph.add_edge(c, p, EdgeData { action: Some(ActionType::ProgramStart), codes: "c".to_string().into_bytes(), ..Default::default()});
+    graph.add_edge(c, c, EdgeData { action: Some(ActionType::ProgramStart), codes: "c".to_string().into_bytes(), ..Default::default()});
     graph.add_edge(c, c, EdgeData { action: Some(ActionType::Quit), codes: "q".to_string().into_bytes(), ..Default::default()});
     graph.add_edge(c, p, EdgeData { action: Some(ActionType::ProgramFocus), codes: "i".to_string().into_bytes(), ..Default::default()});
 

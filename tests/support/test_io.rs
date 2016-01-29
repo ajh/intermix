@@ -99,4 +99,17 @@ mod tests {
         io.read(&mut buf);
         assert_eq!(&buf, b"re");
     }
+
+    // this will deadlock unfortunately
+    //#[test]
+    //fn it_can_read_and_write_across_clones_without_deadlocking() {
+        //let mut io = TestIO::new();
+        //let mut clone = io.clone();
+
+        //::std::thread::spawn(move || io.write("hi there".as_bytes()));
+
+        //let mut buf = [0u8; 2];
+        //clone.read(&mut buf);
+        //assert_eq!(&buf, b"hi");
+    //}
 }

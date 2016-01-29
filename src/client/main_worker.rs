@@ -86,11 +86,8 @@ impl MainWorker {
                 ClientMsg::ServerAdd { server } => self.servers.add_server(server),
                 ClientMsg::ProgramAdd { server_id, program_id } => self.add_program(server_id, program_id),
                 ClientMsg::UserInput { bytes } => {
-                    trace!("0");
                     self.modal_key_handler.write(&bytes); // todo check result here
-                    trace!("1");
                     while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
-                        trace!("2");
                         match user_action {
                             modal::UserAction::ModeChange { name }           => self.mode_change(&name),
                             modal::UserAction::ProgramFocus                  => self.program_focus_cmd(),
@@ -108,7 +105,6 @@ impl MainWorker {
 
     fn program_input_cmd(&self, bytes: Vec<u8>) {
         if let Some(program_id) = self.selected_program_id.clone() {
-            trace!("3");
             if let Some(server) = self.servers.iter().find(|s| s.programs.iter().any(|p| p.id == program_id)) {
                 trace!("sending input to program {} {:?}", program_id, bytes);
                 server.tx.send(::server::ServerMsg::ProgramInput {
@@ -259,6 +255,7 @@ impl MainWorker {
             .tree()
             .values()
             .map(|w| w.name().clone())
+            .filter(|n| *n != "root".to_string() && *n != STATUS_LINE.to_string())
             .collect()
     }
 }
