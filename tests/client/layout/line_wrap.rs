@@ -1,6 +1,6 @@
-use libintermix::client::layout2::*;
+use libintermix::client::layout::*;
 use ::support::layout::*;
-use ::support::layout2_painter::*;
+use ::support::layout_painter::*;
 
 #[test]
 fn it_wraps_content_in_leftmost_column() {

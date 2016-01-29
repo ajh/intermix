@@ -1,16 +1,33 @@
 use libintermix::client::layout::*;
 
-pub fn draw_layout(layout: &Layout) -> String {
-    println!("{:#?}", layout);
+pub fn draw_screen(screen: &Screen) -> String {
     // scene is 2d vec organized rows then cols
-    let mut scene: Vec<Vec<char>> = vec![vec![' '; layout.size.cols as usize]; layout.size.rows as usize];
+    let mut scene: Vec<Vec<char>> = vec![vec![' '; screen.size.cols as usize]; screen.size.rows as usize];
 
-    for node in layout.root.descendants().filter(|n| n.has_border) {
-        let distance = node.padding + 1;
-        let top      = (node.computed_pos.row as u16 - distance) as usize;
-        let bottom   = (node.computed_pos.row as u16 + node.computed_size.rows - 1 + distance) as usize;
-        let left     = (node.computed_pos.col as u16 - distance) as usize;
-        let right    = (node.computed_pos.col as u16 + node.computed_size.cols - 1 + distance) as usize;
+    // May include orphans? IDK
+    let bordered: Vec<&Wrap> = screen.tree()
+        .nodes()
+        .map(|n| n.value())
+        .filter(|w| w.has_border())
+        .collect();
+
+    for wrap in bordered {
+        // this could be:
+        //
+        //     let rect = Rect { top: 0, left: 0, right: 3, bottom: 5 };
+        //     rect.constrain(Rect { top: 0, left: 0, right: 3, bottom: 3 });
+
+        let mut top = wrap.border_y().unwrap() as usize;
+        if top < 0 { top = 0 }
+
+        let mut bottom = (wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1) as usize;
+        if bottom >= screen.size.rows as usize { bottom = screen.size.rows as usize - 1 }
+
+        let mut left = wrap.border_x().unwrap() as usize;
+        if left < 0 { left = 0 }
+
+        let mut right = (wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1) as usize;
+        if right >= screen.size.cols as usize { right = screen.size.cols as usize - 1 }
 
         scene[top][left] = '┌';
         scene[top][right] = '┐';
@@ -28,41 +45,47 @@ pub fn draw_layout(layout: &Layout) -> String {
         }
     }
 
-    // draw leafs into scene
-    for leaf in layout.root.descendants().filter(|n| n.is_leaf()) {
-        if leaf.computed_pos.row as u16 >= layout.size.rows { continue }
-        if leaf.computed_pos.col as u16 >= layout.size.cols { continue }
+    let leafs: Vec<&Wrap> = screen.tree()
+        .nodes()
+        .filter(|n| !n.has_children())
+        .map(|n| n.value())
+        .collect();
 
-        let row_end = *[(leaf.computed_pos.row as u16) + leaf.computed_size.rows, layout.size.rows]
+    for leaf in leafs {
+        if leaf.computed_x().unwrap() >= screen.size.cols as i16 { continue }
+        if leaf.computed_y().unwrap() >= screen.size.rows as i16 { continue }
+
+        let col_end = *[leaf.computed_x().unwrap() + leaf.computed_width().unwrap(), screen.size.cols as i16]
             .iter()
             .min()
             .unwrap();
-        let col_end = *[(leaf.computed_pos.col as u16) + leaf.computed_size.cols, layout.size.cols]
+        let row_end = *[leaf.computed_y().unwrap() + leaf.computed_height().unwrap(), screen.size.rows as i16]
             .iter()
             .min()
             .unwrap();
 
-        for y in ((leaf.computed_pos.row as u16)..row_end) {
-            for x in ((leaf.computed_pos.col as u16)..col_end) {
-                scene[y as usize][x as usize] = leaf.value.chars().next().unwrap();
+        for y in (leaf.computed_y().unwrap()..row_end) {
+            for x in (leaf.computed_x().unwrap()..col_end) {
+                scene[y as usize][x as usize] = leaf.name().chars().next().unwrap();
             }
         }
-
     }
 
     // draw scene border
-    let width = scene.first().unwrap().len();
-    for line in scene.iter_mut() {
-        line.insert(0, '|');
-        line.push('|');
+    {
+        let width = scene.first().unwrap().len();
+        for line in scene.iter_mut() {
+            line.insert(0, '·');
+            line.push('·');
+        }
+
+        let mut top_bottom = vec!['·'; width];
+        top_bottom.insert(0, '·');
+        top_bottom.push('·');
+
+        scene.insert(0, top_bottom.clone());
+        scene.push(top_bottom);
     }
-
-    let mut top_bottom = vec!['-'; width];
-    top_bottom.insert(0, '.');
-    top_bottom.push('.');
-
-    scene.insert(0, top_bottom.clone());
-    scene.push(top_bottom);
 
     // convert 2d vec into a newline separated string
     scene.iter()

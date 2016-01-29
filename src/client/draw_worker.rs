@@ -18,11 +18,11 @@ type Cell = vterm_sys::ScreenCell;
 pub struct DrawWorker<F: 'static + Write + Send> {
     rx: Receiver<ClientMsg>,
     painter: TtyPainter<F>,
-    layout: Arc<RwLock<layout2::Screen>>,
+    layout: Arc<RwLock<layout::Screen>>,
 }
 
 impl <F: 'static + Write + Send> DrawWorker<F> {
-    pub fn spawn(io: F, rx: Receiver<ClientMsg>, layout: Arc<RwLock<layout2::Screen>>) -> thread::JoinHandle<()> {
+    pub fn spawn(io: F, rx: Receiver<ClientMsg>, layout: Arc<RwLock<layout::Screen>>) -> thread::JoinHandle<()> {
         info!("spawning draw worker");
         thread::spawn(move || {
             let mut worker = DrawWorker::new(rx, io, layout);
@@ -31,7 +31,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         })
     }
 
-    fn new(rx: Receiver<ClientMsg>, io: F, layout: Arc<RwLock<layout2::Screen>>) -> DrawWorker<F> {
+    fn new(rx: Receiver<ClientMsg>, io: F, layout: Arc<RwLock<layout::Screen>>) -> DrawWorker<F> {
         DrawWorker {
             rx: rx,
             painter: TtyPainter::new(io),
@@ -83,7 +83,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         //self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
     }
 
-    fn border_cells_for_node(&self, cells: &mut Vec<Cell>, wrap: &layout2::Wrap, size: &Size) {
+    fn border_cells_for_node(&self, cells: &mut Vec<Cell>, wrap: &layout::Wrap, size: &Size) {
         if !wrap.has_border() {
             return;
         }

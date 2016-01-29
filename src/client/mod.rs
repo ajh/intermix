@@ -6,7 +6,6 @@ pub mod server_worker;
 pub mod main_worker;
 pub mod servers;
 pub mod layout;
-pub mod layout2;
 
 use self::draw_worker::*;
 use self::main_worker::*;

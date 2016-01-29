@@ -23,16 +23,16 @@ pub struct MainWorker {
     pub servers: Servers,
     pub modal_key_handler: modal::ModalKeyHandler,
     pub tty_ioctl_config: TtyIoCtlConfig,
-    pub layout: Arc<RwLock<layout2::Screen>>,
+    pub layout: Arc<RwLock<layout::Screen>>,
     selected_program_id: Option<String>,
 }
 
 static STATUS_LINE: &'static str = "status_line";
 
 impl MainWorker {
-    pub fn spawn(draw_worker_tx: Sender<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Arc<RwLock<layout2::Screen>>, JoinHandle<()>) {
+    pub fn spawn(draw_worker_tx: Sender<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Arc<RwLock<layout::Screen>>, JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
-        let layout = Arc::new(RwLock::new(layout2::Screen::new(Size { rows: tty_ioctl_config.rows, cols: tty_ioctl_config.cols })));
+        let layout = Arc::new(RwLock::new(layout::Screen::new(Size { rows: tty_ioctl_config.rows, cols: tty_ioctl_config.cols })));
         let layout_clone = layout.clone();
 
         info!("spawning main worker");
@@ -45,7 +45,7 @@ impl MainWorker {
         (tx, layout_clone, handle)
     }
 
-    fn new(draw_worker_tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig, layout: Arc<RwLock<layout2::Screen>>) -> MainWorker {
+    fn new(draw_worker_tx: Sender<ClientMsg>, rx: Receiver<ClientMsg>, tty_ioctl_config: TtyIoCtlConfig, layout: Arc<RwLock<layout::Screen>>) -> MainWorker {
         let mut worker = MainWorker {
             draw_worker_tx: draw_worker_tx,
             rx: rx,
@@ -61,7 +61,7 @@ impl MainWorker {
 
     /// creates an initial window, status pane etc
     fn init(&mut self) {
-        let status_line = layout2::WrapBuilder::row().name(STATUS_LINE.to_string()).height(1).build();
+        let status_line = layout::WrapBuilder::row().name(STATUS_LINE.to_string()).height(1).build();
 
         {
             let mut layout = self.layout.write().unwrap();
@@ -203,7 +203,7 @@ impl MainWorker {
     fn add_program(&mut self, server_id: String, program_id: String) {
         self.servers.add_program(&server_id, Program { id: program_id.clone(), is_subscribed: true });
 
-        let wrap = layout2::WrapBuilder::row().name(program_id.clone()).height(24).width(80).build();
+        let wrap = layout::WrapBuilder::row().name(program_id.clone()).height(24).width(80).build();
         let mut layout = self.layout.write().unwrap();
         layout.tree_mut().root_mut().prepend(wrap);
         layout.flush_changes();

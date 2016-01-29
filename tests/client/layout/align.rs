@@ -4,244 +4,231 @@ use ::support::layout_painter::*;
 
 #[test]
 fn it_can_align_a_column_left() {
-    ::setup_logging();
-    let leaf = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { align: Align::Left, ..Default::default() }, vec![
-            Node::col(6, Default::default(), vec![leaf]),
-        ])
-    );
+    let col = WrapBuilder::col(6)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-|aa  |
-|aa  |
-.----.");
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().append(col);
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·aa  ·
+·aa  ·
+······");
 }
 
 #[test]
 fn it_can_align_columns_left() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { align: Align::Left, ..Default::default() }, vec![
-            Node::col(3, Default::default(), vec![leaf_a]),
-            Node::col(3, Default::default(), vec![leaf_b])
-        ])
-    );
+    let cols = vec![
+        WrapBuilder::col(3).name("a".to_string()).height(2).build(),
+        WrapBuilder::col(3).name("b".to_string()).height(2).build(),
+    ];
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-|ab  |
-|ab  |
-.----.");
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    for col in cols {
+        screen.tree_mut().root_mut().append(col);
+    }
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·ab  ·
+·ab  ·
+······");
 }
+
 #[test]
 fn it_can_align_a_column_right() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { align: Align::Right, ..Default::default() }, vec![
-            Node::col(6, Default::default(), vec![leaf_a])
-        ])
-    );
+    let col = WrapBuilder::col(6)
+        .name("a".to_string())
+        .height(2)
+        .build();
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-|  aa|
-|  aa|
-.----.");
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().value().set_align(Align::Right);
+    screen.tree_mut().root_mut().append(col);
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·  aa·
+·  aa·
+······");
 }
 
 #[test]
 fn it_can_align_columns_right() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { align: Align::Right, ..Default::default() }, vec![
-            Node::col(3, Default::default(), vec![leaf_a]),
-            Node::col(3, Default::default(), vec![leaf_b])
-        ])
-    );
+    let cols = vec![
+        WrapBuilder::col(3).name("a".to_string()).height(2).build(),
+        WrapBuilder::col(3).name("b".to_string()).height(2).build(),
+    ];
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-|  ab|
-|  ab|
-.----.");
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().value().set_align(Align::Right);
+    for col in cols {
+        screen.tree_mut().root_mut().append(col);
+    }
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·  ab·
+·  ab·
+······");
 }
 
 #[test]
 fn it_can_align_a_column_center() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { align: Align::Center, ..Default::default() }, vec![
-            Node::col(6, Default::default(), vec![leaf_a])
-        ])
-    );
+    let col = WrapBuilder::col(6).name("a".to_string()).height(2).build();
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-| aa |
-| aa |
-.----.");
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().value().set_align(Align::Center);
+    screen.tree_mut().root_mut().append(col);
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+· aa ·
+· aa ·
+······");
 }
 
 #[test]
 fn it_can_align_columns_center() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(2), width: Some(2), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { align: Align::Center, ..Default::default() }, vec![
-            Node::col(3, Default::default(), vec![leaf_a]),
-            Node::col(3, Default::default(), vec![leaf_b]),
-        ])
-    );
+    let cols = vec![
+        WrapBuilder::col(3).name("a".to_string()).height(2).build(),
+        WrapBuilder::col(3).name("b".to_string()).height(2).build(),
+    ];
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-| ab |
-| ab |
-.----.");
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().value().set_align(Align::Center);
+    for col in cols {
+        screen.tree_mut().root_mut().append(col);
+    }
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+· ab ·
+· ab ·
+······");
 }
 
 #[test]
 fn it_can_align_a_row_top() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { vertical_align: VerticalAlign::Top, ..Default::default() }, vec![
-            Node::row(Default::default(), vec![leaf_a])
-        ])
-    );
+    let row = WrapBuilder::row().name("a".to_string()).height(1).build();
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-|aaaa|
-|    |
-.----.");
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Top);
+    screen.tree_mut().root_mut().append(row);
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·aaaa·
+·    ·
+······");
 }
 
 #[test]
 fn it_can_align_rows_top() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 3, cols: 4},
-        Node::row(NodeOptions { vertical_align: VerticalAlign::Top, ..Default::default() }, vec![
-            Node::row(Default::default(), vec![leaf_a]),
-            Node::row(Default::default(), vec![leaf_b])
-        ])
-    );
+    let rows = vec![
+        WrapBuilder::row().name("a".to_string()).height(1).build(),
+        WrapBuilder::row().name("b".to_string()).height(1).build(),
+    ];
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-|aaaa|
-|bbbb|
-|    |
-.----.");
+    let mut screen = Screen::new(Size { rows: 3, cols: 4});
+    screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Top);
+    for row in rows {
+        screen.tree_mut().root_mut().append(row);
+    }
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·aaaa·
+·bbbb·
+·    ·
+······");
 }
 
 #[test]
-fn it_can_align_a_row_botton() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 2, cols: 4},
-        Node::row(NodeOptions { vertical_align: VerticalAlign::Bottom, height: Some(2), ..Default::default() }, vec![
-            Node::row(Default::default(), vec![leaf_a])
-        ])
-    );
+fn it_can_align_a_row_bottom() {
+    let row = WrapBuilder::row().name("a".to_string()).height(1).build();
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-|    |
-|aaaa|
-.----.");
+    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Bottom);
+    screen.tree_mut().root_mut().append(row);
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·    ·
+·aaaa·
+······");
 }
 
 #[test]
-fn it_can_align_rows_botton() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 3, cols: 4},
-        Node::row(NodeOptions { vertical_align: VerticalAlign::Bottom, height: Some(3), ..Default::default() }, vec![
-            Node::row(Default::default(), vec![leaf_a]),
-            Node::row(Default::default(), vec![leaf_b])
-        ])
-    );
+fn it_can_align_rows_bottom() {
+    let rows = vec![
+        WrapBuilder::row().name("a".to_string()).height(1).build(),
+        WrapBuilder::row().name("b".to_string()).height(1).build(),
+    ];
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-|    |
-|aaaa|
-|bbbb|
-.----.");
+    let mut screen = Screen::new(Size { rows: 3, cols: 4});
+    screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Bottom);
+    for row in rows {
+        screen.tree_mut().root_mut().append(row);
+    }
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·    ·
+·aaaa·
+·bbbb·
+······");
 }
 
 #[test]
 fn it_can_align_a_row_middle() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 3, cols: 4},
-        Node::row(NodeOptions { vertical_align: VerticalAlign::Middle, height: Some(3), ..Default::default() }, vec![
-            Node::row(Default::default(), vec![leaf_a])
-        ])
-    );
+    let row = WrapBuilder::row().name("a".to_string()).height(1).build();
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-|    |
-|aaaa|
-|    |
-.----.");
+    let mut screen = Screen::new(Size { rows: 3, cols: 4});
+    screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Middle);
+    screen.tree_mut().root_mut().append(row);
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·    ·
+·aaaa·
+·    ·
+······");
 }
 
 #[test]
-fn it_can_align_rows_center() {
-    ::setup_logging();
-    let leaf_a = Node::leaf("a".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let leaf_b = Node::leaf("b".to_string(), NodeOptions { height: Some(1), width: Some(4), ..Default::default()});
-    let mut layout = Layout::new(
-        Size { rows: 4, cols: 4},
-        Node::row(NodeOptions { vertical_align: VerticalAlign::Middle, height: Some(4), ..Default::default() }, vec![
-            Node::row(Default::default(), vec![leaf_a]),
-            Node::row(Default::default(), vec![leaf_b])
-        ])
-    );
+fn it_can_align_rows_middle() {
+    let rows = vec![
+        WrapBuilder::row().name("a".to_string()).height(1).build(),
+        WrapBuilder::row().name("b".to_string()).height(1).build(),
+    ];
 
-    layout.calculate_layout();
-    assert_scene_eq(&draw_layout(&layout), "
-.----.
-|    |
-|aaaa|
-|bbbb|
-|    |
-.----.");
+    let mut screen = Screen::new(Size { rows: 4, cols: 4});
+    screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Middle);
+    for row in rows {
+        screen.tree_mut().root_mut().append(row);
+    }
+    screen.flush_changes();
+
+    assert_scene_eq(&draw_screen(&screen), "
+······
+·    ·
+·aaaa·
+·bbbb·
+·    ·
+······");
 }
