@@ -69,6 +69,7 @@ impl MainWorker {
             layout.flush_changes();
         }
 
+        self.draw_worker_tx.send(ClientMsg::Clear);
         self.draw_worker_tx.send(ClientMsg::LayoutDamage);
         self.damage_status_line();
     }

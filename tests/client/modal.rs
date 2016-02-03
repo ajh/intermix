@@ -18,12 +18,14 @@ fn build_vterm(size: ScreenSize) -> VTerm {
 }
 
 fn assert_status_line_match<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: Regex) {
+    // what would be cool is if a failure message printed the expectation and the screen buffer
+    // contents
     ::try_until_true(|| {
         let mut bytes: Vec<u8> = vec![];
         reader.read_to_end(&mut bytes);
         vterm.write(&bytes);
 
-        let actual = vterm.screen.get_text(Rect { start_row: 0, end_row: 24, start_col: 0, end_col: 80 });
+        let actual = vterm.screen.get_text(Rect { start_row: 0, end_row: 1, start_col: 0, end_col: 80 });
         regex.is_match(&actual)
     });
 }

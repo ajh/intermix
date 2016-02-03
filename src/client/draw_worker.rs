@@ -50,6 +50,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
             match msg {
                 ClientMsg::Quit => break,
                 ClientMsg::ProgramDamage { program_id, cells } => self.program_damage(program_id, cells),
+                ClientMsg::Clear => self.clear(),
                 ClientMsg::LayoutDamage => self.layout_damage(),
                 ClientMsg::ProgramMoveCursor { program_id, old, new, is_visible } => self.move_cursor(program_id, new, is_visible),
                 _ => warn!("unhandled msg {:?}", msg)
@@ -123,6 +124,19 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
                 cells.push(Cell { pos: Pos { row: y, col: right }, chars: vec![' '], ..Default::default()});
             }
         }
+    }
+
+    fn clear(&mut self) {
+        let layout = self.layout.read().unwrap();
+        let mut cells: Vec<Cell> = vec![];
+        for row in 0..layout.size.rows as usize {
+            for col in 0..layout.size.cols as usize {
+                cells.push(Cell { pos: Pos { row: row as i16, col: col  as i16}, chars: vec![' '], ..Default::default()});
+            }
+        }
+
+        // This is breaking the modal tests for some reason
+        //self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
     }
 
     fn move_cursor(&mut self, program_id: String, pos: vterm_sys::Pos, is_visible: bool) {

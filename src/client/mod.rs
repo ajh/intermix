@@ -33,6 +33,7 @@ pub enum ClientMsg {
 
     UserInput { bytes: Vec<u8> },
 
+    Clear,
     LayoutDamage,
 }
 
