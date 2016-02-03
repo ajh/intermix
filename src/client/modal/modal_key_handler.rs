@@ -12,6 +12,8 @@ pub enum ActionType {
     ProgramFocus,
     ProgramInput,
     ProgramStart,
+    ProgramSelectNext,
+    ProgramSelectPrev,
     Quit,
 }
 
@@ -21,6 +23,8 @@ pub enum UserAction {
     ProgramInput { bytes: Vec<u8> },
     ProgramStart,
     ProgramFocus,
+    ProgramSelectNext,
+    ProgramSelectPrev,
     ModeChange { name: String },
     Quit,
 }
@@ -104,6 +108,8 @@ impl Write for ModalKeyHandler {
                     ActionType::ProgramInput => UserAction::ProgramInput { bytes: match_buf },
                     ActionType::ProgramStart => UserAction::ProgramStart,
                     ActionType::ProgramFocus => UserAction::ProgramFocus,
+                    ActionType::ProgramSelectPrev => UserAction::ProgramSelectPrev,
+                    ActionType::ProgramSelectNext => UserAction::ProgramSelectNext,
                     ActionType::Quit => UserAction::Quit,
                 };
                 self.actions_queue.push(user_action);

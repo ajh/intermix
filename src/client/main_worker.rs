@@ -93,6 +93,8 @@ impl MainWorker {
                             modal::UserAction::ProgramFocus                  => self.program_focus_cmd(),
                             modal::UserAction::ProgramInput { bytes: fites } => self.program_input_cmd(fites),
                             modal::UserAction::ProgramStart                  => self.program_start_cmd(),
+                            modal::UserAction::ProgramSelectPrev             => self.program_select_prev(),
+                            modal::UserAction::ProgramSelectNext             => self.program_select_next(),
                             modal::UserAction::Quit                          => error!("user action {:?} is not implemented", user_action),
                             modal::UserAction::UnknownInput { bytes: fites } => error!("unknown input for mode {}: {:?}", self.modal_key_handler.mode_name(), fites),
                         }
@@ -162,8 +164,45 @@ impl MainWorker {
         }
     }
 
+    fn program_select_prev(&mut self) {
+        let leaf_names = self.leaf_names();
+
+        let mut selected_index = if let Some(program_id) = self.selected_program_id.clone() {
+            if let Some(i) = leaf_names.iter().position(|n| *n == program_id) {
+                i
+            }
+            else {
+                0
+            }
+        }
+        else {
+            0
+        };
+
+        if selected_index > 0 {
+            selected_index -= 1;
+        }
+
+        self.selected_program_id = Some(leaf_names[0].clone());
+
+        if let Some(program_id) = self.selected_program_id.clone() {
+            let mut layout = self.layout.write().unwrap();
+            for mut wrap in layout.tree_mut().values_mut() {
+                if *wrap.name() == self.selected_program_id.clone().unwrap() {
+                    wrap.set_has_border(true)
+                }
+                else {
+                    wrap.set_has_border(false)
+                }
+            }
+            layout.flush_changes();
+        }
+
+        self.draw_worker_tx.send(ClientMsg::LayoutDamage);
+    }
+
     fn program_select_next(&mut self) {
-        let leaf_names: Vec<String> = self.leaf_names().into_iter().filter(|n| n != STATUS_LINE).collect();
+        let leaf_names: Vec<String> = self.leaf_names();
 
         if let Some(program_id) = self.selected_program_id.clone() {
             if let Some(mut i) = leaf_names.iter().position(|n| *n == program_id) {
@@ -205,7 +244,7 @@ impl MainWorker {
 
         let wrap = layout::WrapBuilder::row().name(program_id.clone()).height(24).width(80).build();
         let mut layout = self.layout.write().unwrap();
-        layout.tree_mut().root_mut().prepend(wrap);
+        layout.tree_mut().root_mut().append(wrap);
         layout.flush_changes();
 
         self.draw_worker_tx.send(ClientMsg::LayoutDamage);

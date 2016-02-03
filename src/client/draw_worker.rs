@@ -80,14 +80,10 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
             self.border_cells_for_node(&mut cells, wrap, &layout.size);
         }
 
-        //self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
+        self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
     }
 
     fn border_cells_for_node(&self, cells: &mut Vec<Cell>, wrap: &layout::Wrap, size: &Size) {
-        if !wrap.has_border() {
-            return;
-        }
-
         let mut top = wrap.border_y().unwrap();
         if top < 0 { top = 0 }
 
@@ -100,19 +96,32 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         let mut right = (wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1);
         if right >= size.cols as i16 { right = size.cols as i16 - 1 }
 
-        cells.push(Cell { pos: Pos { row: top, col: left }, chars: vec!['┌'], ..Default::default()});
-        cells.push(Cell { pos: Pos { row: top, col: right }, chars: vec!['┐'], ..Default::default()});
-        cells.push(Cell { pos: Pos { row: bottom, col: left }, chars: vec!['└'], ..Default::default()});
-        cells.push(Cell { pos: Pos { row: bottom, col: right }, chars: vec!['┘'], ..Default::default()});
+        if wrap.has_border() {
+            cells.push(Cell { pos: Pos { row: top, col: left }, chars: vec!['┌'], ..Default::default()});
+            cells.push(Cell { pos: Pos { row: top, col: right }, chars: vec!['┐'], ..Default::default()});
+            cells.push(Cell { pos: Pos { row: bottom, col: left }, chars: vec!['└'], ..Default::default()});
+            cells.push(Cell { pos: Pos { row: bottom, col: right }, chars: vec!['┘'], ..Default::default()});
 
-        for x in (left + 1..right) {
-            cells.push(Cell { pos: Pos { row: top, col: x }, chars: vec!['─'], ..Default::default()});
-            cells.push(Cell { pos: Pos { row: bottom, col: x }, chars: vec!['─'], ..Default::default()});
+            for x in (left + 1..right) {
+                cells.push(Cell { pos: Pos { row: top, col: x }, chars: vec!['─'], ..Default::default()});
+                cells.push(Cell { pos: Pos { row: bottom, col: x }, chars: vec!['─'], ..Default::default()});
+            }
+
+            for y in (top + 1..bottom) {
+                cells.push(Cell { pos: Pos { row: y, col: left }, chars: vec!['│'], ..Default::default()});
+                cells.push(Cell { pos: Pos { row: y, col: right }, chars: vec!['│'], ..Default::default()});
+            }
         }
+        else {
+            for x in (left..right+1) {
+                cells.push(Cell { pos: Pos { row: top, col: x }, chars: vec![' '], ..Default::default()});
+                cells.push(Cell { pos: Pos { row: bottom, col: x }, chars: vec![' '], ..Default::default()});
+            }
 
-        for y in (top + 1..bottom) {
-            cells.push(Cell { pos: Pos { row: y, col: left }, chars: vec!['│'], ..Default::default()});
-            cells.push(Cell { pos: Pos { row: y, col: right }, chars: vec!['│'], ..Default::default()});
+            for y in (top + 1..bottom+1) {
+                cells.push(Cell { pos: Pos { row: y, col: left }, chars: vec![' '], ..Default::default()});
+                cells.push(Cell { pos: Pos { row: y, col: right }, chars: vec![' '], ..Default::default()});
+            }
         }
     }
 
