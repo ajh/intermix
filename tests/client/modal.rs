@@ -49,15 +49,16 @@ fn client_starts_in_welcome_mode() {
 #[test]
 fn client_can_enter_command_mode() {
     ::setup_logging();
-    let mut output = TestIO::new();
-    let mut input = TestIO::new();
-    input.write(b"a");
+    let (mut output_writer, mut output_reader) = ::support::io_channel::create();
+    let (mut input_writer, mut input_reader) = ::support::io_channel::create();
+    input_writer.write(b"a");
+    drop(input_writer);
 
-    let (client_tx, client) = Client::spawn(input.clone(), output.clone(), TtyIoCtlConfig { rows: 24, cols: 80 });
+    let (_, client) = Client::spawn(input_reader, output_writer, TtyIoCtlConfig { rows: 24, cols: 80 });
 
     // The screen size here is hard coded through the client code. Need to fix that.
     let mut vterm = build_vterm(ScreenSize { rows: 24, cols: 80 });
-    assert_status_line_match(&mut vterm, &mut output, Regex::new(r"command").unwrap());
+    assert_status_line_match(&mut vterm, &mut output_reader, Regex::new(r"command").unwrap());
     client.stop();
 }
 
