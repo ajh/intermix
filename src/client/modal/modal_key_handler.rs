@@ -87,7 +87,7 @@ impl Write for ModalKeyHandler {
                 action = self.graph.edges[*i].data.action;
                 next_node = Some(self.graph.edges[*i].target);
             }
-            else if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes.starts_with(&match_buf)) {
+            else if let Some(_) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes.starts_with(&match_buf)) {
                 trace!("partial match");
                 self.match_buf = match_buf.clone();
             }
@@ -132,11 +132,10 @@ impl Write for ModalKeyHandler {
 }
 
 mod tests {
+    #![allow(unused_imports)]
     use super::*;
     use super::super::graph::*;
     use std::io::prelude::*;
-    use std::io;
-    use std::sync::mpsc::*;
 
     #[test]
     fn when_edge_matches_it_follows_it() {
@@ -146,7 +145,7 @@ mod tests {
         graph.add_edge(n0_index, n1_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("a".as_bytes());
+        h.write("a".as_bytes()).unwrap();
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -158,7 +157,7 @@ mod tests {
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("a".as_bytes());
+        h.write("a".as_bytes()).unwrap();
         assert_eq!(h.current_node, n0_index);
     }
 
@@ -169,7 +168,7 @@ mod tests {
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("a".as_bytes());
+        h.write("a".as_bytes()).unwrap();
         assert_eq!(h.actions_queue.first(), Some(&UserAction::UnknownInput { bytes: "a".to_string().into_bytes() } ));
     }
 
@@ -182,7 +181,7 @@ mod tests {
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("a".as_bytes());
+        h.write("a".as_bytes()).unwrap();
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -197,7 +196,7 @@ mod tests {
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("a".as_bytes());
+        h.write("a".as_bytes()).unwrap();
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -212,7 +211,7 @@ mod tests {
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("a".as_bytes());
+        h.write("a".as_bytes()).unwrap();
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -224,7 +223,7 @@ mod tests {
         graph.add_edge(n0_index, n1_index, EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("ab".as_bytes());
+        h.write("ab".as_bytes()).unwrap();
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -236,8 +235,8 @@ mod tests {
         graph.add_edge(n0_index, n1_index, EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("a".as_bytes());
-        h.write("b".as_bytes());
+        h.write("a".as_bytes()).unwrap();
+        h.write("b".as_bytes()).unwrap();
         assert_eq!(h.current_node, n1_index);
     }
 
@@ -251,7 +250,7 @@ mod tests {
         graph.add_edge(n1_index, n2_index, EdgeData { codes: "cd".to_string().into_bytes(), ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("abcd".as_bytes());
+        h.write("abcd".as_bytes()).unwrap();
         assert_eq!(h.current_node, n2_index);
     }
 
@@ -265,7 +264,7 @@ mod tests {
         graph.add_edge(n1_index, n2_index, EdgeData { codes: "b".to_string().into_bytes(), ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("ab".as_bytes());
+        h.write("ab".as_bytes()).unwrap();
         assert_eq!(h.current_node, n2_index);
     }
 
@@ -276,7 +275,7 @@ mod tests {
         graph.add_edge(n0_index, n0_index, EdgeData { action: Some(ActionType::ProgramInput), default: true, ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("a".as_bytes());
+        h.write("a".as_bytes()).unwrap();
         assert_eq!(h.actions_queue.first(), Some(&UserAction::ProgramInput { bytes: "a".to_string().into_bytes() } ));
     }
 
@@ -287,7 +286,7 @@ mod tests {
         graph.add_edge(n0_index, n0_index, EdgeData { action: Some(ActionType::ProgramStart), default: true, ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("a".as_bytes());
+        h.write("a".as_bytes()).unwrap();
         assert_eq!(h.actions_queue.first(), Some(&UserAction::ProgramStart));
     }
 
@@ -298,7 +297,7 @@ mod tests {
         graph.add_edge(n0_index, n0_index, EdgeData { action: Some(ActionType::Quit), default: true, ..Default::default()});
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
-        h.write("a".as_bytes());
+        h.write("a".as_bytes()).unwrap();
         assert_eq!(h.actions_queue.first(), Some(&UserAction::Quit));
     }
 }

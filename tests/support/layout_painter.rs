@@ -17,15 +17,11 @@ pub fn draw_screen(screen: &Screen) -> String {
         //     let rect = Rect { top: 0, left: 0, right: 3, bottom: 5 };
         //     rect.constrain(Rect { top: 0, left: 0, right: 3, bottom: 3 });
 
-        let mut top = wrap.border_y().unwrap() as usize;
-        if top < 0 { top = 0 }
-
+        let top = wrap.border_y().unwrap() as usize;
         let mut bottom = (wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1) as usize;
         if bottom >= screen.size.rows as usize { bottom = screen.size.rows as usize - 1 }
 
-        let mut left = wrap.border_x().unwrap() as usize;
-        if left < 0 { left = 0 }
-
+        let left = wrap.border_x().unwrap() as usize;
         let mut right = (wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1) as usize;
         if right >= screen.size.cols as usize { right = screen.size.cols as usize - 1 }
 
@@ -34,12 +30,12 @@ pub fn draw_screen(screen: &Screen) -> String {
         scene[bottom][left] = '└';
         scene[bottom][right] = '┘';
 
-        for x in (left + 1..right) {
+        for x in left + 1..right {
             scene[top][x] = '─';
             scene[bottom][x] = '─';
         }
 
-        for y in (top + 1..bottom) {
+        for y in top + 1..bottom {
             scene[y][left] = '│';
             scene[y][right] = '│';
         }
@@ -64,8 +60,8 @@ pub fn draw_screen(screen: &Screen) -> String {
             .min()
             .unwrap();
 
-        for y in (leaf.computed_y().unwrap()..row_end) {
-            for x in (leaf.computed_x().unwrap()..col_end) {
+        for y in leaf.computed_y().unwrap()..row_end {
+            for x in leaf.computed_x().unwrap()..col_end {
                 scene[y as usize][x as usize] = leaf.name().chars().next().unwrap();
             }
         }

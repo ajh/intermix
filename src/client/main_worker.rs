@@ -2,7 +2,6 @@ use vterm_sys;
 use super::*;
 use super::servers::*;
 use super::layout::*;
-use super::modal::*;
 use std::sync::mpsc::*;
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
@@ -69,8 +68,8 @@ impl MainWorker {
             layout.flush_changes();
         }
 
-        self.draw_worker_tx.send(ClientMsg::Clear);
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage);
+        self.draw_worker_tx.send(ClientMsg::Clear).unwrap();
+        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
         self.damage_status_line();
     }
 
@@ -87,7 +86,7 @@ impl MainWorker {
                 ClientMsg::ServerAdd { server } => self.servers.add_server(server),
                 ClientMsg::ProgramAdd { server_id, program_id } => self.add_program(server_id, program_id),
                 ClientMsg::UserInput { bytes } => {
-                    self.modal_key_handler.write(&bytes); // todo check result here
+                    self.modal_key_handler.write(&bytes).unwrap();
                     while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
                         match user_action {
                             modal::UserAction::ModeChange { name }           => self.mode_change(&name),
@@ -113,7 +112,7 @@ impl MainWorker {
                 server.tx.send(::server::ServerMsg::ProgramInput {
                     program_id: program_id,
                     bytes: bytes,
-                });
+                }).unwrap();
             }
             else {
                 warn!("server doesn't have a program called {:?}", program_id);
@@ -184,12 +183,12 @@ impl MainWorker {
             selected_index -= 1;
         }
 
-        self.selected_program_id = Some(leaf_names[0].clone());
+        self.selected_program_id = Some(leaf_names[selected_index].clone());
 
         if let Some(program_id) = self.selected_program_id.clone() {
             let mut layout = self.layout.write().unwrap();
             for mut wrap in layout.tree_mut().values_mut() {
-                if *wrap.name() == self.selected_program_id.clone().unwrap() {
+                if *wrap.name() == program_id {
                     wrap.set_has_border(true)
                 }
                 else {
@@ -199,7 +198,7 @@ impl MainWorker {
             layout.flush_changes();
         }
 
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage);
+        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
     }
 
     fn program_select_next(&mut self) {
@@ -227,7 +226,7 @@ impl MainWorker {
         if let Some(program_id) = self.selected_program_id.clone() {
             let mut layout = self.layout.write().unwrap();
             for mut wrap in layout.tree_mut().values_mut() {
-                if *wrap.name() == self.selected_program_id.clone().unwrap() {
+                if *wrap.name() == program_id {
                     wrap.set_has_border(true)
                 }
                 else {
@@ -237,7 +236,7 @@ impl MainWorker {
             layout.flush_changes();
         }
 
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage);
+        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
     }
 
     fn add_program(&mut self, server_id: String, program_id: String) {
@@ -248,7 +247,7 @@ impl MainWorker {
         layout.tree_mut().root_mut().append(wrap);
         layout.flush_changes();
 
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage);
+        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
     }
 
     fn damage_status_line(&self) {
@@ -281,10 +280,10 @@ impl MainWorker {
         self.draw_worker_tx.send(ClientMsg::ProgramDamage {
             program_id: STATUS_LINE.to_string(),
             cells: cells,
-        });
+        }).unwrap();
     }
 
-    fn mode_change(&mut self, name: &str) {
+    fn mode_change(&mut self, _: &str) {
         self.damage_status_line();
     }
 

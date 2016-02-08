@@ -2,11 +2,9 @@ mod program;
 
 use vterm_sys::{self, ScreenCell, Rect, Pos};
 use self::program::*;
-use std::fs::File;
 use std::io::prelude::*;
 use std::os::unix::prelude::*;
 use std::sync::mpsc::*;
-use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub enum ServerMsg {
@@ -82,7 +80,7 @@ impl Server {
                 ServerMsg::ProgramInput { program_id, bytes } => self.program_input(program_id, bytes),
                 ServerMsg::ProgramKill { program_id, signal } => {},
                 ServerMsg::ProgramMoveCursor { program_id, new, old, is_visible } => {},
-                ServerMsg::ProgramRedrawRect { program_id, rect } => {},
+                ServerMsg::ProgramRedrawRect { program_id: _, rect } => {},
 
                 // need client id here
                 ServerMsg::ProgramStart { program_id, command_and_args } => self.start_program(program_id, command_and_args),
@@ -99,7 +97,7 @@ impl Server {
     fn program_input(&mut self, program_id: String, bytes: Vec<u8>) {
         trace!("input for program {:?}", program_id);
         if let Some(mut program) = self.programs.iter_mut().find( |p| p.id == program_id ) {
-            program.pty.write_all(unsafe { bytes.as_slice() });
+            program.pty.write_all(bytes.as_slice()).unwrap();
         } else {
             trace!("couldnt send input to unknown program {:?}", program_id);
         }
@@ -116,14 +114,14 @@ impl Server {
     fn start_program(&mut self, id: String, command_and_args: Vec<String>) {
         // FIXME: get size from client
         let size = vterm_sys::ScreenSize { rows: 24, cols: 80 };
-        let (program, threads) = Program::new(&id, &command_and_args, self.tx.clone(), &size);
+        let (program, _) = Program::new(&id, &command_and_args, self.tx.clone(), &size);
         self.programs.push(program);
 
         if let Some(client) = self.clients.first() {
             client.tx.send(::client::ClientMsg::ProgramAdd {
                 server_id: "some server".to_string(),
                 program_id: id,
-            });
+            }).unwrap();
         }
     }
 }

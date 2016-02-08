@@ -1,7 +1,5 @@
-use vterm_sys;
 use std::sync::mpsc::*;
 use std::fmt;
-use super::modal::*;
 use std::slice;
 
 #[derive(Default, Clone, Debug)]

@@ -35,7 +35,7 @@ impl TestIO {
 
 impl Read for TestIO {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let mut bytes = self.bytes.lock().unwrap();
+        let bytes = self.bytes.lock().unwrap();
 
         if self.pos >= bytes.len() {
             // not sure if this is correct. I don't see an EOF error in std::io::ErrorKind
@@ -74,29 +74,29 @@ mod tests {
     #[test]
     fn it_can_read_and_write() {
         let mut io = TestIO::new();
-        io.write("hi there".as_bytes());
+        io.write("hi there".as_bytes()).unwrap();
 
         let mut output: Vec<u8> = vec![];
-        io.read_to_end(&mut output);
+        io.read_to_end(&mut output).unwrap();
         assert_eq!(output.as_slice(), "hi there".as_bytes());
     }
 
     #[test]
     fn it_can_do_partial_reads() {
         let mut io = TestIO::new();
-        io.write("hi there".as_bytes());
+        io.write("hi there".as_bytes()).unwrap();
 
         let mut buf = [0u8; 2];
-        io.read(&mut buf);
+        io.read(&mut buf).unwrap();
         assert_eq!(&buf, b"hi");
 
-        io.read(&mut buf);
+        io.read(&mut buf).unwrap();
         assert_eq!(&buf, b" t");
 
-        io.read(&mut buf);
+        io.read(&mut buf).unwrap();
         assert_eq!(&buf, b"he");
 
-        io.read(&mut buf);
+        io.read(&mut buf).unwrap();
         assert_eq!(&buf, b"re");
     }
 

@@ -1,4 +1,3 @@
-use std::io;
 use std::io::prelude::*;
 use std::thread;
 use std::sync::mpsc::*;
@@ -52,7 +51,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
                 ClientMsg::ProgramDamage { program_id, cells } => self.program_damage(program_id, cells),
                 ClientMsg::Clear => self.clear(),
                 ClientMsg::LayoutDamage => self.layout_damage(),
-                ClientMsg::ProgramMoveCursor { program_id, old, new, is_visible } => self.move_cursor(program_id, new, is_visible),
+                ClientMsg::ProgramMoveCursor { program_id, old: _, new, is_visible } => self.move_cursor(program_id, new, is_visible),
                 _ => warn!("unhandled msg {:?}", msg)
             }
         }
@@ -88,13 +87,13 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         let mut top = wrap.border_y().unwrap();
         if top < 0 { top = 0 }
 
-        let mut bottom = (wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1);
+        let mut bottom = wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1;
         if bottom >= size.rows as i16 { bottom = size.rows as i16 - 1 }
 
         let mut left = wrap.border_x().unwrap();
         if left < 0 { left = 0 }
 
-        let mut right = (wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1);
+        let mut right = wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1;
         if right >= size.cols as i16 { right = size.cols as i16 - 1 }
 
         if wrap.has_border() {
@@ -103,23 +102,23 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
             cells.push(Cell { pos: Pos { row: bottom, col: left }, chars: vec!['└'], ..Default::default()});
             cells.push(Cell { pos: Pos { row: bottom, col: right }, chars: vec!['┘'], ..Default::default()});
 
-            for x in (left + 1..right) {
+            for x in left + 1..right {
                 cells.push(Cell { pos: Pos { row: top, col: x }, chars: vec!['─'], ..Default::default()});
                 cells.push(Cell { pos: Pos { row: bottom, col: x }, chars: vec!['─'], ..Default::default()});
             }
 
-            for y in (top + 1..bottom) {
+            for y in top + 1..bottom {
                 cells.push(Cell { pos: Pos { row: y, col: left }, chars: vec!['│'], ..Default::default()});
                 cells.push(Cell { pos: Pos { row: y, col: right }, chars: vec!['│'], ..Default::default()});
             }
         }
         else {
-            for x in (left..right+1) {
+            for x in left..right+1 {
                 cells.push(Cell { pos: Pos { row: top, col: x }, chars: vec![' '], ..Default::default()});
                 cells.push(Cell { pos: Pos { row: bottom, col: x }, chars: vec![' '], ..Default::default()});
             }
 
-            for y in (top + 1..bottom+1) {
+            for y in top + 1..bottom+1 {
                 cells.push(Cell { pos: Pos { row: y, col: left }, chars: vec![' '], ..Default::default()});
                 cells.push(Cell { pos: Pos { row: y, col: right }, chars: vec![' '], ..Default::default()});
             }
@@ -139,7 +138,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         //self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
     }
 
-    fn move_cursor(&mut self, program_id: String, pos: vterm_sys::Pos, is_visible: bool) {
+    fn move_cursor(&mut self, program_id: String, _: vterm_sys::Pos, _: bool) {
         trace!("move_cursor for program {}", program_id);
         // find offset from state
         // painter.move_cursor(pos, is_visible));

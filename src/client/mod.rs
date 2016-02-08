@@ -13,7 +13,6 @@ use self::server_worker::*;
 use self::servers::*;
 use self::stdin_read_worker::*;
 use std::sync::mpsc::*;
-use std::thread::{self, JoinHandle};
 use std::io::prelude::*;
 use vterm_sys;
 
@@ -66,7 +65,7 @@ impl Client {
     pub fn spawn<I, O>(input: I, output: O, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Client)
         where I: 'static + Read + Send, O: 'static + Write + Send {
         let (draw_tx, draw_rx) = channel::<ClientMsg>();
-        let (main_tx, layout, main_handle) = MainWorker::spawn(draw_tx.clone(), tty_ioctl_config);
+        let (main_tx, layout, _) = MainWorker::spawn(draw_tx.clone(), tty_ioctl_config);
         DrawWorker::spawn(output, draw_rx, layout);
         let (server_tx, _) = ServerWorker::spawn(main_tx.clone(), draw_tx.clone());
         StdinReadWorker::spawn(input, main_tx.clone());
@@ -82,8 +81,8 @@ impl Client {
 
     /// Stop the client. It consumes the client so it can't be restarted.
     pub fn stop(self) {
-        self.draw_tx.send(ClientMsg::Quit);
-        self.main_tx.send(ClientMsg::Quit);
-        self.server_tx.send(ClientMsg::Quit);
+        self.draw_tx.send(ClientMsg::Quit).unwrap();
+        self.main_tx.send(ClientMsg::Quit).unwrap();
+        self.server_tx.send(ClientMsg::Quit).unwrap();
     }
 }

@@ -1,9 +1,4 @@
-//! # TODO:
-//!
-//! * [ ] more tests
 use std::io::prelude::*;
-use std::io;
-use std::sync::{Arc, Mutex};
 use libintermix::client::tty_painter::*;
 use vterm_sys::*;
 use ::support::test_io::*;
@@ -98,7 +93,7 @@ fn drawn_cells<T: Read>(reader: &mut T, size: ScreenSize) -> Vec<ScreenCell> {
     vterm.state.reset(true);
 
     let mut bytes: Vec<u8> = vec![];
-    reader.read_to_end(&mut bytes);
+    reader.read_to_end(&mut bytes).unwrap();
     vterm.write(&bytes);
 
     let iterator = CellsIterator::new(&vterm);

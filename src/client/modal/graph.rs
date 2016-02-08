@@ -44,6 +44,7 @@ impl<N,E> Graph<N,E> {
 }
 
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]

@@ -6,7 +6,6 @@ use self::pty_reader::*;
 use self::vte_worker::*;
 use std::ffi::CString;
 use std::fs::File;
-use std::io::prelude::*;
 use std::io;
 use std::os::unix::prelude::*;
 use std::ptr;

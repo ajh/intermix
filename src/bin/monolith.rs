@@ -10,9 +10,7 @@ extern crate termios;
 
 use libc::c_ushort;
 use std::io;
-use std::mem;
 use std::os::unix::io::RawFd;
-use term::terminfo::*;
 
 const USAGE: &'static str = "
 intermix - a terminal emulator multiplexer
@@ -43,7 +41,7 @@ fn parse_args() -> Args {
 
 fn main() {
     setup_logging();
-    let args: Args = parse_args();
+    parse_args();
     set_raw_mode(0);
 
     let (server_tx, server_handle) = libintermix::server::Server::spawn();
@@ -55,7 +53,7 @@ fn main() {
         libc::ioctl(1, TIOCGWINSZ, &mut size);
         tty_ioctl_config = libintermix::client::TtyIoCtlConfig { rows: size.rows, cols: size.cols, ..Default::default() };
     }
-    let (client_tx, client) = libintermix::client::Client::spawn(io::stdin(), io::stdout(), tty_ioctl_config);
+    let (client_tx, _) = libintermix::client::Client::spawn(io::stdin(), io::stdout(), tty_ioctl_config);
 
     client_tx.send(libintermix::client::ClientMsg::ServerAdd {
         server: libintermix::client::servers::Server {
@@ -63,14 +61,14 @@ fn main() {
             tx: server_tx.clone(),
             programs: vec![],
         }
-    });
+    }).unwrap();
 
     server_tx.send(libintermix::server::ServerMsg::ClientAdd {
         client: libintermix::server::Client {
             id: "some client".to_string(),
             tx: client_tx.clone(),
         }
-    });
+    }).unwrap();
 
     let threads = vec![server_handle];
     for thr in threads {

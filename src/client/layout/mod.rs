@@ -106,7 +106,7 @@ impl Screen {
     /// * set_outside_width
     ///
     fn compute_width(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
-        let mut lines = self.tree.get(parent_id).lines();
+        let lines = self.tree.get(parent_id).lines();
         let parent_grid_width = self.tree.get(parent_id).value().computed_grid_width().unwrap();
         let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
 
@@ -173,7 +173,7 @@ impl Screen {
     /// * set_outside_x
     ///
     fn compute_x_position(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
-        let mut lines = self.tree.get(parent_id).lines();
+        let lines = self.tree.get(parent_id).lines();
         let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
         let parent_x = self.tree.get(parent_id).value().computed_x().unwrap();
         let parent_align = self.tree.get(parent_id).value().align();
@@ -213,7 +213,7 @@ impl Screen {
     /// * set_outside_height
     ///
     fn compute_height(&mut self, parent_id: ego_tree::NodeId<Wrap>) -> i16 {
-        let mut lines = self.tree.get(parent_id).lines();
+        let lines = self.tree.get(parent_id).lines();
 
         for line in lines.iter() {
             for child_id in line.iter() {
@@ -236,7 +236,7 @@ impl Screen {
     /// * set_outside_y
     ///
     fn compute_y_position(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
-        let mut lines = self.tree.get(parent_id).lines();
+        let lines = self.tree.get(parent_id).lines();
         let parent_height = self.tree.get(parent_id).value().computed_height().unwrap();
         let parent_y = self.tree.get(parent_id).value().computed_y().unwrap();
         let parent_vertical_align = self.tree.get(parent_id).value().vertical_align();

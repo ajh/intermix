@@ -1,4 +1,3 @@
-#![feature(convert)]
 extern crate regex;
 extern crate libintermix;
 extern crate log4rs;

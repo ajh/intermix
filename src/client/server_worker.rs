@@ -1,10 +1,6 @@
-use std::io;
 use std::thread;
 use std::sync::mpsc::*;
-use std::sync::{Weak, Mutex};
 use super::*;
-use super::servers::*;
-use super::tty_painter::*;
 
 /// A worker that listens for msgs from a server, and dispatches them to either the main worker or
 /// the draw worker.

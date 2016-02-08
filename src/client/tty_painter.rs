@@ -1,5 +1,5 @@
 use std::io::prelude::*;
-use std::io::{self, BufWriter};
+use std::io::BufWriter;
 use term;
 use vterm_sys::*;
 
@@ -343,7 +343,8 @@ impl <F: Write + Send> TtyPainter<F> {
     ///
     /// Tmux also has an optimization where it'll no-op this if the effected region is >= 50% of
     /// the pane, but will instead schedule a "pane redraw". That is also not implemented.
-    pub fn insert_line(&mut self, scroll_region_size: &ScreenSize, scroll_region_pos: &Pos) {
+    /// (&mut self, scroll_region_size: &ScreenSize, scroll_region_pos: &Pos) {
+    pub fn insert_line(&mut self, _: &ScreenSize, _: &Pos) {
         // I'd like to iterate through all the cells in the pane. Can I get access to this?
     }
 

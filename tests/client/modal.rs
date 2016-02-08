@@ -1,8 +1,6 @@
 use ::support::test_io::*;
 use libintermix::client::*;
 use regex::Regex;
-use std::sync::{Arc, Mutex};
-use time;
 use vterm_sys::*;
 use std::io::prelude::*;
 
@@ -22,7 +20,7 @@ fn assert_status_line_match<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: R
     // contents
     ::try_until_true(|| {
         let mut bytes: Vec<u8> = vec![];
-        reader.read_to_end(&mut bytes);
+        reader.read_to_end(&mut bytes).unwrap();
         vterm.write(&bytes);
 
         let actual = vterm.screen.get_text(Rect { start_row: 0, end_row: 1, start_col: 0, end_col: 80 });
@@ -34,9 +32,9 @@ fn assert_status_line_match<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: R
 fn client_starts_in_welcome_mode() {
     ::setup_logging();
     let mut output = TestIO::new();
-    let mut input = TestIO::new();
+    let input = TestIO::new();
 
-    let (client_tx, client) = Client::spawn(input.clone(), output.clone(), TtyIoCtlConfig { rows: 24, cols: 80 });
+    let (_, client) = Client::spawn(input.clone(), output.clone(), TtyIoCtlConfig { rows: 24, cols: 80 });
 
     // The screen size here is hard coded through the client code. Need to fix that.
     let mut vterm = build_vterm(ScreenSize { rows: 24, cols: 80 });
@@ -51,9 +49,9 @@ fn client_can_enter_command_mode() {
     ::setup_logging();
     let mut output = TestIO::new();
     let mut input = TestIO::new();
-    input.write(b"a");
+    input.write(b"a").unwrap();
 
-    let (client_tx, client) = Client::spawn(input.clone(), output.clone(), TtyIoCtlConfig { rows: 24, cols: 80 });
+    let (_, client) = Client::spawn(input.clone(), output.clone(), TtyIoCtlConfig { rows: 24, cols: 80 });
 
     // The screen size here is hard coded through the client code. Need to fix that.
     let mut vterm = build_vterm(ScreenSize { rows: 24, cols: 80 });
@@ -66,7 +64,7 @@ fn client_can_enter_program_mode() {
     ::setup_logging();
     let mut output = TestIO::new();
     let mut input = TestIO::new();
-    input.write(b"aci");
+    input.write(b"aci").unwrap();
 
     let (client_tx, client) = Client::spawn(input.clone(), output.clone(), TtyIoCtlConfig { rows: 24, cols: 80 });
 
@@ -77,7 +75,7 @@ fn client_can_enter_program_mode() {
     client_tx.send(ClientMsg::ProgramAdd {
         server_id: "some server".to_string(),
         program_id: "123".to_string(),
-    });
+    }).unwrap();
 
     assert_status_line_match(&mut vterm, &mut output, Regex::new(r"program").unwrap());
 
@@ -89,9 +87,9 @@ fn client_can_exit_program_mode() {
     ::setup_logging();
     let mut output = TestIO::new();
     let mut input = TestIO::new();
-    input.write(b"aci");
-    input.write(&[CTRL_B]);
-    input.write(b"c");
+    input.write(b"aci").unwrap();
+    input.write(&[CTRL_B]).unwrap();
+    input.write(b"c").unwrap();
 
     let (client_tx, client) = Client::spawn(input.clone(), output.clone(), TtyIoCtlConfig { rows: 24, cols: 80 });
 
@@ -102,7 +100,7 @@ fn client_can_exit_program_mode() {
     client_tx.send(ClientMsg::ProgramAdd {
         server_id: "some server".to_string(),
         program_id: "123".to_string(),
-    });
+    }).unwrap();
 
     assert_status_line_match(&mut vterm, &mut output, Regex::new(r"command").unwrap());
 

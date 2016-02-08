@@ -1,6 +1,4 @@
-use std::fs::File;
 use std::io::prelude::*;
-use std::io;
 use std::thread::{self, JoinHandle};
 use std::os::unix::prelude::*;
 use std::sync::mpsc::*;
