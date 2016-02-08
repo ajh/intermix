@@ -1,4 +1,3 @@
-#![feature(libc)]
 #[macro_use] extern crate log;
 extern crate docopt;
 extern crate libc;

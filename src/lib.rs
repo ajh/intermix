@@ -1,5 +1,4 @@
 #![feature(mpsc_select)]
-#![feature(libc)]
 
 #[macro_use] extern crate log;
 extern crate docopt;
