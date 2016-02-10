@@ -72,6 +72,8 @@ impl Server {
                 ServerMsg::Quit => break,
 
                 ServerMsg::ProgramDamage { program_id, cells } => {
+                    // What is Vec going to do with the cell data on the heap? Hopefully it will
+                    // leave it alone?
                     self.send_msg_to_clients(
                         ::client::ClientMsg::ProgramDamage { program_id: program_id, cells: cells },
                         true
