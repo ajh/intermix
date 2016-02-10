@@ -60,7 +60,10 @@ impl MainWorker {
 
     /// creates an initial window, status pane etc
     fn init(&mut self) {
-        let status_line = layout::WrapBuilder::row().name(STATUS_LINE.to_string()).height(1).build();
+        let status_line = layout::WrapBuilder::row()
+                          .name(STATUS_LINE.to_string())
+                          .height(1)
+                          .build();
 
         {
             let mut layout = self.layout.write().unwrap();
@@ -145,36 +148,21 @@ impl MainWorker {
     /// been done by the modal state machine. All we have to do is make sure a program is selected.
     fn program_focus_cmd(&mut self) {
         trace!("program_focus_cmd {:?}", self.selected_program_id);
-        let leaf_names: Vec<String> = self.leaf_names().into_iter().filter(|n| n != STATUS_LINE).collect();
 
         let valid_selection = if let Some(program_id) = self.selected_program_id.clone() {
-            if leaf_names.iter().any(|n| *n == program_id) { true }
+            if self.leaf_names().iter().any(|n| *n == program_id) { true }
             else { false }
         }
         else { false };
 
-        if valid_selection {
-            let mut layout = self.layout.write().unwrap();
-            for mut wrap in layout.tree_mut().values_mut() {
-                if *wrap.name() == self.selected_program_id.clone().unwrap() {
-                    wrap.set_has_border(true)
-                }
-                else {
-                    wrap.set_has_border(false)
-                }
-            }
-            layout.flush_changes();
-        }
-        else {
+        if !valid_selection {
             self.program_select_next();
         }
     }
 
     fn program_select_prev(&mut self) {
-        let leaf_names = self.leaf_names();
-
         let mut selected_index = if let Some(program_id) = self.selected_program_id.clone() {
-            if let Some(i) = leaf_names.iter().position(|n| *n == program_id) {
+            if let Some(i) = self.leaf_names().iter().position(|n| *n == program_id) {
                 i
             }
             else {
@@ -189,22 +177,8 @@ impl MainWorker {
             selected_index -= 1;
         }
 
-        self.selected_program_id = Some(leaf_names[selected_index].clone());
-
-        if let Some(program_id) = self.selected_program_id.clone() {
-            let mut layout = self.layout.write().unwrap();
-            for mut wrap in layout.tree_mut().values_mut() {
-                if *wrap.name() == program_id {
-                    wrap.set_has_border(true)
-                }
-                else {
-                    wrap.set_has_border(false)
-                }
-            }
-            layout.flush_changes();
-        }
-
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
+        self.selected_program_id = Some(self.leaf_names()[selected_index].clone());
+        self.add_border_to_selected_program_id_wrap();
     }
 
     fn program_select_next(&mut self) {
@@ -229,14 +203,26 @@ impl MainWorker {
             self.selected_program_id = Some(leaf_names[0].clone());
         }
 
+        self.add_border_to_selected_program_id_wrap();
+    }
+
+    fn add_border_to_selected_program_id_wrap(&mut self) {
         if let Some(program_id) = self.selected_program_id.clone() {
             let mut layout = self.layout.write().unwrap();
             for mut wrap in layout.tree_mut().values_mut() {
+                if *wrap.name() == "root".to_string() {
+                    continue;
+                }
+                if *wrap.name() == STATUS_LINE.to_string() {
+                    continue;
+                }
                 if *wrap.name() == program_id {
-                    wrap.set_has_border(true)
+                    wrap.set_has_border(true);
+                    wrap.set_margin(0);
                 }
                 else {
-                    wrap.set_has_border(false)
+                    wrap.set_has_border(false);
+                    wrap.set_margin(1);
                 }
             }
             layout.flush_changes();
@@ -248,7 +234,7 @@ impl MainWorker {
     fn add_program(&mut self, server_id: String, program_id: String) {
         self.servers.add_program(&server_id, Program { id: program_id.clone(), is_subscribed: true });
 
-        let wrap = layout::WrapBuilder::row().name(program_id.clone()).height(24).width(80).build();
+        let wrap = layout::WrapBuilder::row().name(program_id.clone()).height(24).width(80).margin(1).build();
         let mut layout = self.layout.write().unwrap();
         layout.tree_mut().root_mut().append(wrap);
         layout.flush_changes();

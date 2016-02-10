@@ -104,7 +104,7 @@ impl Server {
     }
 
     fn send_msg_to_clients(&self, msg: ::client::ClientMsg, hard: bool) {
-        trace!("sending msg {:?} to {} clients", msg, self.clients.len());
+        //trace!("sending msg {:?} to {} clients", msg, self.clients.len());
         for client in &self.clients {
             let result = client.tx.send(msg.clone());
             if hard { result.expect("didnt send"); }
