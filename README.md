@@ -18,30 +18,26 @@ Intermix aspires to be a terminal emulator / multiplexer / cli program.
 
 ### terminal emulation
 
-Using libtsm.
-
-* Need to upgrade to lastest version and take unmerged patches.
-* Need to make the io reads non-blocking. May have to use libc read like:
-  https://github.com/jsgf/eventfd-rust/blob/master/src/lib.rs#L62
-* Program needs to split command name and args for execvp.
+Using libvterm.
 
 ### running multiple processes at once
 
-Not started
+Started
 
 ### client server
 
-Not started
+Prepared for, but hoping someone will write a msgpack rpc or capnproto
+rpc library.
 
 ### modal ui
 
-Not started
+Started
 
 ### shell
 
 Not started
 
-### keyboard interactions
+### fancy keyboard interactions
 
 Not started
 
@@ -53,14 +49,9 @@ Not started
 
 Not started
 
-### use threads in a better way
-
-std has the select! macro which can help use threads better for
-channels. But for IO objects, not so much.
-
 ## Copyright and License
 
-Copyright 2015 Andy Hartford.
+Copyright 2016 Andy Hartford.
 
 The program is available as open source under the terms of the GPLv3
 (See COPYING).

@@ -1,10 +1,14 @@
 Todo
 ====
 
+* [ ] clear screen after starting
+* [ ] allow changing selected program
+* [ ] allow maximizing selected program
+* [ ] fix all the warning msgs
 * [x] client - server architecture in same process
 * [x] client takes options to control window size
 * [x] layout engine
-* [ ] clean up hacks and add more tests
+* [x] clean up hacks and add more tests
 * [ ] pane transforms
 * [ ] client - server in separate processes
 * [ ] client connecting to multiple servers
@@ -13,7 +17,7 @@ Todo
 * [ ] lsof for programs to view open files
 * [ ] raw keyup keydown input behavior
 * [ ] shell
-* [ ] cleanup todos and fixmes
+* [x] cleanup todos and fixmes
 * [ ] servers should have ids ("some server")
 * [ ] Split up ClientMsg into smaller enums suited to their specific
   channel
