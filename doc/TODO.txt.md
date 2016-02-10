@@ -1,8 +1,8 @@
 Todo
 ====
 
-* [ ] clear screen after starting
-* [ ] allow changing selected program
+* [x] clear screen after starting
+* [x] allow changing selected program
 * [ ] allow maximizing selected program
 * [ ] fix all the warning msgs
 * [x] client - server architecture in same process
@@ -13,18 +13,15 @@ Todo
 * [ ] client - server in separate processes
 * [ ] client connecting to multiple servers
 * [x] modal UI design
-* [ ] v1 multiplexer (see mock.txt.md)
 * [ ] lsof for programs to view open files
 * [ ] raw keyup keydown input behavior
 * [ ] shell
 * [x] cleanup todos and fixmes
-* [ ] servers should have ids ("some server")
+* [x] servers should have ids ("some server")
 * [ ] Split up ClientMsg into smaller enums suited to their specific
   channel
 * [ ] figure out performance implications about moving values between enums
 * [ ] dwarf fortress style background pictures
-* [ ] investigate whether vectors store the dynamic data on the stack or
-  heap. The message enums may be inefficient.
 * [x] alias some `vterm_sys` types like ScreenSize for ease of use
 
 Client Server Work
