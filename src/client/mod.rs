@@ -2,14 +2,12 @@ pub mod draw_worker;
 pub mod modal;
 pub mod stdin_read_worker;
 pub mod tty_painter;
-pub mod server_worker;
 pub mod main_worker;
 pub mod servers;
 pub mod layout;
 
 use self::draw_worker::*;
 use self::main_worker::*;
-use self::server_worker::*;
 use self::servers::*;
 use self::stdin_read_worker::*;
 use std::sync::mpsc::*;
@@ -54,7 +52,6 @@ impl Default for TtyIoCtlConfig {
 pub struct Client {
     draw_tx: Sender<ClientMsg>,
     main_tx: Sender<ClientMsg>,
-    server_tx: Sender<ClientMsg>,
 }
 
 impl Client {
@@ -67,22 +64,19 @@ impl Client {
         let (draw_tx, draw_rx) = channel::<ClientMsg>();
         let (main_tx, layout, _) = MainWorker::spawn(draw_tx.clone(), tty_ioctl_config);
         DrawWorker::spawn(output, draw_rx, layout);
-        let (server_tx, _) = ServerWorker::spawn(main_tx.clone(), draw_tx.clone());
         StdinReadWorker::spawn(input, main_tx.clone());
 
         let client = Client {
             draw_tx: draw_tx,
-            main_tx: main_tx,
-            server_tx: server_tx.clone(),
+            main_tx: main_tx.clone(),
         };
 
-        (server_tx, client)
+        (main_tx, client)
     }
 
     /// Stop the client. It consumes the client so it can't be restarted.
     pub fn stop(self) {
         self.draw_tx.send(ClientMsg::Quit).unwrap();
         self.main_tx.send(ClientMsg::Quit).unwrap();
-        self.server_tx.send(ClientMsg::Quit).unwrap();
     }
 }

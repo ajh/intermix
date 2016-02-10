@@ -85,6 +85,8 @@ impl MainWorker {
                 ClientMsg::Quit => break,
                 ClientMsg::ServerAdd { server } => self.servers.add_server(server),
                 ClientMsg::ProgramAdd { server_id, program_id } => self.add_program(server_id, program_id),
+                ClientMsg::ProgramDamage { .. }     => self.forward_to_draw_worker(msg),
+                ClientMsg::ProgramMoveCursor { .. } => self.forward_to_draw_worker(msg),
                 ClientMsg::UserInput { bytes } => {
                     self.modal_key_handler.write(&bytes).unwrap();
                     while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
@@ -103,6 +105,10 @@ impl MainWorker {
                 _ => warn!("unhandled msg {:?}", msg),
             }
         }
+    }
+
+    fn forward_to_draw_worker(&self, msg: ClientMsg) {
+        self.draw_worker_tx.send(msg).unwrap();
     }
 
     fn program_input_cmd(&self, bytes: Vec<u8>) {
