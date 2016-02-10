@@ -134,8 +134,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
             }
         }
 
-        // This is breaking the modal tests for some reason
-        //self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
+        self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
     }
 
     fn move_cursor(&mut self, program_id: String, _: vterm_sys::Pos, _: bool) {

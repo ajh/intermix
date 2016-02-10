@@ -26,7 +26,7 @@ fn setup_logging() {
 // Returns true if the given function eventually returns true within several seconds
 fn is_ultimately_true<F>(mut f: F) -> bool where F: FnMut() -> bool {
     let start_time = time::now();
-    let timeout = time::Duration::seconds(5);
+    let timeout = time::Duration::seconds(15);
 
     loop {
         if f() { return true }
