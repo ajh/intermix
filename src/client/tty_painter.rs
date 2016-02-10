@@ -97,7 +97,7 @@ impl <F: Write + Send> TtyPainter<F> {
     /// TODO: make this take &self not &mut self because changing the pen is just an implementation
     /// detail. Use Cell or whatever for interior mutability.
     pub fn draw_cells(&mut self, cells: &Vec<ScreenCell>, offset: &Pos) {
-        //trace!("draw_cells cells={:?}", cells);
+        //trace!("draw_cells {:?}", cells);
         let restore_pen = self.pen.clone();
 
         if self.pen.is_visible {

@@ -18,6 +18,6 @@
 //
 //
 
-pub mod tty_painter;
-pub mod modal;
+pub mod integration;
 pub mod layout;
+pub mod tty_painter;
