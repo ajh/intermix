@@ -20,7 +20,7 @@ Todo
 * [x] servers should have ids ("some server")
 * [ ] Split up ClientMsg into smaller enums suited to their specific
   channel
-* [ ] figure out performance implications about moving values between enums
+* [x] figure out performance implications about moving values between enums
 * [ ] dwarf fortress style background pictures
 * [x] alias some `vterm_sys` types like ScreenSize for ease of use
 
