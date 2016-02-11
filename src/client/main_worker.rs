@@ -227,7 +227,7 @@ impl MainWorker {
                 if *wrap.name() == "root".to_string() {
                     continue;
                 }
-                if *wrap.name() == STATUS_LINE.to_string() {
+                if *wrap.name() == STATUS_LINE {
                     continue;
                 }
                 if *wrap.name() == program_id {
