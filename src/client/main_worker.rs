@@ -78,14 +78,17 @@ impl MainWorker {
 
     /// Start receiving messages from Receiver. Exits on a Quit message.
     fn enter_listener_loop(&mut self) {
-        loop {
+        'outer: loop {
             let msg = match self.rx.recv() {
                 Ok(msg) => msg,
                 Err(_) => break,
             };
 
             match msg {
-                ClientMsg::Quit => break,
+                ClientMsg::Quit => {
+                    self.quit();
+                    break;
+                },
                 ClientMsg::ServerAdd { server } => self.servers.add_server(server),
                 ClientMsg::ProgramAdd { server_id, program_id } => self.add_program(server_id, program_id),
                 ClientMsg::ProgramDamage { .. }     => self.forward_to_draw_worker(msg),
@@ -100,13 +103,24 @@ impl MainWorker {
                             modal::UserAction::ProgramStart                  => self.program_start_cmd(),
                             modal::UserAction::ProgramSelectPrev             => self.program_select_prev(),
                             modal::UserAction::ProgramSelectNext             => self.program_select_next(),
-                            modal::UserAction::Quit                          => error!("user action {:?} is not implemented", user_action),
+                            modal::UserAction::Quit                          => {
+                                self.quit();
+                                break 'outer;
+                            },
                             modal::UserAction::UnknownInput { bytes: fites } => error!("unknown input for mode {}: {:?}", self.modal_key_handler.mode_name(), fites),
                         }
                     }
                 },
                 _ => warn!("unhandled msg {:?}", msg),
             }
+        }
+    }
+
+    fn quit(&self) {
+        info!("quit!");
+        self.draw_worker_tx.send(ClientMsg::Quit).unwrap();
+        for server in self.servers.iter() {
+            server.tx.send(::server::ServerMsg::Quit).unwrap();
         }
     }
 
@@ -213,7 +227,7 @@ impl MainWorker {
                 if *wrap.name() == "root".to_string() {
                     continue;
                 }
-                if *wrap.name() == STATUS_LINE.to_string() {
+                if *wrap.name() == STATUS_LINE {
                     continue;
                 }
                 if *wrap.name() == program_id {
