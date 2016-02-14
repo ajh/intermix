@@ -46,7 +46,7 @@ impl VteWorker {
 
     pub fn enter_listen_loop(&mut self) {
         self.vterm.set_utf8(true);
-        self.vterm.screen.set_damage_merge(ffi::VTermDamageSize::VTermDamageRow);
+        self.vterm.screen_set_damage_merge(ffi::VTermDamageSize::VTermDamageRow);
 
         let vterm_event_rx = self.vterm.receive_screen_events();
 
@@ -111,7 +111,7 @@ impl VteWorker {
         match event {
             VteWorkerMsg::PtyRead{bytes} => {
                 self.vterm.write(bytes.as_slice());
-                self.vterm.screen.flush_damage();
+                self.vterm.screen_flush_damage();
             },
             VteWorkerMsg::PtyReadZero => error!("got PtyReadZero"),
             VteWorkerMsg::PtyReadError => error!("got PtyReadError"),
@@ -129,7 +129,7 @@ impl VteWorker {
             pos.row = row as i16;
             for col in rect.start_col..rect.end_col {
                 pos.col = col as i16;
-                cells.push(self.vterm.get_cell(&pos));
+                cells.push(self.vterm.screen_get_cell(&pos));
             }
         }
 
