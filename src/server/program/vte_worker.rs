@@ -129,7 +129,7 @@ impl VteWorker {
             pos.row = row as i16;
             for col in rect.start_col..rect.end_col {
                 pos.col = col as i16;
-                cells.push(self.vterm.screen.get_cell(&pos));
+                cells.push(self.vterm.get_cell(&pos));
             }
         }
 
