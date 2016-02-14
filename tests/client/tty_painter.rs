@@ -88,8 +88,8 @@ impl ScreenCellBuilder {
 
 fn drawn_cells<T: Read>(reader: &mut T, size: ScreenSize) -> Vec<ScreenCell> {
     let mut vterm = VTerm::new(size);
-    vterm.state.set_default_colors(Color { red: 230, green: 230, blue: 230 },
-                                   Color { red: 5, green: 5, blue: 5 });
+    vterm.state.set_default_colors(ColorRGB { red: 230, green: 230, blue: 230 },
+                                   ColorRGB { red: 5, green: 5, blue: 5 });
     vterm.state.reset(true);
 
     let mut bytes: Vec<u8> = vec![];

@@ -6,8 +6,8 @@ use vterm_sys::*;
 #[derive(Debug, Default, Clone)]
 pub struct Pen {
     attrs: ScreenCellAttr,
-    fg: Color,
-    bg: Color,
+    fg: ColorPalette,
+    bg: ColorPalette,
     pos: Pos,
     is_visible: bool,
 }
@@ -212,40 +212,33 @@ impl <F: Write + Send> TtyPainter<F> {
             self.pen.attrs.font = cell.attrs.font;
         }
 
-        // if self.pen.fg.red   != cell.fg.red   ||
-        // self.pen.fg.green != cell.fg.green ||
-        // self.pen.fg.blue  != cell.fg.blue {
-        // /trace!("changing fg color: prev {} {} {} cell {} {} {}",
-        // /self.pen.fg.red,
-        // /self.pen.fg.green,
-        // /self.pen.fg.blue,
-        // /self.pen.bg.red,
-        // /self.pen.bg.green,
-        // /self.pen.bg.blue);
-        // let index = color_to_index(state, &cell.fg);
-        // if index == -1 { sgrs.push(39); }
-        // else if index < 8 { sgrs.push(30 + index); }
-        // else if index < 16 { sgrs.push(90 + (index - 8)); }
-        // else {
-        // sgrs.push(38);
-        // sgrs.push(5 | (1<<31));
-        // sgrs.push(index | (1<<31));
-        // }
-        // }
+        if self.pen.fg != cell.fg_palette {
+            if cell.fg_palette < 8 {
+                sgrs.push(30 + cell.fg_palette as isize);
+            }
+            else if cell.fg_palette < 16 {
+                sgrs.push(90 + (cell.fg_palette as isize - 8));
+            }
+            else {
+                sgrs.push(38);
+                sgrs.push(5 | (1<<31));
+                sgrs.push(cell.fg_palette as isize | (1<<31));
+            }
+        }
 
-        // if self.pen.bg.red   != cell.bg.red   ||
-        // self.pen.bg.green != cell.bg.green ||
-        // self.pen.bg.blue  != cell.bg.blue {
-        // let index = color_to_index(state, &cell.bg);
-        // if index == -1 { sgrs.push(49); }
-        // else if index < 8 { sgrs.push(40 + index); }
-        // else if index < 16 { sgrs.push(100 + (index - 8)); }
-        // else {
-        // sgrs.push(48);
-        // sgrs.push(5 | (1<<31));
-        // sgrs.push(index | (1<<31));
-        // }
-        // }
+        if self.pen.bg != cell.bg_palette {
+            if cell.bg_palette < 8 {
+                sgrs.push(40 + cell.bg_palette as isize);
+            }
+            else if cell.bg_palette < 16 {
+                sgrs.push(100 + (cell.bg_palette as isize - 8));
+            }
+            else {
+                sgrs.push(48);
+                sgrs.push(5 | (1<<31));
+                sgrs.push(cell.bg_palette as isize | (1<<31));
+            }
+        }
 
         if sgrs.len() != 0 {
             let mut sgr = "\x1b[".to_string();

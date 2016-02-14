@@ -263,8 +263,9 @@ impl MainWorker {
                 chars: vec!(char),
                 width: 1,
                 attrs: Default::default(),
-                fg: vterm_sys::Color { red: 240, green: 240, blue: 240 },
-                bg: Default::default(),
+                fg_palette: 7,
+                bg_palette: 0,
+                .. Default::default()
             });
         }
 

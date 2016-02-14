@@ -10,8 +10,8 @@ const CTRL_B: u8 = 2u8;
 // Build a vterm instance
 fn build_vterm(size: ScreenSize) -> VTerm {
     let mut vterm = VTerm::new(size);
-    vterm.state.set_default_colors(Color { red: 230, green: 230, blue: 230 },
-                                   Color { red: 5, green: 5, blue: 5 });
+    vterm.state.set_default_colors(ColorRGB { red: 230, green: 230, blue: 230 },
+                                   ColorRGB { red: 5, green: 5, blue: 5 });
     vterm.state.reset(true);
     vterm
 }
