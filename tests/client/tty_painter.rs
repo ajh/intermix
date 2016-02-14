@@ -35,7 +35,7 @@ impl<'a> Iterator for CellsIterator<'a> {
         let cell: Option<ScreenCell>;
 
         if (self.pos.col as u16) < self.size.cols && (self.pos.row as u16) < self.size.rows {
-            cell = Some(self.vterm.screen.get_cell(&self.pos));
+            cell = Some(self.vterm.screen_get_cell(&self.pos));
             self.advance();
         } else {
             cell = None;
@@ -88,9 +88,9 @@ impl ScreenCellBuilder {
 
 fn drawn_cells<T: Read>(reader: &mut T, size: ScreenSize) -> Vec<ScreenCell> {
     let mut vterm = VTerm::new(size);
-    vterm.state.set_default_colors(ColorRGB { red: 230, green: 230, blue: 230 },
+    vterm.state_set_default_colors(ColorRGB { red: 230, green: 230, blue: 230 },
                                    ColorRGB { red: 5, green: 5, blue: 5 });
-    vterm.state.reset(true);
+    vterm.state_reset(true);
 
     let mut bytes: Vec<u8> = vec![];
     reader.read_to_end(&mut bytes).unwrap();

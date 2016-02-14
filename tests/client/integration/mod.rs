@@ -10,9 +10,9 @@ const CTRL_B: u8 = 2u8;
 // Build a vterm instance
 fn build_vterm(size: ScreenSize) -> VTerm {
     let mut vterm = VTerm::new(size);
-    vterm.state.set_default_colors(ColorRGB { red: 230, green: 230, blue: 230 },
+    vterm.state_set_default_colors(ColorRGB { red: 230, green: 230, blue: 230 },
                                    ColorRGB { red: 5, green: 5, blue: 5 });
-    vterm.state.reset(true);
+    vterm.state_reset(true);
     vterm
 }
 
@@ -25,12 +25,12 @@ fn status_line_matches<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: Regex)
         vterm.write(&bytes);
 
         // TODO: fix this fixed size by getting size from vterm
-        let actual = vterm.screen.get_text(Rect { start_row: 0, end_row: 1, start_col: 0, end_col: 80 });
+        let actual = vterm.screen_get_text(Rect { start_row: 0, end_row: 1, start_col: 0, end_col: 80 });
         regex.is_match(&actual)
     });
 
     // TODO: fix this fixed size by getting size from vterm
-    let actual = vterm.screen.get_text(Rect { start_row: 0, end_row: 5, start_col: 0, end_col: 10 });
+    let actual = vterm.screen_get_text(Rect { start_row: 0, end_row: 5, start_col: 0, end_col: 10 });
     assert!(is_success, format!("expected:\n{}\nto match {:#?}", actual, regex));
 }
 
