@@ -3,6 +3,10 @@ use std::io::BufWriter;
 use term;
 use vterm_sys::*;
 
+/// TODO:
+///
+/// * Maybe all this state should be wrapped in Option to know when the state is unknown as it is
+/// initially.
 #[derive(Debug, Default, Clone)]
 pub struct Pen {
     attrs: ScreenCellAttr,
