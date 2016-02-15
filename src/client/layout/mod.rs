@@ -7,7 +7,7 @@ pub type Pos = vterm_sys::Pos;
 pub const GRID_COLUMNS_COUNT: i16 = 12;
 
 /// Represents the Screen for an entire screen.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Screen {
     pub size: Size,
     tree: ego_tree::Tree<Wrap>,

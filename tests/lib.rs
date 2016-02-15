@@ -1,3 +1,4 @@
+#[macro_use] extern crate log;
 extern crate regex;
 extern crate libintermix;
 extern crate log4rs;
@@ -41,3 +42,22 @@ fn is_ultimately_true<F>(mut f: F) -> bool where F: FnMut() -> bool {
     false
 }
 
+fn is_ultimately_true_result<F, T>(mut f: F) -> Result<(), T> where F: FnMut() -> Result<(), T> {
+    let start_time = time::now();
+    let timeout = time::Duration::seconds(15);
+
+    loop {
+        match f() {
+            Ok(()) => { return Ok(()) },
+            Err(t) => {
+                if time::now() - start_time > timeout {
+                    return Err(t)
+                }
+
+                // half a second
+                let sleep_duration = ::std::time::Duration::from_millis(500);
+                ::std::thread::sleep(sleep_duration);
+            }
+        }
+    }
+}

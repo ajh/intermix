@@ -1,12 +1,12 @@
-use vterm_sys;
-use super::*;
-use super::servers::*;
-use super::layout::*;
+use std::io::prelude::*;
 use std::sync::mpsc::*;
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
-use std::io::prelude::*;
+use super::*;
+use super::layout::*;
+use super::servers::*;
 use uuid::Uuid;
+use vterm_sys;
 
 /// This worker handles:
 /// * user input
@@ -33,10 +33,10 @@ impl MainWorker {
         let (tx, rx) = channel::<ClientMsg>();
         let layout = Arc::new(RwLock::new(layout::Screen::new(Size { rows: tty_ioctl_config.rows, cols: tty_ioctl_config.cols })));
         let layout_clone = layout.clone();
+        let mut worker = MainWorker::new(draw_worker_tx, rx, tty_ioctl_config, layout);
 
         info!("spawning main worker");
         let handle = thread::spawn(move || {
-            let mut worker = MainWorker::new(draw_worker_tx, rx, tty_ioctl_config, layout);
             worker.enter_listener_loop();
             info!("exiting main worker");
         });
@@ -93,6 +93,7 @@ impl MainWorker {
                 ClientMsg::ProgramAdd { server_id, program_id } => self.add_program(server_id, program_id),
                 ClientMsg::ProgramDamage { .. }     => self.forward_to_draw_worker(msg),
                 ClientMsg::ProgramMoveCursor { .. } => self.forward_to_draw_worker(msg),
+                ClientMsg::LayoutSwap { layout } => self.layout_swap(layout),
                 ClientMsg::UserInput { bytes } => {
                     self.modal_key_handler.write(&bytes).unwrap();
                     while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
@@ -303,5 +304,10 @@ impl MainWorker {
             .map(|w| w.name().clone())
             .filter(|n| *n != "root".to_string() && *n != STATUS_LINE.to_string())
             .collect()
+    }
+
+    fn layout_swap(&mut self, layout: Arc<RwLock<layout::Screen>>) {
+        self.layout = layout;
+        self.draw_worker_tx.send(ClientMsg::LayoutSwap { layout: self.layout.clone() }).unwrap();
     }
 }

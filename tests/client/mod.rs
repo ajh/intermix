@@ -20,4 +20,6 @@
 
 pub mod integration;
 pub mod layout;
-pub mod tty_painter;
+// trying to rewrite these, and they fail so turning them off
+//pub mod tty_painter;
+pub mod drawing;

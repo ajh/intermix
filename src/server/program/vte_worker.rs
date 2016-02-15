@@ -71,7 +71,7 @@ impl VteWorker {
                 info!("Damage: rect={:?}", rect);
                 let event = ::server::ServerMsg::ProgramDamage {
                     program_id: self.program_id.clone(),
-                    cells: self.get_cells_in_rect(&rect),
+                    cells: self.vterm.screen_get_cells_in_rect(&rect),
                 };
                 self.server_tx.send(event).unwrap();
             }
@@ -89,7 +89,7 @@ impl VteWorker {
                 info!("MoveRect: dest={:?} src={:?}", dest, src);
                 let event = ::server::ServerMsg::ProgramDamage {
                     program_id: self.program_id.clone(),
-                    cells: self.get_cells_in_rect(&dest),
+                    cells: self.vterm.screen_get_cells_in_rect(&dest),
                 };
                 self.server_tx.send(event).unwrap();
             }
@@ -117,22 +117,5 @@ impl VteWorker {
             VteWorkerMsg::PtyReadError => error!("got PtyReadError"),
             VteWorkerMsg::RequestRedrawRect{rect: _} => info!("got RequestRedrawRect msg"),
         }
-    }
-
-    /// TODO: move this to libvterm, since it seems useful
-    fn get_cells_in_rect(&self, rect: &Rect) -> Vec<ScreenCell> {
-        let mut pos: Pos = Default::default();
-        let mut cells: Vec<ScreenCell> = Vec::new(); // capacity is known here FYI
-
-        // could fancy functional iterator stuff be used here?
-        for row in rect.start_row..rect.end_row {
-            pos.row = row as i16;
-            for col in rect.start_col..rect.end_col {
-                pos.col = col as i16;
-                cells.push(self.vterm.screen_get_cell(&pos));
-            }
-        }
-
-        cells
     }
 }

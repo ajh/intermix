@@ -51,6 +51,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
                 ClientMsg::ProgramDamage { program_id, cells } => self.program_damage(program_id, cells),
                 ClientMsg::Clear => self.clear(),
                 ClientMsg::LayoutDamage => self.layout_damage(),
+                ClientMsg::LayoutSwap { layout } => self.layout_swap(layout),
                 ClientMsg::ProgramMoveCursor { program_id, old: _, new, is_visible } => self.move_cursor(program_id, new, is_visible),
                 _ => warn!("unhandled msg {:?}", msg)
             }
@@ -158,5 +159,9 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         trace!("move_cursor for program {}", program_id);
         // find offset from state
         // painter.move_cursor(pos, is_visible));
+    }
+
+    fn layout_swap(&mut self, layout: Arc<RwLock<layout::Screen>>) {
+        self.layout = layout;
     }
 }
