@@ -2,6 +2,7 @@ use std::io::prelude::*;
 use std::sync::{Arc, RwLock};
 use libintermix::client::*;
 use vterm_sys::*;
+use ::support::test_io::*;
 use std::thread;
 use std::process::Command;
 use std::env;
@@ -21,13 +22,15 @@ use std::env;
 //
 // TODO:
 //
-// * [ ] client command to load a given layout. Will load a full screen program.
-// * [ ] build test tool that works like the server vte code, runs ttyplay on the given file, reads
+// * [x] client command to load a given layout. Will load a full screen program.
+// * [x] build test tool that works like the server vte code, runs ttyplay on the given file, reads
 // psuedo terminal output into vterm, and converts vte callback info into client messages
-// * [ ] pass client messages to client
-// * [ ] read client output into a vterm
-// * [ ] wait for everything to finish???
+// * [x] pass client messages to client
+// * [x] read client output into a vterm
+// * [x] wait for everything to finish???
 // * [ ] compare vterms
+// * [ ] refactor
+// * [ ] downsize screen buffers
 //
 
 #[test]
@@ -111,7 +114,7 @@ fn it_runs_thingy_bobby() {
                         }
                         ScreenEvent::Resize{rows, cols} => info!("Resize: rows={:?} cols={:?}", rows, cols),
                         ScreenEvent::SbPopLine{cells: _} => info!("SbPopLine"),
-                        ScreenEvent::SbPushLine{cells: _} => info!("SbPushLine"),
+                        ScreenEvent::SbPushLine{cells} => info!("SbPushLine"),
                         ScreenEvent::AltScreen{ is_true } => info!("AltScreen: is_true={:?}", is_true),
                         ScreenEvent::CursorBlink{ is_true } => info!("CursorBlink: is_true={:?}", is_true),
                         ScreenEvent::CursorShape{ value } => info!("CursorShape: value={:?}", value),
@@ -161,7 +164,7 @@ fn it_runs_thingy_bobby() {
     });
 
     match result {
-        Ok(()) => { client.stop() },
+        Ok(()) => {},
         Err(actual) => {
             println!("expected:\n{}", expected);
             println!("actual:\n{}", actual);
