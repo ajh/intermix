@@ -41,7 +41,12 @@ fn run_command_in_vterm(mut cmd: Command, size: &ScreenSize) -> VTerm {
     let size = size.clone(); // fix lifetime issue with borrow and closure
 
     let handle: thread::JoinHandle<VTerm> = thread::spawn(move || {
-        let output = cmd.output().unwrap_or_else(|e| { panic!("failed to execute process: {}", e) });
+        let output = cmd.output().unwrap_or_else(|e| panic!("failed to execute process: {}", e));
+        if !output.status.success() {
+            panic!("command returned non-zero status code {:?}: {}",
+                   output.status.code(),
+                   String::from_utf8_lossy(&output.stderr));
+        }
 
         let mut vterm = VTerm::new(ScreenSize {
             rows: size.rows,
@@ -101,16 +106,12 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
                         info!("Resize: rows={:?} cols={:?}", rows, cols)
                     }
                     ScreenEvent::SbPopLine{cells: _} => info!("SbPopLine"),
-                    ScreenEvent::SbPushLine{cells} => info!("SbPushLine"),
-                    ScreenEvent::AltScreen{ is_true } => {
-                        info!("AltScreen: is_true={:?}", is_true)
-                    }
+                    ScreenEvent::SbPushLine{cells: _} => info!("SbPushLine"),
+                    ScreenEvent::AltScreen{ is_true } => info!("AltScreen: is_true={:?}", is_true),
                     ScreenEvent::CursorBlink{ is_true } => {
                         info!("CursorBlink: is_true={:?}", is_true)
                     }
-                    ScreenEvent::CursorShape{ value } => {
-                        info!("CursorShape: value={:?}", value)
-                    }
+                    ScreenEvent::CursorShape{ value } => info!("CursorShape: value={:?}", value),
                     ScreenEvent::CursorVisible{ is_true } => {
                         info!("CursorVisible: is_true={:?}", is_true)
                     }
@@ -124,15 +125,6 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
         }
     }
     info!("done reading vterm msgs");
-
-    //// the vterm here has the expected screen buffer
-    //// return a bunch of strings representing the different states of the screen buffer.
-    //vterm.screen_get_text(Rect {
-        //start_row: 0,
-        //end_row: 24,
-        //start_col: 0,
-        //end_col: 80,
-    //})
 }
 
 /// Build and return a simplified client of the given size.
@@ -184,7 +176,48 @@ fn it_draws_simple_echo_output() {
         actual_vterm.write(&bytes);
         let diff = VTermDiff::new(&expected_vterm, &actual_vterm);
         println!("{}", diff);
-        if diff.has_diff() { Err(format!("{}", diff)) } else { Ok(()) }
+        if diff.has_diff() {
+            Err(format!("{}", diff))
+        } else {
+            Ok(())
+        }
+    });
+
+    match result {
+        Ok(()) => {}
+        Err(diff) => assert!(false, diff),
+    }
+}
+
+#[test]
+fn it_draws_vim_recording() {
+    ::setup_logging();
+
+    let size = ScreenSize {
+        rows: 5,
+        cols: 29,
+    };
+    let mut cmd = Command::new("ttyplay");
+    cmd.arg(env::current_dir().unwrap().join("tests/tty_recordings/vim.5x29.ttyrec"));
+    let mut expected_vterm: VTerm = run_command_in_vterm(cmd, &size);
+
+    let mut test_output = TestIO::new();
+    let mut client = build_client(test_output.clone(), &size);
+    load_vterm_events_into_client(&mut expected_vterm, &mut client);
+
+    let mut actual_vterm = VTerm::new(size.clone());
+
+    let result = ::try_until_ok(move || {
+        let mut bytes: Vec<u8> = vec![];
+        test_output.read_to_end(&mut bytes).unwrap();
+        actual_vterm.write(&bytes);
+        let diff = VTermDiff::new(&expected_vterm, &actual_vterm);
+        println!("{}", diff);
+        if diff.has_diff() {
+            Err(format!("{}", diff))
+        } else {
+            Ok(())
+        }
     });
 
     match result {
