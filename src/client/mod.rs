@@ -83,4 +83,8 @@ impl Client {
         self.draw_tx.send(ClientMsg::Quit).unwrap();
         self.main_tx.send(ClientMsg::Quit).unwrap();
     }
+
+    pub fn tx(&self) -> &Sender<ClientMsg> {
+        &self.main_tx
+    }
 }

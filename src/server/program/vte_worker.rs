@@ -48,7 +48,8 @@ impl VteWorker {
         self.vterm.set_utf8(true);
         self.vterm.screen_set_damage_merge(ffi::VTermDamageSize::VTermDamageRow);
 
-        let vterm_event_rx = self.vterm.receive_screen_events();
+        self.vterm.generate_screen_events().unwrap();
+        let vterm_event_rx = self.vterm.screen_event_rx.take().unwrap();
 
         // work around lifetime issue
         let program_event_rx = self.rx.take().unwrap();
