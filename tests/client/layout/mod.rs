@@ -1,6 +1,5 @@
 use libintermix::client::layout::*;
-use ::support::layout::*;
-use ::support::layout_painter::*;
+use ::support::*;
 
 mod align;
 mod border_margin_padding;

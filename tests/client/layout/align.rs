@@ -1,6 +1,5 @@
 use libintermix::client::layout::*;
-use ::support::layout::*;
-use ::support::layout_painter::*;
+use ::support::*;
 
 #[test]
 fn it_can_align_a_column_left() {

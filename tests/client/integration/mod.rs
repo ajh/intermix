@@ -1,4 +1,4 @@
-use ::support::test_io::*;
+use ::support::*;
 use libintermix::client::*;
 use regex::Regex;
 use vterm_sys::*;
