@@ -21,8 +21,10 @@ pub fn graph() -> Graph<NodeData, EdgeData> {
     // ('c', 'program_create_and_focus');
     // ('x', 'program_kill');
 
-    graph.add_edge(p, p, EdgeData { action: Some(ActionType::ProgramInput), codes: vec![CTRL_B, CTRL_B], default: true, ..Default::default()});
     graph.add_edge(p, c, EdgeData { codes: escape("c".to_string().into_bytes(), CTRL_B), ..Default::default()});
+    graph.add_edge(p, p, EdgeData { action: Some(ActionType::ProgramInput), codes: vec![CTRL_B, CTRL_B], default: true, ..Default::default()});
+    graph.add_edge(p, p, EdgeData { action: Some(ActionType::ProgramSelectNext), codes: escape("j".to_string().into_bytes(), CTRL_B), ..Default::default()});
+    graph.add_edge(p, p, EdgeData { action: Some(ActionType::ProgramSelectPrev), codes: escape("k".to_string().into_bytes(), CTRL_B), ..Default::default()});
 
     graph
 }
