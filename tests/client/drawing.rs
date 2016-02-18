@@ -36,11 +36,11 @@ use std::env;
 
 // Runs the given command and returns the expected value which is based on the contents of a vterm
 // screen buffer after writing the comands output to it.
-fn run_command_in_vterm(mut cmd: Command, size: &ScreenSize) -> VTerm {
+fn run_command_in_vterm(cmd: CommandBuilder, size: &ScreenSize) -> VTerm {
     let size = size.clone(); // fix lifetime issue with borrow and closure
 
     let handle: thread::JoinHandle<VTerm> = thread::spawn(move || {
-        let output = cmd.output().unwrap_or_else(|e| panic!("failed to execute process: {}", e));
+        let output = cmd.build().output().unwrap_or_else(|e| panic!("failed to execute process: {}", e));
         if !output.status.success() {
             panic!("command returned non-zero status code {:?}: {}",
                    output.status.code(),
@@ -159,9 +159,7 @@ fn it_draws_simple_echo_output() {
 
     let size = ScreenSize { rows: 4, cols: 4 };
 
-    let mut cmd = Command::new("echo");
-    cmd.arg("some stuff");
-    let mut expected_vterm: VTerm = run_command_in_vterm(cmd, &size);
+    let mut expected_vterm: VTerm = run_command_in_vterm(CommandBuilder::new("echo").arg("some stuff"), &size);
 
     let mut test_output = TestIO::new();
     let mut client = build_client(test_output.clone(), &size);
@@ -174,7 +172,6 @@ fn it_draws_simple_echo_output() {
         test_output.read_to_end(&mut bytes).unwrap();
         actual_vterm.write(&bytes);
         let diff = VTermDiff::new(&expected_vterm, &actual_vterm);
-        println!("{}", diff);
         if diff.has_diff() {
             Err(format!("{}", diff))
         } else {
@@ -196,9 +193,11 @@ fn it_draws_vim_recording() {
         rows: 5,
         cols: 29,
     };
-    let mut cmd = Command::new("ttyplay");
+    let mut cmd = Command::new("ttyplay2");
     cmd.arg(env::current_dir().unwrap().join("tests/tty_recordings/vim.5x29.ttyrec"));
-    let mut expected_vterm: VTerm = run_command_in_vterm(cmd, &size);
+    let mut expected_vterm: VTerm = run_command_in_vterm(
+        CommandBuilder::new("ttyplay").arg(env::current_dir().unwrap().join("tests/tty_recordings/vim.5x29.ttyrec").to_str().unwrap()),
+        &size);
 
     let mut test_output = TestIO::new();
     let mut client = build_client(test_output.clone(), &size);
@@ -211,7 +210,6 @@ fn it_draws_vim_recording() {
         test_output.read_to_end(&mut bytes).unwrap();
         actual_vterm.write(&bytes);
         let diff = VTermDiff::new(&expected_vterm, &actual_vterm);
-        println!("{}", diff);
         if diff.has_diff() {
             Err(format!("{}", diff))
         } else {

@@ -80,8 +80,6 @@ fn it_can_layout_bordered_nodes_horizontally() {
     }
     screen.flush_changes();
 
-    println!("{:#?}", screen.tree());
-
     assert_scene_eq(&draw_screen(&screen), "
 ··········
 ·┌──┐┌──┐·
