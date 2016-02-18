@@ -34,15 +34,6 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
             diff.push_str(&VTermDiff::diff_string("unprintables", &a_unprintables, &b_unprintables));
         }
 
-                    //underline:  ffi::vterm_cell_get_underline(ptr) as u8,
-                    //italic:     int_to_bool(ffi::vterm_cell_get_italic(ptr) as i32),
-                    //blink:      int_to_bool(ffi::vterm_cell_get_blink(ptr) as i32),
-                    //reverse:    int_to_bool(ffi::vterm_cell_get_reverse(ptr) as i32),
-                    //strike:     int_to_bool(ffi::vterm_cell_get_strike(ptr) as i32),
-                    //font:       ffi::vterm_cell_get_font(ptr) as u8,
-                    //dwl:        int_to_bool(ffi::vterm_cell_get_dwl(ptr) as i32),
-                    //dhl:        ffi::vterm_cell_get_dhl(ptr) as u8,
-
         let a_bolds = VTermDiff::bolds(self.a);
         let b_bolds = VTermDiff::bolds(self.b);
         if a_bolds != b_bolds {
@@ -104,11 +95,11 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
             //diff.push_str(&VTermDiff::diff_string("fg_rgbs", &a_fg_rgbs, &b_fg_rgbs));
         //}
 
-        let a_bg_rgbs = VTermDiff::bg_rgbs(self.a);
-        let b_bg_rgbs = VTermDiff::bg_rgbs(self.b);
-        if a_bg_rgbs != b_bg_rgbs {
-            diff.push_str(&VTermDiff::diff_string("bg_rgbs", &a_bg_rgbs, &b_bg_rgbs));
-        }
+        //let a_bg_rgbs = VTermDiff::bg_rgbs(self.a);
+        //let b_bg_rgbs = VTermDiff::bg_rgbs(self.b);
+        //if a_bg_rgbs != b_bg_rgbs {
+            //diff.push_str(&VTermDiff::diff_string("bg_rgbs", &a_bg_rgbs, &b_bg_rgbs));
+        //}
 
         if diff.len() > 0 { Some(diff) } else { None }
     }
@@ -251,7 +242,7 @@ mod tests {
     use regex;
 
     #[test]
-    fn has_diff_returns_false_when_vterms_are_the_same() {
+    fn has_no_diff_when_vterms_are_the_same() {
         let size = ScreenSize {
             rows: 1,
             cols: 1,
@@ -262,7 +253,7 @@ mod tests {
     }
 
     #[test]
-    fn has_diff_returns_true_when_printables_are_different() {
+    fn has_diff_when_printables_are_different() {
         let size = ScreenSize {
             rows: 1,
             cols: 1,
@@ -274,26 +265,12 @@ mod tests {
 
         let diff = VTermDiff::new(&a, &b);
         assert!(diff.has_diff());
-    }
-
-    #[test]
-    fn displays_diff_when_printables_are_different() {
-        let size = ScreenSize {
-            rows: 1,
-            cols: 1,
-        };
-        let mut a = VTerm::new(size.clone());
-        let b = VTerm::new(size.clone());
-
-        a.write(b"a");
-
-        let diff = VTermDiff::new(&a, &b);
         assert!(regex::is_match("printables", &format!("{}", diff)).unwrap());
     }
 
     // Not sure how to test these, or if VTerm even responds when writing unprintables?
     //#[test]
-    //fn has_diff_returns_true_when_unprintables_are_different() {
+    //fn has_diff_when_unprintables_are_different() {
         //let size = ScreenSize {
             //rows: 1,
             //cols: 1,
@@ -324,7 +301,7 @@ mod tests {
     //}
 
     #[test]
-    fn has_diff_returns_true_when_bolds_are_different() {
+    fn has_diff_when_bolds_are_different() {
         let size = ScreenSize {
             rows: 1,
             cols: 1,
@@ -337,26 +314,11 @@ mod tests {
 
         let diff = VTermDiff::new(&a, &b);
         assert!(diff.has_diff());
-    }
-
-    #[test]
-    fn displays_diff_when_bolds_are_different() {
-        let size = ScreenSize {
-            rows: 1,
-            cols: 1,
-        };
-        let mut a = VTerm::new(size.clone());
-        let mut b = VTerm::new(size.clone());
-
-        a.write(b"\x1b[1mo");
-        b.write(b"o");
-
-        let diff = VTermDiff::new(&a, &b);
         assert!(regex::is_match("bolds", &format!("{}", diff)).unwrap());
     }
 
     #[test]
-    fn has_diff_returns_true_when_underlines_are_different() {
+    fn has_diff_when_underlines_are_different() {
         let size = ScreenSize {
             rows: 1,
             cols: 1,
@@ -369,26 +331,13 @@ mod tests {
 
         let diff = VTermDiff::new(&a, &b);
         assert!(diff.has_diff());
-    }
-
-    #[test]
-    fn displays_diff_when_underlines_are_different() {
-        let size = ScreenSize {
-            rows: 1,
-            cols: 1,
-        };
-        let mut a = VTerm::new(size.clone());
-        let mut b = VTerm::new(size.clone());
-
-        a.write(b"\x1b[4mo");
-        b.write(b"o");
-
-        let diff = VTermDiff::new(&a, &b);
         assert!(regex::is_match("underlines", &format!("{}", diff)).unwrap());
     }
 
+    // disabled for now because turning on this feature breaks other tests. Need to fix those
+    // first.
     //#[test]
-    //fn has_diff_returns_true_when_fg_rbgs_are_different() {
+    //fn has_diff_when_fg_rbgs_are_different() {
         //let size = ScreenSize {
             //rows: 1,
             //cols: 1,
@@ -396,26 +345,11 @@ mod tests {
         //let mut a = VTerm::new(size.clone());
         //let mut b = VTerm::new(size.clone());
 
-        //a.write(b"\x1b[32mo");
+        //a.write(b"\x1b[31mo");
         //b.write(b"o");
 
         //let diff = VTermDiff::new(&a, &b);
         //assert!(diff.has_diff());
-    //}
-
-    //#[test]
-    //fn displays_diff_when_fg_rbgs_are_different() {
-        //let size = ScreenSize {
-            //rows: 1,
-            //cols: 1,
-        //};
-        //let mut a = VTerm::new(size.clone());
-        //let mut b = VTerm::new(size.clone());
-
-        //a.write(b"\x1b[32mo");
-        //b.write(b"o");
-
-        //let diff = VTermDiff::new(&a, &b);
         //assert!(regex::is_match("fg_rbgs", &format!("{}", diff)).unwrap(), format!("expected {} to match", diff));
     //}
 }
