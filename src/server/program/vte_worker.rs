@@ -40,16 +40,24 @@ impl VteWorker {
                rx: Receiver<VteWorkerMsg>,
                program_id: &str)
                -> VteWorker {
+
+        // FIXME: get size from self
+        let mut vterm = VTerm::new(&ScreenSize {
+            rows: 24,
+            cols: 80,
+        });
+        let fg = vterm.state_get_rgb_color_from_palette(7);
+        let bg = vterm.state_get_rgb_color_from_palette(0);
+        vterm.state_set_default_colors(&fg, &bg);
+        vterm.set_utf8(true);
+        vterm.screen_reset(true);
+
         VteWorker {
             program_id: program_id.to_string(),
             rx: Some(rx),
-            tx: tx,
             server_tx: server_tx,
-            // FIXME: get size from self
-            vterm: VTerm::new(&ScreenSize {
-                rows: 24,
-                cols: 80,
-            }),
+            tx: tx,
+            vterm: vterm,
         }
     }
 

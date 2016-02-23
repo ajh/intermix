@@ -3,6 +3,12 @@ use std::io::BufWriter;
 use term;
 use vterm_sys::{self, ScreenSize, Pos, ColorPalette, ScreenCell, Rect};
 
+// TODO:
+//
+// * [ ] use terminfo for all writing
+// * [ ] set cursor visiblity in reset method
+// * [ ] audit other things missed in reset method
+
 #[derive(Debug, Clone)]
 pub struct Pen {
     bg: ColorPalette,
