@@ -16,7 +16,10 @@ pub struct PtyReader {
 }
 
 impl PtyReader {
-    pub fn spawn(io: File, vte_tx: mpsc::Sender<VteWorkerMsg>, program_id: &str) -> thread::JoinHandle<()> {
+    pub fn spawn(io: File,
+                 vte_tx: mpsc::Sender<VteWorkerMsg>,
+                 program_id: &str)
+                 -> thread::JoinHandle<()> {
         let program_id = program_id.to_string();
         info!("spawning pty reader for program {}", program_id);
         thread::spawn(move || {
@@ -56,7 +59,7 @@ impl PtyReader {
                 }
             };
 
-            let mut bytes_vec: Vec<u8> = vec!();
+            let mut bytes_vec: Vec<u8> = vec![];
             bytes_vec.extend(bytes);
             let msg = VteWorkerMsg::PtyRead { bytes: bytes_vec };
             self.vte_tx.send(msg).unwrap();

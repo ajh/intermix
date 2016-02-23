@@ -68,7 +68,11 @@ impl Screen {
 
         let mut columns_in_line = 0;
 
-        let child_ids: Vec<ego_tree::NodeId<Wrap>> = self.tree.get(parent_id).children().map(|c| c.id()).collect();
+        let child_ids: Vec<ego_tree::NodeId<Wrap>> = self.tree
+                                                         .get(parent_id)
+                                                         .children()
+                                                         .map(|c| c.id())
+                                                         .collect();
         for child_id in child_ids {
             {
                 let mut child_node = self.tree.get_mut(child_id);
@@ -118,7 +122,11 @@ impl Screen {
             for child_id in line.iter() {
                 let mut child_ref = self.tree.get_mut(*child_id);
                 let mut child_wrap = child_ref.value();
-                let percent = *[child_wrap.grid_width().unwrap(), parent_grid_width].into_iter().min().unwrap() as f32 / parent_grid_width as f32;
+                let percent = *[child_wrap.grid_width().unwrap(), parent_grid_width]
+                                   .into_iter()
+                                   .min()
+                                   .unwrap() as f32 /
+                              parent_grid_width as f32;
                 let width = (parent_width as f32 * percent).floor() as i16;
 
                 child_wrap.set_outside_width(Some(width));
@@ -132,13 +140,15 @@ impl Screen {
                 let percent = line_grid_columns_count as f32 / parent_grid_width as f32;
 
                 let mut expected_width = (parent_width as f32 * percent).round() as i16;
-                if expected_width > parent_width { expected_width = parent_width }
+                if expected_width > parent_width {
+                    expected_width = parent_width
+                }
 
                 expected_width - line_width
             };
 
             // add them back in fairly
-            line.sort_by(|a,b| {
+            line.sort_by(|a, b| {
                 let a_ref = self.tree.get(*a);
                 let a_wrap = a_ref.value();
                 let b_ref = self.tree.get(*b);
@@ -152,9 +162,8 @@ impl Screen {
 
                 if unused_cols > 0 {
                     unused_cols -= 1;
-                }
-                else {
-                    break
+                } else {
+                    break;
                 }
 
                 let val = child_wrap.outside_width().unwrap() + 1;
@@ -180,9 +189,9 @@ impl Screen {
 
         for line in lines {
             let line_width = line.iter()
-                .map(|id| self.tree.get(*id).value())
-                .map(|b| b.outside_width().unwrap())
-                .fold(0, ::std::ops::Add::add);
+                                 .map(|id| self.tree.get(*id).value())
+                                 .map(|b| b.outside_width().unwrap())
+                                 .fold(0, ::std::ops::Add::add);
             let unused_cols = parent_width - line_width;
             let offset = match parent_align {
                 Align::Left => 0,
@@ -221,14 +230,24 @@ impl Screen {
 
                 let mut child_ref = self.tree.get_mut(*child_id);
                 let mut child_wrap = child_ref.value();
-                let h = if let Some(i) = child_wrap.height() { i } else { children_height };
+                let h = if let Some(i) = child_wrap.height() {
+                    i
+                } else {
+                    children_height
+                };
                 child_wrap.set_computed_height(Some(h));
             }
         }
 
         lines.iter()
-            .map(|line| line.iter().map(|id| self.tree.get(*id).value()).map(|b| b.outside_height().unwrap()).max().unwrap())
-            .fold(0, ::std::ops::Add::add)
+             .map(|line| {
+                 line.iter()
+                     .map(|id| self.tree.get(*id).value())
+                     .map(|b| b.outside_height().unwrap())
+                     .max()
+                     .unwrap()
+             })
+             .fold(0, ::std::ops::Add::add)
     }
 
     /// Assigns:
@@ -242,8 +261,14 @@ impl Screen {
         let parent_vertical_align = self.tree.get(parent_id).value().vertical_align();
 
         let lines_height = lines.iter()
-            .map(|line| line.iter().map(|id| self.tree.get(*id).value()).map(|n| n.outside_height().unwrap()).max().unwrap())
-            .fold(0, ::std::ops::Add::add);
+                                .map(|line| {
+                                    line.iter()
+                                        .map(|id| self.tree.get(*id).value())
+                                        .map(|n| n.outside_height().unwrap())
+                                        .max()
+                                        .unwrap()
+                                })
+                                .fold(0, ::std::ops::Add::add);
         let unused_rows = parent_height - lines_height;
         let offset = match parent_vertical_align {
             VerticalAlign::Top => 0,
@@ -264,7 +289,11 @@ impl Screen {
                 self.compute_y_position(*child_id);
             }
 
-            y += line.iter().map(|id| self.tree.get(*id).value()).map(|n| n.outside_height().unwrap()).max().unwrap();
+            y += line.iter()
+                     .map(|id| self.tree.get(*id).value())
+                     .map(|n| n.outside_height().unwrap())
+                     .max()
+                     .unwrap();
         }
     }
 }
@@ -288,7 +317,9 @@ impl<'a> LineContainer for ego_tree::NodeRef<'a, Wrap> {
             line.push(child.id());
         }
 
-        if line.len() > 0 { output.push(line) }
+        if line.len() > 0 {
+            output.push(line)
+        }
 
         output
     }
@@ -301,7 +332,9 @@ pub enum Align {
     Right,
 }
 impl Default for Align {
-    fn default() -> Align { Align::Left }
+    fn default() -> Align {
+        Align::Left
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -311,26 +344,28 @@ pub enum VerticalAlign {
     Bottom,
 }
 impl Default for VerticalAlign {
-    fn default() -> VerticalAlign { VerticalAlign::Top }
+    fn default() -> VerticalAlign {
+        VerticalAlign::Top
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Wrap {
-    align:                Align,
-    computed_grid_width:  Option<i16>,
-    computed_height:      Option<i16>,
-    computed_width:       Option<i16>,
-    computed_x:           Option<i16>,
-    computed_y:           Option<i16>,
-    grid_width:           Option<i16>,
-    has_border:           bool,
-    height:               Option<i16>,
-    is_new_line:          bool,
-    margin:               i16,
-    name:                 String,
-    padding:              i16,
-    vertical_align:       VerticalAlign,
-    width:                Option<i16>,
+    align: Align,
+    computed_grid_width: Option<i16>,
+    computed_height: Option<i16>,
+    computed_width: Option<i16>,
+    computed_x: Option<i16>,
+    computed_y: Option<i16>,
+    grid_width: Option<i16>,
+    has_border: bool,
+    height: Option<i16>,
+    is_new_line: bool,
+    margin: i16,
+    name: String,
+    padding: i16,
+    vertical_align: VerticalAlign,
+    width: Option<i16>,
 }
 
 macro_rules! fn_option_accessor {
@@ -364,21 +399,21 @@ impl Wrap {
         Default::default()
     }
 
-    fn_option_accessor!(computed_grid_width,  set_computed_grid_width, i16);
-    fn_option_accessor!(computed_height,      set_computed_height, i16);
-    fn_option_accessor!(computed_width,       set_computed_width, i16);
-    fn_option_accessor!(computed_x,           set_computed_x, i16);
-    fn_option_accessor!(computed_y,           set_computed_y, i16);
-    fn_option_accessor!(grid_width,           set_grid_width, i16);
-    fn_option_accessor!(height,               set_height, i16);
-    fn_option_accessor!(width,                set_width, i16);
+    fn_option_accessor!(computed_grid_width, set_computed_grid_width, i16);
+    fn_option_accessor!(computed_height, set_computed_height, i16);
+    fn_option_accessor!(computed_width, set_computed_width, i16);
+    fn_option_accessor!(computed_x, set_computed_x, i16);
+    fn_option_accessor!(computed_y, set_computed_y, i16);
+    fn_option_accessor!(grid_width, set_grid_width, i16);
+    fn_option_accessor!(height, set_height, i16);
+    fn_option_accessor!(width, set_width, i16);
 
-    fn_accessor!(align,           set_align,           Align);
-    fn_accessor!(has_border,      set_has_border,      bool);
-    fn_accessor!(is_new_line,     set_is_new_line,     bool);
-    fn_accessor!(margin,          set_margin,          i16);
-    fn_accessor!(padding,         set_padding,         i16);
-    fn_accessor!(vertical_align,  set_vertical_align,  VerticalAlign);
+    fn_accessor!(align, set_align, Align);
+    fn_accessor!(has_border, set_has_border, bool);
+    fn_accessor!(is_new_line, set_is_new_line, bool);
+    fn_accessor!(margin, set_margin, i16);
+    fn_accessor!(padding, set_padding, i16);
+    fn_accessor!(vertical_align, set_vertical_align, VerticalAlign);
 
     pub fn name(&self) -> &String {
         &self.name
@@ -390,120 +425,174 @@ impl Wrap {
 
     pub fn outside_height(&self) -> Option<i16> {
         if let Some(mut h) = self.computed_height() {
-            h += 2 * (self.margin + self.padding + if self.has_border { 1 } else { 0 });
+            h += 2 *
+                 (self.margin + self.padding +
+                  if self.has_border {
+                1
+            } else {
+                0
+            });
             Some(h)
-        }
-        else {
+        } else {
             None
         }
     }
 
     pub fn set_outside_height(&mut self, val: Option<i16>) {
         if let Some(mut v) = val {
-            v -= 2 * (self.margin + self.padding + if self.has_border { 1 } else { 0 });
+            v -= 2 *
+                 (self.margin + self.padding +
+                  if self.has_border {
+                1
+            } else {
+                0
+            });
             self.set_computed_height(Some(v));
-        }
-        else {
+        } else {
             self.set_computed_height(None);
         }
     }
 
     pub fn outside_width(&self) -> Option<i16> {
         if let Some(mut w) = self.computed_width() {
-            w += 2 * (self.margin + self.padding + if self.has_border { 1 } else { 0 });
+            w += 2 *
+                 (self.margin + self.padding +
+                  if self.has_border {
+                1
+            } else {
+                0
+            });
             Some(w)
-        }
-        else {
+        } else {
             None
         }
     }
 
     pub fn set_outside_width(&mut self, val: Option<i16>) {
         if let Some(mut v) = val {
-            v -= 2 * (self.margin + self.padding + if self.has_border { 1 } else { 0 });
+            v -= 2 *
+                 (self.margin + self.padding +
+                  if self.has_border {
+                1
+            } else {
+                0
+            });
             self.set_computed_width(Some(v));
-        }
-        else {
+        } else {
             self.set_computed_width(None);
         }
     }
 
     pub fn outside_x(&self) -> Option<i16> {
         if let Some(mut x) = self.computed_x() {
-            x -= self.margin + self.padding + if self.has_border { 1 } else { 0 };
+            x -= self.margin + self.padding +
+                 if self.has_border {
+                1
+            } else {
+                0
+            };
             Some(x)
-        }
-        else {
+        } else {
             None
         }
     }
 
     pub fn set_outside_x(&mut self, val: Option<i16>) {
         if let Some(mut v) = val {
-            v += self.margin + self.padding + if self.has_border { 1 } else { 0 };
+            v += self.margin + self.padding +
+                 if self.has_border {
+                1
+            } else {
+                0
+            };
             self.set_computed_x(Some(v));
-        }
-        else {
+        } else {
             self.set_computed_x(None);
         }
     }
 
     pub fn outside_y(&self) -> Option<i16> {
         if let Some(mut y) = self.computed_y() {
-            y -= self.margin + self.padding + if self.has_border { 1 } else { 0 };
+            y -= self.margin + self.padding +
+                 if self.has_border {
+                1
+            } else {
+                0
+            };
             Some(y)
-        }
-        else {
+        } else {
             None
         }
     }
 
     pub fn set_outside_y(&mut self, val: Option<i16>) {
         if let Some(mut v) = val {
-            v += self.margin + self.padding + if self.has_border { 1 } else { 0 };
+            v += self.margin + self.padding +
+                 if self.has_border {
+                1
+            } else {
+                0
+            };
             self.set_computed_y(Some(v));
-        }
-        else {
+        } else {
             self.set_computed_y(None);
         }
     }
 
     pub fn border_height(&self) -> Option<i16> {
         if let Some(mut h) = self.computed_height() {
-            h += 2 * (self.padding + if self.has_border { 1 } else { 0 });
+            h += 2 *
+                 (self.padding +
+                  if self.has_border {
+                1
+            } else {
+                0
+            });
             Some(h)
-        }
-        else {
+        } else {
             None
         }
     }
 
     pub fn border_width(&self) -> Option<i16> {
         if let Some(mut w) = self.computed_width() {
-            w += 2 * (self.padding + if self.has_border { 1 } else { 0 });
+            w += 2 *
+                 (self.padding +
+                  if self.has_border {
+                1
+            } else {
+                0
+            });
             Some(w)
-        }
-        else {
+        } else {
             None
         }
     }
 
     pub fn border_x(&self) -> Option<i16> {
         if let Some(mut x) = self.computed_x() {
-            x -= self.padding + if self.has_border { 1 } else { 0 };
+            x -= self.padding +
+                 if self.has_border {
+                1
+            } else {
+                0
+            };
             Some(x)
-        }
-        else {
+        } else {
             None
         }
     }
 
     pub fn border_y(&self) -> Option<i16> {
         if let Some(mut y) = self.computed_y() {
-            y -= self.padding + if self.has_border { 1 } else { 0 };
+            y -= self.padding +
+                 if self.has_border {
+                1
+            } else {
+                0
+            };
             Some(y)
-        }
-        else {
+        } else {
             None
         }
     }
@@ -512,35 +601,35 @@ impl Wrap {
 impl Default for Wrap {
     fn default() -> Wrap {
         Wrap {
-            align:                Default::default(),
-            computed_grid_width:  None,
-            computed_height:      None,
-            computed_width:       None,
-            computed_x:           None,
-            computed_y:           None,
-            grid_width:           None,
-            has_border:           false,
-            height:               None,
-            is_new_line:          false,
-            margin:               0,
-            name:                 String::new(), // maybe a uuid?
-            padding:              0,
-            vertical_align:       Default::default(),
-            width:                None,
+            align: Default::default(),
+            computed_grid_width: None,
+            computed_height: None,
+            computed_width: None,
+            computed_x: None,
+            computed_y: None,
+            grid_width: None,
+            has_border: false,
+            height: None,
+            is_new_line: false,
+            margin: 0,
+            name: String::new(), // maybe a uuid?
+            padding: 0,
+            vertical_align: Default::default(),
+            width: None,
         }
     }
 }
 
 pub struct WrapBuilder {
-    align:           Option<Align>,
-    grid_width:      Option<i16>,
-    has_border:      Option<bool>,
-    height:          Option<i16>,
-    margin:          Option<i16>,
-    name:            Option<String>,
-    padding:         Option<i16>,
-    vertical_align:  Option<VerticalAlign>,
-    width:           Option<i16>,
+    align: Option<Align>,
+    grid_width: Option<i16>,
+    has_border: Option<bool>,
+    height: Option<i16>,
+    margin: Option<i16>,
+    name: Option<String>,
+    padding: Option<i16>,
+    vertical_align: Option<VerticalAlign>,
+    width: Option<i16>,
 }
 
 macro_rules! fn_writer {
@@ -556,55 +645,73 @@ impl WrapBuilder {
     /// call this to create a column
     pub fn col(val: i16) -> WrapBuilder {
         WrapBuilder {
-            align:           None,
-            grid_width:      Some(val),
-            has_border:      None,
-            height:          None,
-            margin:          None,
-            name:            None,
-            padding:         None,
-            vertical_align:  None,
-            width:           None,
+            align: None,
+            grid_width: Some(val),
+            has_border: None,
+            height: None,
+            margin: None,
+            name: None,
+            padding: None,
+            vertical_align: None,
+            width: None,
         }
     }
 
     /// call this to create a row
     pub fn row() -> WrapBuilder {
         WrapBuilder {
-            align:           None,
-            grid_width:      Some(GRID_COLUMNS_COUNT),
-            has_border:      None,
-            height:          None,
-            margin:          None,
-            name:            None,
-            padding:         None,
-            vertical_align:  None,
-            width:           None,
+            align: None,
+            grid_width: Some(GRID_COLUMNS_COUNT),
+            has_border: None,
+            height: None,
+            margin: None,
+            name: None,
+            padding: None,
+            vertical_align: None,
+            width: None,
         }
     }
 
-    fn_writer!(align,           Align);
-    fn_writer!(grid_width,      i16);
-    fn_writer!(has_border,      bool);
-    fn_writer!(height,          i16);
-    fn_writer!(margin,          i16);
-    fn_writer!(name,            String);
-    fn_writer!(padding,         i16);
-    fn_writer!(vertical_align,  VerticalAlign);
-    fn_writer!(width,           i16);
+    fn_writer!(align, Align);
+    fn_writer!(grid_width, i16);
+    fn_writer!(has_border, bool);
+    fn_writer!(height, i16);
+    fn_writer!(margin, i16);
+    fn_writer!(name, String);
+    fn_writer!(padding, i16);
+    fn_writer!(vertical_align, VerticalAlign);
+    fn_writer!(width, i16);
 
     pub fn build(self) -> Wrap {
         let mut wrap = Wrap::new();
 
-        if self.align.is_some()          { wrap.set_align(self.align.unwrap()) }
-        if self.grid_width.is_some()     { wrap.set_grid_width(self.grid_width) }
-        if self.has_border.is_some()     { wrap.set_has_border(self.has_border.unwrap()) }
-        if self.height.is_some()         { wrap.set_height(self.height) }
-        if self.margin.is_some()         { wrap.set_margin(self.margin.unwrap()) }
-        if self.name.is_some()           { wrap.set_name(self.name.unwrap()) }
-        if self.padding.is_some()        { wrap.set_padding(self.padding.unwrap()) }
-        if self.vertical_align.is_some() { wrap.set_vertical_align(self.vertical_align.unwrap()) }
-        if self.width.is_some()          { wrap.set_width(self.width) }
+        if self.align.is_some() {
+            wrap.set_align(self.align.unwrap())
+        }
+        if self.grid_width.is_some() {
+            wrap.set_grid_width(self.grid_width)
+        }
+        if self.has_border.is_some() {
+            wrap.set_has_border(self.has_border.unwrap())
+        }
+        if self.height.is_some() {
+            wrap.set_height(self.height)
+        }
+        if self.margin.is_some() {
+            wrap.set_margin(self.margin.unwrap())
+        }
+        if self.name.is_some() {
+            wrap.set_name(self.name.unwrap())
+        }
+        if self.padding.is_some() {
+            wrap.set_padding(self.padding.unwrap())
+        }
+        if self.vertical_align.is_some() {
+            wrap.set_vertical_align(self.vertical_align.unwrap())
+        }
+        if self.width.is_some() {
+            wrap.set_width(self.width)
+        }
 
         wrap
     }

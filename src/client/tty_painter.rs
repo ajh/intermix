@@ -23,7 +23,7 @@ pub struct TtyPainter<F: Write + Send> {
     io: BufWriter<F>,
 }
 
-impl <F: Write + Send> TtyPainter<F> {
+impl<F: Write + Send> TtyPainter<F> {
     pub fn new(io: F) -> TtyPainter<F> {
         TtyPainter {
             pen: Default::default(),
@@ -39,7 +39,7 @@ impl <F: Write + Send> TtyPainter<F> {
 
         if self.pen.attrs.bold {
             sgrs.push(1);
-        } else  {
+        } else {
             sgrs.push(22);
         }
 
@@ -101,7 +101,7 @@ impl <F: Write + Send> TtyPainter<F> {
     /// TODO: make this take &self not &mut self because changing the pen is just an implementation
     /// detail. Use Cell or whatever for interior mutability.
     pub fn draw_cells(&mut self, cells: &Vec<ScreenCell>, offset: &Pos) {
-        //trace!("draw_cells {:?}", cells);
+        // trace!("draw_cells {:?}", cells);
         let restore_pen = self.pen.clone();
 
         if self.pen.is_visible {
@@ -150,13 +150,13 @@ impl <F: Write + Send> TtyPainter<F> {
     }
 
     fn draw_cell(&mut self, cell: &ScreenCell, offset: &Pos) {
-        //trace!("draw_cell cell={:?}", cell);
+        // trace!("draw_cell cell={:?}", cell);
         let mut sgrs: Vec<isize> = vec![];
 
         if self.pen.attrs.bold != cell.attrs.bold {
             if cell.attrs.bold {
                 sgrs.push(1);
-            } else  {
+            } else {
                 sgrs.push(22);
             }
             self.pen.attrs.bold = cell.attrs.bold;
@@ -219,28 +219,24 @@ impl <F: Write + Send> TtyPainter<F> {
         if self.pen.fg != cell.fg_palette {
             if cell.fg_palette < 8 {
                 sgrs.push(30 + cell.fg_palette as isize);
-            }
-            else if cell.fg_palette < 16 {
+            } else if cell.fg_palette < 16 {
                 sgrs.push(90 + (cell.fg_palette as isize - 8));
-            }
-            else {
+            } else {
                 sgrs.push(38);
-                sgrs.push(5 | (1<<31));
-                sgrs.push(cell.fg_palette as isize | (1<<31));
+                sgrs.push(5 | (1 << 31));
+                sgrs.push(cell.fg_palette as isize | (1 << 31));
             }
         }
 
         if self.pen.bg != cell.bg_palette {
             if cell.bg_palette < 8 {
                 sgrs.push(40 + cell.bg_palette as isize);
-            }
-            else if cell.bg_palette < 16 {
+            } else if cell.bg_palette < 16 {
                 sgrs.push(100 + (cell.bg_palette as isize - 8));
-            }
-            else {
+            } else {
                 sgrs.push(48);
-                sgrs.push(5 | (1<<31));
-                sgrs.push(cell.bg_palette as isize | (1<<31));
+                sgrs.push(5 | (1 << 31));
+                sgrs.push(cell.bg_palette as isize | (1 << 31));
             }
         }
 
@@ -266,8 +262,8 @@ impl <F: Write + Send> TtyPainter<F> {
             col: cell.pos.col + offset.col,
         };
 
-         if pos.row != self.pen.pos.row || pos.col != self.pen.pos.col {
-            //trace!("moving cursor to row {:?} col {:?}", cell.pos.row, cell.pos.col);
+        if pos.row != self.pen.pos.row || pos.col != self.pen.pos.col {
+            // trace!("moving cursor to row {:?} col {:?}", cell.pos.row, cell.pos.col);
             let ti = term::terminfo::TermInfo::from_env().unwrap();
             let cmd = ti.strings.get("cup").unwrap();
             let params = [term::terminfo::parm::Param::Number(pos.row as i32),
@@ -283,10 +279,10 @@ impl <F: Write + Send> TtyPainter<F> {
 
         // See tmux's tty.c:1155 function `tty_cell`
         if bytes.len() > 0 {
-            //trace!("writing {:?}", &bytes);
+            // trace!("writing {:?}", &bytes);
             self.io.write_all(&bytes).ok().expect("failed to write");
         } else {
-            //trace!("just writing space");
+            // trace!("just writing space");
             // like tmux's tty_repeat_space
             self.io.write_all(&[b'\x20']).ok().expect("failed to write"); // space
         }
@@ -304,24 +300,28 @@ impl <F: Write + Send> TtyPainter<F> {
         let ti = term::terminfo::TermInfo::from_env().unwrap();
 
         if pos != self.pen.pos {
-            //trace!("move_cursor to {:?}", pos);
+            // trace!("move_cursor to {:?}", pos);
             self.pen.pos = pos;
 
             let cmd = ti.strings.get("cup").unwrap();
             let params = [term::terminfo::parm::Param::Number(self.pen.pos.row as i32),
-            term::terminfo::parm::Param::Number(self.pen.pos.col as i32)];
+                          term::terminfo::parm::Param::Number(self.pen.pos.col as i32)];
             let s = term::terminfo::parm::expand(&cmd,
                                                  &params,
                                                  &mut term::terminfo::parm::Variables::new())
-                .unwrap();
+                        .unwrap();
             self.io.write_all(&s).unwrap();
         }
 
         if is_visible != self.pen.is_visible {
-            //trace!("move_cursor visible? {:?}", is_visible);
+            // trace!("move_cursor visible? {:?}", is_visible);
             self.pen.is_visible = is_visible;
 
-            let cap = if self.pen.is_visible { "cnorm" } else { "civis" };
+            let cap = if self.pen.is_visible {
+                "cnorm"
+            } else {
+                "civis"
+            };
             let cmd = ti.strings.get(cap).unwrap();
             let s = term::terminfo::parm::expand(&cmd,
                                                  &[],
@@ -345,7 +345,7 @@ impl <F: Write + Send> TtyPainter<F> {
         // I'd like to iterate through all the cells in the pane. Can I get access to this?
     }
 
-    //pub fn delete_line<F: Write>(&mut self, pane: &Pane, io: &mut F) {
-        ////deleteLine: CSR(top, bottom) + CUP(y, 0) + DL(1) + CSR(0, height)
-    //}
+    // pub fn delete_line<F: Write>(&mut self, pane: &Pane, io: &mut F) {
+    // /deleteLine: CSR(top, bottom) + CUP(y, 0) + DL(1) + CSR(0, height)
+    // }
 }

@@ -31,7 +31,9 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
         let a_unprintables = VTermDiff::unprintables(self.expected);
         let b_unprintables = VTermDiff::unprintables(self.actual);
         if a_unprintables != b_unprintables {
-            diff.push_str(&VTermDiff::diff_string("unprintables", &a_unprintables, &b_unprintables));
+            diff.push_str(&VTermDiff::diff_string("unprintables",
+                                                  &a_unprintables,
+                                                  &b_unprintables));
         }
 
         let a_bolds = VTermDiff::bolds(self.expected);
@@ -100,7 +102,11 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
             diff.push_str(&VTermDiff::diff_string("bg_rgbs", &a_bg_rgbs, &b_bg_rgbs));
         }
 
-        if diff.len() > 0 { Some(diff) } else { None }
+        if diff.len() > 0 {
+            Some(diff)
+        } else {
+            None
+        }
     }
 
     fn printables(vterm: &VTerm) -> String {
@@ -108,8 +114,7 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
             let chars = cell.chars;
             if chars.len() > 0 && !chars[0].is_control() {
                 line.push(chars[0]);
-            }
-            else {
+            } else {
                 line.push('\x20');
             }
         })
@@ -120,8 +125,7 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
             let chars = cell.chars;
             if chars.len() > 0 && chars[0].is_control() {
                 line.push('x'); // x marks the spot
-            }
-            else {
+            } else {
                 line.push('\x20');
             }
         })
@@ -129,7 +133,11 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
 
     fn bolds(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            if cell.attrs.bold { line.push('b'); } else { line.push('\x20'); }
+            if cell.attrs.bold {
+                line.push('b');
+            } else {
+                line.push('\x20');
+            }
         })
     }
 
@@ -141,25 +149,41 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
 
     fn italics(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            if cell.attrs.italic { line.push('i'); } else { line.push('\x20'); }
+            if cell.attrs.italic {
+                line.push('i');
+            } else {
+                line.push('\x20');
+            }
         })
     }
 
     fn blinks(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            if cell.attrs.blink { line.push('b'); } else { line.push('\x20'); }
+            if cell.attrs.blink {
+                line.push('b');
+            } else {
+                line.push('\x20');
+            }
         })
     }
 
     fn reverses(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            if cell.attrs.reverse { line.push('r'); } else { line.push('\x20'); }
+            if cell.attrs.reverse {
+                line.push('r');
+            } else {
+                line.push('\x20');
+            }
         })
     }
 
     fn strikes(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            if cell.attrs.strike { line.push('s'); } else { line.push('\x20'); }
+            if cell.attrs.strike {
+                line.push('s');
+            } else {
+                line.push('\x20');
+            }
         })
     }
 
@@ -171,7 +195,11 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
 
     fn dwls(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            if cell.attrs.dwl { line.push('d'); } else { line.push('\x20'); }
+            if cell.attrs.dwl {
+                line.push('d');
+            } else {
+                line.push('\x20');
+            }
         })
     }
 
@@ -183,17 +211,25 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
 
     fn fg_rgbs(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            line.push_str(&format!(" ({:3},{:3},{:3}) ", cell.fg_rgb.red, cell.fg_rgb.green, cell.fg_rgb.blue));
+            line.push_str(&format!(" ({:3},{:3},{:3}) ",
+                                   cell.fg_rgb.red,
+                                   cell.fg_rgb.green,
+                                   cell.fg_rgb.blue));
         })
     }
 
     fn bg_rgbs(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            line.push_str(&format!(" ({:3},{:3},{:3}) ", cell.bg_rgb.red, cell.bg_rgb.green, cell.bg_rgb.blue));
+            line.push_str(&format!(" ({:3},{:3},{:3}) ",
+                                   cell.bg_rgb.red,
+                                   cell.bg_rgb.green,
+                                   cell.bg_rgb.blue));
         })
     }
 
-    fn scene_drawer<F>(vterm: &VTerm, mut f: F) -> String where F: FnMut(ScreenCell, &mut String) {
+    fn scene_drawer<F>(vterm: &VTerm, mut f: F) -> String
+        where F: FnMut(ScreenCell, &mut String)
+    {
         let size = vterm.get_size();
         let mut lines: Vec<String> = vec![];
         let mut pos: Pos = Default::default();
@@ -223,7 +259,10 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
     }
 
     fn diff_string(field: &str, expected: &String, actual: &String) -> String {
-        format!("{} not equal. expected:\n\n{}\n\nbut got:\n\n{}\n", field, expected, actual)
+        format!("{} not equal. expected:\n\n{}\n\nbut got:\n\n{}\n",
+                field,
+                expected,
+                actual)
     }
 }
 
@@ -243,10 +282,7 @@ mod tests {
 
     #[test]
     fn has_no_diff_when_vterms_are_the_same() {
-        let size = ScreenSize {
-            rows: 1,
-            cols: 1,
-        };
+        let size = ScreenSize { rows: 1, cols: 1 };
         let vterm = VTerm::new(size.clone());
         let diff = VTermDiff::new(&vterm, &vterm);
         assert!(!diff.has_diff());
@@ -254,10 +290,7 @@ mod tests {
 
     #[test]
     fn has_diff_when_printables_are_different() {
-        let size = ScreenSize {
-            rows: 1,
-            cols: 1,
-        };
+        let size = ScreenSize { rows: 1, cols: 1 };
         let mut a = VTerm::new(size.clone());
         let b = VTerm::new(size.clone());
 
@@ -269,43 +302,40 @@ mod tests {
     }
 
     // Not sure how to test these, or if VTerm even responds when writing unprintables?
-    //#[test]
-    //fn has_diff_when_unprintables_are_different() {
-        //let size = ScreenSize {
-            //rows: 1,
-            //cols: 1,
-        //};
-        //let mut a = VTerm::new(size.clone());
-        //let mut b = VTerm::new(size.clone());
+    // #[test]
+    // fn has_diff_when_unprintables_are_different() {
+    // let size = ScreenSize {
+    // rows: 1,
+    // cols: 1,
+    // };
+    // let mut a = VTerm::new(size.clone());
+    // let mut b = VTerm::new(size.clone());
 
-        //a.write(b"\x00");
+    // a.write(b"\x00");
 
-        //let diff = VTermDiff::new(&a, &b);
-        //println!("{}", diff);
-        //assert!(diff.has_diff());
-    //}
+    // let diff = VTermDiff::new(&a, &b);
+    // println!("{}", diff);
+    // assert!(diff.has_diff());
+    // }
 
-    //#[test]
-    //fn displays_diff_when_unprintables_are_different() {
-        //let size = ScreenSize {
-            //rows: 1,
-            //cols: 1,
-        //};
-        //let mut a = VTerm::new(size.clone());
-        //let mut b = VTerm::new(size.clone());
+    // #[test]
+    // fn displays_diff_when_unprintables_are_different() {
+    // let size = ScreenSize {
+    // rows: 1,
+    // cols: 1,
+    // };
+    // let mut a = VTerm::new(size.clone());
+    // let mut b = VTerm::new(size.clone());
 
-        //a.write(b"\x00");
+    // a.write(b"\x00");
 
-        //let diff = VTermDiff::new(&a, &b);
-        //assert!(regex::is_match("x", &format!("{}", diff)).unwrap());
-    //}
+    // let diff = VTermDiff::new(&a, &b);
+    // assert!(regex::is_match("x", &format!("{}", diff)).unwrap());
+    // }
 
     #[test]
     fn has_diff_when_bolds_are_different() {
-        let size = ScreenSize {
-            rows: 1,
-            cols: 1,
-        };
+        let size = ScreenSize { rows: 1, cols: 1 };
         let mut a = VTerm::new(size.clone());
         let mut b = VTerm::new(size.clone());
 
@@ -319,10 +349,7 @@ mod tests {
 
     #[test]
     fn has_diff_when_underlines_are_different() {
-        let size = ScreenSize {
-            rows: 1,
-            cols: 1,
-        };
+        let size = ScreenSize { rows: 1, cols: 1 };
         let mut a = VTerm::new(size.clone());
         let mut b = VTerm::new(size.clone());
 
@@ -336,10 +363,7 @@ mod tests {
 
     #[test]
     fn has_diff_when_fg_rbgs_are_different() {
-        let size = ScreenSize {
-            rows: 1,
-            cols: 1,
-        };
+        let size = ScreenSize { rows: 1, cols: 1 };
         let mut a = VTerm::new(size.clone());
         let mut b = VTerm::new(size.clone());
 
@@ -348,6 +372,7 @@ mod tests {
 
         let diff = VTermDiff::new(&a, &b);
         assert!(diff.has_diff());
-        assert!(regex::is_match("fg_rgbs", &format!("{}", diff)).unwrap(), format!("expected {} to match", diff));
+        assert!(regex::is_match("fg_rgbs", &format!("{}", diff)).unwrap(),
+                format!("expected {} to match", diff));
     }
 }

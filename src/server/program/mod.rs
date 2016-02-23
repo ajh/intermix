@@ -16,10 +16,14 @@ use libc;
 use pty;
 
 pub enum VteWorkerMsg {
-    PtyRead { bytes: Vec<u8> },
+    PtyRead {
+        bytes: Vec<u8>,
+    },
     PtyReadError,
     PtyReadZero,
-    RequestRedrawRect { rect: Rect },
+    RequestRedrawRect {
+        rect: Rect,
+    },
 }
 
 pub struct Program {

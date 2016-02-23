@@ -1,4 +1,5 @@
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate regex;
 extern crate libintermix;
 extern crate log4rs;
@@ -15,7 +16,9 @@ static mut is_logging_setup: bool = false;
 fn setup_logging() {
     // protect itself from running multiple times
     unsafe {
-        if is_logging_setup { return }
+        if is_logging_setup {
+            return;
+        }
         is_logging_setup = true;
     }
 
@@ -25,14 +28,20 @@ fn setup_logging() {
 }
 
 // Returns true if the given function eventually returns true within several seconds
-fn is_ultimately_true<F>(mut f: F) -> bool where F: FnMut() -> bool {
+fn is_ultimately_true<F>(mut f: F) -> bool
+    where F: FnMut() -> bool
+{
     let start_time = time::now();
     let timeout = time::Duration::seconds(15);
 
     loop {
-        if f() { return true }
+        if f() {
+            return true;
+        }
 
-        if time::now() - start_time > timeout { break }
+        if time::now() - start_time > timeout {
+            break;
+        }
 
         // half a second
         let sleep_duration = ::std::time::Duration::from_millis(500);
@@ -45,16 +54,18 @@ fn is_ultimately_true<F>(mut f: F) -> bool where F: FnMut() -> bool {
 /// Try the given function until is returns Ok, or there is a timeout.
 ///
 /// Returns Ok on success, and the last returned value of the function inside Err on timeout.
-fn try_until_ok<F, T>(mut f: F) -> Result<(), T> where F: FnMut() -> Result<(), T> {
+fn try_until_ok<F, T>(mut f: F) -> Result<(), T>
+    where F: FnMut() -> Result<(), T>
+{
     let start_time = time::now();
     let timeout = time::Duration::seconds(5);
 
     loop {
         match f() {
-            Ok(()) => { return Ok(()) },
+            Ok(()) => return Ok(()),
             Err(t) => {
                 if time::now() - start_time > timeout {
-                    return Err(t)
+                    return Err(t);
                 }
 
                 // half a second

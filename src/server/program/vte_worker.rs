@@ -18,7 +18,9 @@ pub struct VteWorker {
 }
 
 impl VteWorker {
-    pub fn spawn(server_tx: Sender<::server::ServerMsg>, program_id: &str) -> (Sender<VteWorkerMsg>, thread::JoinHandle<()>) {
+    pub fn spawn(server_tx: Sender<::server::ServerMsg>,
+                 program_id: &str)
+                 -> (Sender<VteWorkerMsg>, thread::JoinHandle<()>) {
         let (tx, rx) = channel::<VteWorkerMsg>();
         let tx_clone = tx.clone();
         let program_id = program_id.to_string();
@@ -33,14 +35,21 @@ impl VteWorker {
         (tx_clone, handle)
     }
 
-    pub fn new(server_tx: Sender<::server::ServerMsg>, tx: Sender<VteWorkerMsg>, rx: Receiver<VteWorkerMsg>, program_id: &str) -> VteWorker {
+    pub fn new(server_tx: Sender<::server::ServerMsg>,
+               tx: Sender<VteWorkerMsg>,
+               rx: Receiver<VteWorkerMsg>,
+               program_id: &str)
+               -> VteWorker {
         VteWorker {
             program_id: program_id.to_string(),
             rx: Some(rx),
             tx: tx,
             server_tx: server_tx,
             // FIXME: get size from self
-            vterm: VTerm::new(ScreenSize { rows: 24, cols: 80, }),
+            vterm: VTerm::new(ScreenSize {
+                rows: 24,
+                cols: 80,
+            }),
         }
     }
 
@@ -77,7 +86,10 @@ impl VteWorker {
                 self.server_tx.send(event).unwrap();
             }
             ScreenEvent::MoveCursor{new, old, is_visible} => {
-                info!("MoveCursor: new={:?} old={:?} is_visible={:?}", new, old, is_visible);
+                info!("MoveCursor: new={:?} old={:?} is_visible={:?}",
+                      new,
+                      old,
+                      is_visible);
                 let event = ::server::ServerMsg::ProgramMoveCursor {
                     program_id: self.program_id.clone(),
                     new: new,
@@ -85,7 +97,7 @@ impl VteWorker {
                     is_visible: is_visible,
                 };
                 self.server_tx.send(event).unwrap();
-            },
+            }
             ScreenEvent::MoveRect{dest, src} => {
                 info!("MoveRect: dest={:?} src={:?}", dest, src);
                 let event = ::server::ServerMsg::ProgramDamage {
@@ -113,7 +125,7 @@ impl VteWorker {
             VteWorkerMsg::PtyRead{bytes} => {
                 self.vterm.write(bytes.as_slice());
                 self.vterm.screen_flush_damage();
-            },
+            }
             VteWorkerMsg::PtyReadZero => error!("got PtyReadZero"),
             VteWorkerMsg::PtyReadError => error!("got PtyReadError"),
             VteWorkerMsg::RequestRedrawRect{rect: _} => info!("got RequestRedrawRect msg"),

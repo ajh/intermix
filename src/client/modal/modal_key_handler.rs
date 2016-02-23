@@ -19,13 +19,19 @@ pub enum ActionType {
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum UserAction {
-    UnknownInput { bytes: Vec<u8> },
-    ProgramInput { bytes: Vec<u8> },
+    UnknownInput {
+        bytes: Vec<u8>,
+    },
+    ProgramInput {
+        bytes: Vec<u8>,
+    },
     ProgramStart,
     ProgramFocus,
     ProgramSelectNext,
     ProgramSelectPrev,
-    ModeChange { name: String },
+    ModeChange {
+        name: String,
+    },
     Quit,
 }
 
@@ -38,7 +44,11 @@ pub struct EdgeData {
 
 impl Default for EdgeData {
     fn default() -> EdgeData {
-        EdgeData { action: None, codes: vec![], default: false }
+        EdgeData {
+            action: None,
+            codes: vec![],
+            default: false,
+        }
     }
 }
 
@@ -81,23 +91,23 @@ impl Write for ModalKeyHandler {
             let mut next_node: Option<NodeIndex> = None;
             let mut action: Option<ActionType> = None;
 
-            if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes == match_buf) {
+            if let Some(i) = edge_indexes.iter()
+                                         .find(|i| self.graph.edges[**i].data.codes == match_buf) {
                 trace!("exact match");
                 self.match_buf.clear();
                 action = self.graph.edges[*i].data.action;
                 next_node = Some(self.graph.edges[*i].target);
-            }
-            else if let Some(_) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.codes.starts_with(&match_buf)) {
+            } else if let Some(_) = edge_indexes.iter().find(|i| {
+                self.graph.edges[**i].data.codes.starts_with(&match_buf)
+            }) {
                 trace!("partial match");
                 self.match_buf = match_buf.clone();
-            }
-            else if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.default ) {
+            } else if let Some(i) = edge_indexes.iter().find(|i| self.graph.edges[**i].data.default) {
                 trace!("default edge");
                 self.match_buf.clear();
                 action = self.graph.edges[*i].data.action;
                 next_node = Some(self.graph.edges[*i].target);
-            }
-            else {
+            } else {
                 trace!("unknown input {:?}", match_buf);
                 self.match_buf.clear();
                 self.actions_queue.push(UserAction::UnknownInput { bytes: match_buf.clone() });
@@ -118,7 +128,7 @@ impl Write for ModalKeyHandler {
             if let Some(i) = next_node {
                 self.current_node = i;
                 self.actions_queue.push(UserAction::ModeChange {
-                    name: self.graph.nodes[self.current_node].data.name.clone()
+                    name: self.graph.nodes[self.current_node].data.name.clone(),
                 });
             }
         }
@@ -142,7 +152,9 @@ mod tests {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
+        graph.add_edge(n0_index,
+                       n1_index,
+                       EdgeData { codes: "a".to_string().into_bytes(), ..Default::default() });
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("a".as_bytes()).unwrap();
@@ -153,7 +165,9 @@ mod tests {
     fn when_edge_matches_it_follows_it_to_same_node() {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
-        graph.add_edge(n0_index, n0_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
+        graph.add_edge(n0_index,
+                       n0_index,
+                       EdgeData { codes: "a".to_string().into_bytes(), ..Default::default() });
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
@@ -169,7 +183,8 @@ mod tests {
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("a".as_bytes()).unwrap();
-        assert_eq!(h.actions_queue.first(), Some(&UserAction::UnknownInput { bytes: "a".to_string().into_bytes() } ));
+        assert_eq!(h.actions_queue.first(),
+                   Some(&UserAction::UnknownInput { bytes: "a".to_string().into_bytes() }));
     }
 
     #[test]
@@ -177,7 +192,9 @@ mod tests {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { default: true, ..Default::default()});
+        graph.add_edge(n0_index,
+                       n1_index,
+                       EdgeData { default: true, ..Default::default() });
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
@@ -191,8 +208,12 @@ mod tests {
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
         let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
-        graph.add_edge(n0_index, n2_index, EdgeData { default: true, ..Default::default()});
+        graph.add_edge(n0_index,
+                       n1_index,
+                       EdgeData { codes: "a".to_string().into_bytes(), ..Default::default() });
+        graph.add_edge(n0_index,
+                       n2_index,
+                       EdgeData { default: true, ..Default::default() });
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
@@ -206,8 +227,12 @@ mod tests {
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
         let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
-        graph.add_edge(n0_index, n2_index, EdgeData { default: true, ..Default::default()});
+        graph.add_edge(n0_index,
+                       n1_index,
+                       EdgeData { codes: "a".to_string().into_bytes(), ..Default::default() });
+        graph.add_edge(n0_index,
+                       n2_index,
+                       EdgeData { default: true, ..Default::default() });
 
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
@@ -220,7 +245,9 @@ mod tests {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default()});
+        graph.add_edge(n0_index,
+                       n1_index,
+                       EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default() });
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("ab".as_bytes()).unwrap();
@@ -232,7 +259,9 @@ mod tests {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default()});
+        graph.add_edge(n0_index,
+                       n1_index,
+                       EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default() });
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("a".as_bytes()).unwrap();
@@ -246,8 +275,12 @@ mod tests {
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
         let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default()});
-        graph.add_edge(n1_index, n2_index, EdgeData { codes: "cd".to_string().into_bytes(), ..Default::default()});
+        graph.add_edge(n0_index,
+                       n1_index,
+                       EdgeData { codes: "ab".to_string().into_bytes(), ..Default::default() });
+        graph.add_edge(n1_index,
+                       n2_index,
+                       EdgeData { codes: "cd".to_string().into_bytes(), ..Default::default() });
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("abcd".as_bytes()).unwrap();
@@ -260,8 +293,12 @@ mod tests {
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
         let n1_index = graph.add_node(NodeData { name: "n1".to_string() });
         let n2_index = graph.add_node(NodeData { name: "n2".to_string() });
-        graph.add_edge(n0_index, n1_index, EdgeData { codes: "a".to_string().into_bytes(), ..Default::default()});
-        graph.add_edge(n1_index, n2_index, EdgeData { codes: "b".to_string().into_bytes(), ..Default::default()});
+        graph.add_edge(n0_index,
+                       n1_index,
+                       EdgeData { codes: "a".to_string().into_bytes(), ..Default::default() });
+        graph.add_edge(n1_index,
+                       n2_index,
+                       EdgeData { codes: "b".to_string().into_bytes(), ..Default::default() });
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("ab".as_bytes()).unwrap();
@@ -272,18 +309,31 @@ mod tests {
     fn when_matching_edge_has_a_program_input_action_it_adds_to_queue() {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
-        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(ActionType::ProgramInput), default: true, ..Default::default()});
+        graph.add_edge(n0_index,
+                       n0_index,
+                       EdgeData {
+                           action: Some(ActionType::ProgramInput),
+                           default: true,
+                           ..Default::default()
+                       });
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("a".as_bytes()).unwrap();
-        assert_eq!(h.actions_queue.first(), Some(&UserAction::ProgramInput { bytes: "a".to_string().into_bytes() } ));
+        assert_eq!(h.actions_queue.first(),
+                   Some(&UserAction::ProgramInput { bytes: "a".to_string().into_bytes() }));
     }
 
     #[test]
     fn when_matching_edge_has_a_program_start_action_it_adds_to_queue() {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
-        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(ActionType::ProgramStart), default: true, ..Default::default()});
+        graph.add_edge(n0_index,
+                       n0_index,
+                       EdgeData {
+                           action: Some(ActionType::ProgramStart),
+                           default: true,
+                           ..Default::default()
+                       });
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("a".as_bytes()).unwrap();
@@ -294,7 +344,13 @@ mod tests {
     fn when_matching_edge_has_a_quit_action_it_adds_to_queue() {
         let mut graph: Graph<NodeData, EdgeData> = Graph::new();
         let n0_index = graph.add_node(NodeData { name: "n0".to_string() });
-        graph.add_edge(n0_index, n0_index, EdgeData { action: Some(ActionType::Quit), default: true, ..Default::default()});
+        graph.add_edge(n0_index,
+                       n0_index,
+                       EdgeData {
+                           action: Some(ActionType::Quit),
+                           default: true,
+                           ..Default::default()
+                       });
         let mut h = ModalKeyHandler::new(n0_index, graph);
 
         h.write("a".as_bytes()).unwrap();

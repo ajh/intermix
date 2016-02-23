@@ -20,8 +20,11 @@ pub struct DrawWorker<F: 'static + Write + Send> {
     layout: Arc<RwLock<layout::Screen>>,
 }
 
-impl <F: 'static + Write + Send> DrawWorker<F> {
-    pub fn spawn(io: F, rx: Receiver<ClientMsg>, layout: Arc<RwLock<layout::Screen>>) -> thread::JoinHandle<()> {
+impl<F: 'static + Write + Send> DrawWorker<F> {
+    pub fn spawn(io: F,
+                 rx: Receiver<ClientMsg>,
+                 layout: Arc<RwLock<layout::Screen>>)
+                 -> thread::JoinHandle<()> {
         info!("spawning draw worker");
         thread::spawn(move || {
             let mut worker = DrawWorker::new(rx, io, layout);
@@ -34,7 +37,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         DrawWorker {
             rx: rx,
             painter: TtyPainter::new(io),
-            layout: layout
+            layout: layout,
         }
     }
 
@@ -48,12 +51,16 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
 
             match msg {
                 ClientMsg::Quit => break,
-                ClientMsg::ProgramDamage { program_id, cells } => self.program_damage(program_id, cells),
+                ClientMsg::ProgramDamage { program_id, cells } => {
+                    self.program_damage(program_id, cells)
+                }
                 ClientMsg::Clear => self.clear(),
                 ClientMsg::LayoutDamage => self.layout_damage(),
                 ClientMsg::LayoutSwap { layout } => self.layout_swap(layout),
-                ClientMsg::ProgramMoveCursor { program_id, old: _, new, is_visible } => self.move_cursor(program_id, new, is_visible),
-                _ => warn!("unhandled msg {:?}", msg)
+                ClientMsg::ProgramMoveCursor { program_id, old: _, new, is_visible } => {
+                    self.move_cursor(program_id, new, is_visible)
+                }
+                _ => warn!("unhandled msg {:?}", msg),
             }
         }
     }
@@ -63,9 +70,12 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
 
         let layout = self.layout.read().unwrap();
         if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
-            self.painter.draw_cells(&cells, &Pos { row: wrap.computed_y().unwrap(), col: wrap.computed_x().unwrap()});
-        }
-        else {
+            self.painter.draw_cells(&cells,
+                                    &Pos {
+                                        row: wrap.computed_y().unwrap(),
+                                        col: wrap.computed_x().unwrap(),
+                                    });
+        } else {
             warn!("didnt find node with value: {:?}", program_id);
         }
     }
@@ -74,7 +84,7 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         trace!("layout_damage");
 
         let layout = self.layout.read().unwrap();
-        //trace!("{:#?}", layout.tree());
+        // trace!("{:#?}", layout.tree());
 
         let mut cells: Vec<Cell> = vec![];
 
@@ -88,57 +98,148 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
     fn border_cells_for_node(&self, cells: &mut Vec<Cell>, wrap: &layout::Wrap, size: &Size) {
         if wrap.has_border() {
             let mut top = wrap.border_y().unwrap();
-            if top < 0 { top = 0 }
+            if top < 0 {
+                top = 0
+            }
 
             let mut bottom = wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1;
-            if bottom >= size.rows as i16 { bottom = size.rows as i16 - 1 }
+            if bottom >= size.rows as i16 {
+                bottom = size.rows as i16 - 1
+            }
 
             let mut left = wrap.border_x().unwrap();
-            if left < 0 { left = 0 }
+            if left < 0 {
+                left = 0
+            }
 
             let mut right = wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1;
-            if right >= size.cols as i16 { right = size.cols as i16 - 1 }
+            if right >= size.cols as i16 {
+                right = size.cols as i16 - 1
+            }
 
-            cells.push(Cell { pos: Pos { row: top, col: left }, chars: vec!['┌'], ..Default::default()});
-            cells.push(Cell { pos: Pos { row: top, col: right }, chars: vec!['┐'], ..Default::default()});
-            cells.push(Cell { pos: Pos { row: bottom, col: left }, chars: vec!['└'], ..Default::default()});
-            cells.push(Cell { pos: Pos { row: bottom, col: right }, chars: vec!['┘'], ..Default::default()});
+            cells.push(Cell {
+                pos: Pos {
+                    row: top,
+                    col: left,
+                },
+                chars: vec!['┌'],
+                ..Default::default()
+            });
+            cells.push(Cell {
+                pos: Pos {
+                    row: top,
+                    col: right,
+                },
+                chars: vec!['┐'],
+                ..Default::default()
+            });
+            cells.push(Cell {
+                pos: Pos {
+                    row: bottom,
+                    col: left,
+                },
+                chars: vec!['└'],
+                ..Default::default()
+            });
+            cells.push(Cell {
+                pos: Pos {
+                    row: bottom,
+                    col: right,
+                },
+                chars: vec!['┘'],
+                ..Default::default()
+            });
 
             for x in left + 1..right {
-                cells.push(Cell { pos: Pos { row: top, col: x }, chars: vec!['─'], ..Default::default()});
-                cells.push(Cell { pos: Pos { row: bottom, col: x }, chars: vec!['─'], ..Default::default()});
+                cells.push(Cell {
+                    pos: Pos { row: top, col: x },
+                    chars: vec!['─'],
+                    ..Default::default()
+                });
+                cells.push(Cell {
+                    pos: Pos {
+                        row: bottom,
+                        col: x,
+                    },
+                    chars: vec!['─'],
+                    ..Default::default()
+                });
             }
 
             for y in top + 1..bottom {
-                cells.push(Cell { pos: Pos { row: y, col: left }, chars: vec!['│'], ..Default::default()});
-                cells.push(Cell { pos: Pos { row: y, col: right }, chars: vec!['│'], ..Default::default()});
+                cells.push(Cell {
+                    pos: Pos {
+                        row: y,
+                        col: left,
+                    },
+                    chars: vec!['│'],
+                    ..Default::default()
+                });
+                cells.push(Cell {
+                    pos: Pos {
+                        row: y,
+                        col: right,
+                    },
+                    chars: vec!['│'],
+                    ..Default::default()
+                });
             }
-        }
-        // Maybe this should really write spaces to margin and padding spaces? Really I don't see
-        // how this can do the right thing until program buffers can be completely repainted.
-        //
-        // At least we can erase where a border would have been for wraps that have margins.
-        else if wrap.margin() > 0 {
+        } else if wrap.margin() > 0 {
             let mut top = wrap.computed_y().unwrap() - wrap.padding() - 1;
-            if top < 0 { top = 0 }
+            if top < 0 {
+                top = 0
+            }
 
-            let mut bottom = wrap.computed_y().unwrap() + wrap.computed_height().unwrap() + wrap.padding();
-            if bottom >= size.rows as i16 { bottom = size.rows as i16 - 1 }
+            let mut bottom = wrap.computed_y().unwrap() + wrap.computed_height().unwrap() +
+                             wrap.padding();
+            if bottom >= size.rows as i16 {
+                bottom = size.rows as i16 - 1
+            }
 
             let mut left = wrap.computed_x().unwrap() - wrap.padding() - 1;
-            if left < 0 { left = 0 }
+            if left < 0 {
+                left = 0
+            }
 
-            let mut right = wrap.computed_x().unwrap() + wrap.computed_width().unwrap() + wrap.padding();
-            if right >= size.cols as i16 { right = size.cols as i16 - 1 }
+            let mut right = wrap.computed_x().unwrap() + wrap.computed_width().unwrap() +
+                            wrap.padding();
+            if right >= size.cols as i16 {
+                right = size.cols as i16 - 1
+            }
 
-            for x in left..right+1 {
-                cells.push(Cell { pos: Pos { row: top, col: x }, chars: vec![' '], ..Default::default()});
-                cells.push(Cell { pos: Pos { row: bottom, col: x }, chars: vec![' '], ..Default::default()});
+            for x in left..right + 1 {
+                cells.push(Cell {
+                    pos: Pos { row: top, col: x },
+                    chars: vec![' '],
+                    ..Default::default()
+                });
+                cells.push(Cell {
+                    pos: Pos {
+                        row: bottom,
+                        col: x,
+                    },
+                    chars: vec![' '],
+                    ..Default::default()
+                });
             }
 
             for y in top + 1..bottom {
-                cells.push(Cell { pos: Pos { row: y, col: left }, chars: vec![' '], ..Default::default()});
-                cells.push(Cell { pos: Pos { row: y, col: right }, chars: vec![' '], ..Default::default()});
+                cells.push(Cell {
+                    pos: Pos {
+                        row: y,
+                        col: left,
+                    },
+                    chars: vec![' '],
+                    ..Default::default()
+                });
+                cells.push(Cell {
+                    pos: Pos {
+                        row: y,
+                        col: right,
+                    },
+                    chars: vec![' '],
+                    ..Default::default()
+                });
             }
         }
     }
@@ -148,7 +249,14 @@ impl <F: 'static + Write + Send> DrawWorker<F> {
         let mut cells: Vec<Cell> = vec![];
         for row in 0..layout.size.rows as usize {
             for col in 0..layout.size.cols as usize {
-                cells.push(Cell { pos: Pos { row: row as i16, col: col  as i16}, chars: vec![' '], ..Default::default()});
+                cells.push(Cell {
+                    pos: Pos {
+                        row: row as i16,
+                        col: col as i16,
+                    },
+                    chars: vec![' '],
+                    ..Default::default()
+                });
             }
         }
 

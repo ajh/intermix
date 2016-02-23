@@ -1,6 +1,7 @@
 #![feature(mpsc_select)]
 
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate docopt;
 extern crate ego_tree;
 extern crate itertools;

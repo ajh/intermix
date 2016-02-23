@@ -14,19 +14,25 @@ pub struct Edge<E> {
 }
 
 #[derive(PartialEq, Clone, Debug)]
-pub struct Graph<N,E> {
+pub struct Graph<N, E> {
     pub nodes: Vec<Node<N>>,
     pub edges: Vec<Edge<E>>,
 }
 
-impl<N,E> Graph<N,E> {
-    pub fn new() -> Graph<N,E> {
-        Graph { nodes: vec![], edges: vec![] }
+impl<N, E> Graph<N, E> {
+    pub fn new() -> Graph<N, E> {
+        Graph {
+            nodes: vec![],
+            edges: vec![],
+        }
     }
 
     pub fn add_node(&mut self, data: N) -> NodeIndex {
         let index = self.nodes.len();
-        self.nodes.push(Node { data: data, edge_indexes: vec![]});
+        self.nodes.push(Node {
+            data: data,
+            edge_indexes: vec![],
+        });
         index
     }
 
@@ -59,9 +65,12 @@ mod tests {
 
         assert_eq!(graph.nodes[n0_index].data, "n0".to_string());
 
-        let next_node_index = graph.edges[
-            graph.nodes[n0_index].edge_indexes.first().unwrap().clone()
-        ].target;
+        let next_node_index = graph.edges[graph.nodes[n0_index]
+                                              .edge_indexes
+                                              .first()
+                                              .unwrap()
+                                              .clone()]
+                                  .target;
         assert_eq!(graph.nodes[next_node_index].data, "n1".to_string());
     }
 }

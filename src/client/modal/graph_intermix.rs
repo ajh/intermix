@@ -10,21 +10,75 @@ pub fn graph() -> Graph<NodeData, EdgeData> {
     let c = graph.add_node(NodeData { name: "command".to_string() });
     let p = graph.add_node(NodeData { name: "program".to_string() });
 
-    graph.add_edge(w, c, EdgeData { default: true, ..Default::default()});
+    graph.add_edge(w, c, EdgeData { default: true, ..Default::default() });
 
-    graph.add_edge(c, c, EdgeData { action: Some(ActionType::ProgramSelectNext), codes: "j".to_string().into_bytes(), ..Default::default()});
-    graph.add_edge(c, c, EdgeData { action: Some(ActionType::ProgramSelectPrev), codes: "k".to_string().into_bytes(), ..Default::default()});
-    graph.add_edge(c, c, EdgeData { action: Some(ActionType::ProgramStart), codes: "c".to_string().into_bytes(), ..Default::default()});
-    graph.add_edge(c, c, EdgeData { action: Some(ActionType::Quit), codes: "q".to_string().into_bytes(), ..Default::default()});
-    graph.add_edge(c, p, EdgeData { action: Some(ActionType::ProgramFocus), codes: "i".to_string().into_bytes(), ..Default::default()});
+    graph.add_edge(c,
+                   c,
+                   EdgeData {
+                       action: Some(ActionType::ProgramSelectNext),
+                       codes: "j".to_string().into_bytes(),
+                       ..Default::default()
+                   });
+    graph.add_edge(c,
+                   c,
+                   EdgeData {
+                       action: Some(ActionType::ProgramSelectPrev),
+                       codes: "k".to_string().into_bytes(),
+                       ..Default::default()
+                   });
+    graph.add_edge(c,
+                   c,
+                   EdgeData {
+                       action: Some(ActionType::ProgramStart),
+                       codes: "c".to_string().into_bytes(),
+                       ..Default::default()
+                   });
+    graph.add_edge(c,
+                   c,
+                   EdgeData {
+                       action: Some(ActionType::Quit),
+                       codes: "q".to_string().into_bytes(),
+                       ..Default::default()
+                   });
+    graph.add_edge(c,
+                   p,
+                   EdgeData {
+                       action: Some(ActionType::ProgramFocus),
+                       codes: "i".to_string().into_bytes(),
+                       ..Default::default()
+                   });
 
     // ('c', 'program_create_and_focus');
     // ('x', 'program_kill');
 
-    graph.add_edge(p, c, EdgeData { codes: escape("c".to_string().into_bytes(), CTRL_B), ..Default::default()});
-    graph.add_edge(p, p, EdgeData { action: Some(ActionType::ProgramInput), codes: vec![CTRL_B, CTRL_B], default: true, ..Default::default()});
-    graph.add_edge(p, p, EdgeData { action: Some(ActionType::ProgramSelectNext), codes: escape("j".to_string().into_bytes(), CTRL_B), ..Default::default()});
-    graph.add_edge(p, p, EdgeData { action: Some(ActionType::ProgramSelectPrev), codes: escape("k".to_string().into_bytes(), CTRL_B), ..Default::default()});
+    graph.add_edge(p,
+                   c,
+                   EdgeData {
+                       codes: escape("c".to_string().into_bytes(), CTRL_B),
+                       ..Default::default()
+                   });
+    graph.add_edge(p,
+                   p,
+                   EdgeData {
+                       action: Some(ActionType::ProgramInput),
+                       codes: vec![CTRL_B, CTRL_B],
+                       default: true,
+                       ..Default::default()
+                   });
+    graph.add_edge(p,
+                   p,
+                   EdgeData {
+                       action: Some(ActionType::ProgramSelectNext),
+                       codes: escape("j".to_string().into_bytes(), CTRL_B),
+                       ..Default::default()
+                   });
+    graph.add_edge(p,
+                   p,
+                   EdgeData {
+                       action: Some(ActionType::ProgramSelectPrev),
+                       codes: escape("k".to_string().into_bytes(), CTRL_B),
+                       ..Default::default()
+                   });
 
     graph
 }

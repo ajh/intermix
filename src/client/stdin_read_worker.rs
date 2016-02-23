@@ -12,7 +12,7 @@ pub struct StdinReadWorker<F: 'static + Read + Send> {
     io: F,
 }
 
-impl <F: 'static + Read + Send> StdinReadWorker<F> {
+impl<F: 'static + Read + Send> StdinReadWorker<F> {
     pub fn spawn(io: F, tx: Sender<ClientMsg>) -> JoinHandle<()> {
         info!("spawning stdin reader thread");
         thread::spawn(move || {

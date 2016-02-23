@@ -39,11 +39,13 @@ impl Read for TestIO {
 
         if self.pos >= bytes.len() {
             // not sure if this is correct. I don't see an EOF error in std::io::ErrorKind
-            return Ok(0)
+            return Ok(0);
         }
 
         let mut end_index = self.pos + buf.len();
-        if end_index > bytes.len() { end_index = bytes.len() }
+        if end_index > bytes.len() {
+            end_index = bytes.len()
+        }
 
         for (i, byte) in bytes[self.pos..end_index].iter().enumerate() {
             buf[i] = *byte;
@@ -101,15 +103,15 @@ mod tests {
     }
 
     // this will deadlock unfortunately
-    //#[test]
-    //fn it_can_read_and_write_across_clones_without_deadlocking() {
-        //let mut io = TestIO::new();
-        //let mut clone = io.clone();
+    // #[test]
+    // fn it_can_read_and_write_across_clones_without_deadlocking() {
+    // let mut io = TestIO::new();
+    // let mut clone = io.clone();
 
-        //::std::thread::spawn(move || io.write("hi there".as_bytes()));
+    // ::std::thread::spawn(move || io.write("hi there".as_bytes()));
 
-        //let mut buf = [0u8; 2];
-        //clone.read(&mut buf);
-        //assert_eq!(&buf, b"hi");
-    //}
+    // let mut buf = [0u8; 2];
+    // clone.read(&mut buf);
+    // assert_eq!(&buf, b"hi");
+    // }
 }

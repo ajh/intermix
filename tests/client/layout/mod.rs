@@ -16,9 +16,10 @@ mod line_wrap;
 
 #[test]
 fn it_draws_a_root() {
-    let mut screen = Screen::new(Size { rows: 2, cols: 2});
+    let mut screen = Screen::new(Size { rows: 2, cols: 2 });
     screen.flush_changes();
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ····
 ·rr·
 ·rr·
@@ -28,15 +29,16 @@ fn it_draws_a_root() {
 #[test]
 fn it_draws_only_a_row() {
     let row = WrapBuilder::row()
-        .name("a".to_string())
-        .height(2)
-        .build();
+                  .name("a".to_string())
+                  .height(2)
+                  .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 2});
+    let mut screen = Screen::new(Size { rows: 2, cols: 2 });
     screen.tree_mut().root_mut().append(row);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ····
 ·aa·
 ·aa·
@@ -46,15 +48,16 @@ fn it_draws_only_a_row() {
 #[test]
 fn it_draws_only_a_col() {
     let col = WrapBuilder::col(6)
-        .name("a".to_string())
-        .height(2)
-        .build();
+                  .name("a".to_string())
+                  .height(2)
+                  .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ······
 ·aa  ·
 ·aa  ·
@@ -66,15 +69,16 @@ fn it_draws_a_column_inside_a_row() {
     let row = WrapBuilder::row().build();
 
     let col = WrapBuilder::col(9)
-        .name("a".to_string())
-        .height(2)
-        .build();
+                  .name("a".to_string())
+                  .height(2)
+                  .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(row).append(col);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ······
 ·aaa ·
 ·aaa ·
@@ -86,15 +90,16 @@ fn it_draws_a_row_inside_a_column() {
     let col = WrapBuilder::col(9).build();
 
     let row = WrapBuilder::row()
-        .name("a".to_string())
-        .height(2)
-        .build();
+                  .name("a".to_string())
+                  .height(2)
+                  .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col).append(row);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ······
 ·aaa ·
 ·aaa ·
@@ -104,15 +109,16 @@ fn it_draws_a_row_inside_a_column() {
 #[test]
 fn it_draws_a_12_width_col() {
     let col = WrapBuilder::col(12)
-        .name("a".to_string())
-        .height(2)
-        .build();
+                  .name("a".to_string())
+                  .height(2)
+                  .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ······
 ·aaaa·
 ·aaaa·
@@ -122,21 +128,22 @@ fn it_draws_a_12_width_col() {
 #[test]
 fn it_draws_a_9_and_3_width_col_evenly() {
     let col_a = WrapBuilder::col(9)
-        .name("a".to_string())
-        .height(2)
-        .build();
+                    .name("a".to_string())
+                    .height(2)
+                    .build();
 
     let col_b = WrapBuilder::col(3)
-        .name("b".to_string())
-        .height(2)
-        .build();
+                    .name("b".to_string())
+                    .height(2)
+                    .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ······
 ·aaab·
 ·aaab·
@@ -146,21 +153,22 @@ fn it_draws_a_9_and_3_width_col_evenly() {
 #[test]
 fn it_draws_a_9_and_3_width_col_unevenly() {
     let col_a = WrapBuilder::col(9)
-        .name("a".to_string())
-        .height(2)
-        .build();
+                    .name("a".to_string())
+                    .height(2)
+                    .build();
 
     let col_b = WrapBuilder::col(3)
-        .name("b".to_string())
-        .height(2)
-        .build();
+                    .name("b".to_string())
+                    .height(2)
+                    .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 3});
+    let mut screen = Screen::new(Size { rows: 2, cols: 3 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ·····
 ·aab·
 ·aab·
@@ -170,21 +178,22 @@ fn it_draws_a_9_and_3_width_col_unevenly() {
 #[test]
 fn it_draws_a_3_and_9_width_col_evenly() {
     let col_a = WrapBuilder::col(3)
-        .name("a".to_string())
-        .height(2)
-        .build();
+                    .name("a".to_string())
+                    .height(2)
+                    .build();
 
     let col_b = WrapBuilder::col(9)
-        .name("b".to_string())
-        .height(2)
-        .build();
+                    .name("b".to_string())
+                    .height(2)
+                    .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ······
 ·abbb·
 ·abbb·
@@ -194,21 +203,22 @@ fn it_draws_a_3_and_9_width_col_evenly() {
 #[test]
 fn it_draws_a_3_and_9_width_col_unevenly() {
     let col_a = WrapBuilder::col(3)
-        .name("a".to_string())
-        .height(2)
-        .build();
+                    .name("a".to_string())
+                    .height(2)
+                    .build();
 
     let col_b = WrapBuilder::col(9)
-        .name("b".to_string())
-        .height(2)
-        .build();
+                    .name("b".to_string())
+                    .height(2)
+                    .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 3});
+    let mut screen = Screen::new(Size { rows: 2, cols: 3 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ·····
 ·abb·
 ·abb·
@@ -218,21 +228,22 @@ fn it_draws_a_3_and_9_width_col_unevenly() {
 #[test]
 fn it_draws_a_pair_of_6_width_cols_evenly() {
     let col_a = WrapBuilder::col(6)
-        .name("a".to_string())
-        .height(2)
-        .build();
+                    .name("a".to_string())
+                    .height(2)
+                    .build();
 
     let col_b = WrapBuilder::col(6)
-        .name("b".to_string())
-        .height(2)
-        .build();
+                    .name("b".to_string())
+                    .height(2)
+                    .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4});
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ······
 ·aabb·
 ·aabb·
@@ -242,22 +253,23 @@ fn it_draws_a_pair_of_6_width_cols_evenly() {
 #[test]
 fn it_draws_a_pair_of_6_width_cols_unevenly() {
     let col_a = WrapBuilder::col(6)
-        .name("a".to_string())
-        .height(2)
-        .build();
+                    .name("a".to_string())
+                    .height(2)
+                    .build();
 
     let col_b = WrapBuilder::col(6)
-        .name("b".to_string())
-        .height(2)
-        .build();
+                    .name("b".to_string())
+                    .height(2)
+                    .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 3});
+    let mut screen = Screen::new(Size { rows: 2, cols: 3 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
 
     // This outcome should probably be undefined
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ·····
 ·aab·
 ·aab·
@@ -275,13 +287,14 @@ fn it_draws_a_bunch_of_columns() {
         WrapBuilder::col(2).name("z".to_string()).height(1).build(),
     ];
 
-    let mut screen = Screen::new(Size { rows: 1, cols: 6});
+    let mut screen = Screen::new(Size { rows: 1, cols: 6 });
     for col in cols {
         screen.tree_mut().root_mut().append(col);
     }
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ········
 ·abcxyz·
 ········");
@@ -298,13 +311,14 @@ fn it_draws_a_bunch_of_rows() {
         WrapBuilder::row().name("z".to_string()).height(1).build(),
     ];
 
-    let mut screen = Screen::new(Size { rows: 6, cols: 1});
+    let mut screen = Screen::new(Size { rows: 6, cols: 1 });
     for row in rows {
         screen.tree_mut().root_mut().append(row);
     }
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ···
 ·a·
 ·b·
@@ -319,11 +333,12 @@ fn it_draws_a_bunch_of_rows() {
 fn it_truncates_leaf_with_narrow_container() {
     let leaf = WrapBuilder::row().name("a".to_string()).width(3).height(1).build();
 
-    let mut screen = Screen::new(Size { rows: 1, cols: 2});
+    let mut screen = Screen::new(Size { rows: 1, cols: 2 });
     screen.tree_mut().root_mut().append(leaf);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ····
 ·aa·
 ····");
@@ -333,11 +348,12 @@ fn it_truncates_leaf_with_narrow_container() {
 fn it_truncates_leaf_with_short_container() {
     let leaf = WrapBuilder::row().name("a".to_string()).height(4).build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 1});
+    let mut screen = Screen::new(Size { rows: 2, cols: 1 });
     screen.tree_mut().root_mut().append(leaf);
     screen.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen), "
+    assert_scene_eq(&draw_screen(&screen),
+                    "
 ···
 ·a·
 ·a·

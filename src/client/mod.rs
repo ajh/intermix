@@ -19,23 +19,49 @@ use vterm_sys;
 pub enum ClientMsg {
     Quit,
 
-    ServerAdd { server: Server },
-    ServerUpdate { server: Server },
-    ServerRemove { server_id: String },
+    ServerAdd {
+        server: Server,
+    },
+    ServerUpdate {
+        server: Server,
+    },
+    ServerRemove {
+        server_id: String,
+    },
 
-    ProgramAdd { server_id: String, program_id: String },
-    ProgramUpdate { server_id: String, program_id: String },
-    ProgramRemove { server_id: String, program_id: String },
-    ProgramDamage { program_id: String, cells: Vec<vterm_sys::ScreenCell> },
-    ProgramMoveCursor { program_id: String, new: vterm_sys::Pos, old: vterm_sys::Pos, is_visible: bool },
+    ProgramAdd {
+        server_id: String,
+        program_id: String,
+    },
+    ProgramUpdate {
+        server_id: String,
+        program_id: String,
+    },
+    ProgramRemove {
+        server_id: String,
+        program_id: String,
+    },
+    ProgramDamage {
+        program_id: String,
+        cells: Vec<vterm_sys::ScreenCell>,
+    },
+    ProgramMoveCursor {
+        program_id: String,
+        new: vterm_sys::Pos,
+        old: vterm_sys::Pos,
+        is_visible: bool,
+    },
 
-
-    UserInput { bytes: Vec<u8> },
+    UserInput {
+        bytes: Vec<u8>,
+    },
 
     Clear,
 
     LayoutDamage,
-    LayoutSwap { layout: Arc<RwLock<layout::Screen>> },
+    LayoutSwap {
+        layout: Arc<RwLock<layout::Screen>>,
+    },
 }
 
 /// other settings from `man tty_ioctl` could live here
@@ -47,7 +73,10 @@ pub struct TtyIoCtlConfig {
 
 impl Default for TtyIoCtlConfig {
     fn default() -> TtyIoCtlConfig {
-        TtyIoCtlConfig { rows: 24, cols: 80 }
+        TtyIoCtlConfig {
+            rows: 24,
+            cols: 80,
+        }
     }
 }
 
@@ -63,8 +92,13 @@ impl Client {
     /// the client, and a client instance which can be used to stop the client.
     ///
     /// All the action takes place in threads so message passing is the client api more or less.
-    pub fn spawn<I, O>(input: I, output: O, tty_ioctl_config: TtyIoCtlConfig) -> (Sender<ClientMsg>, Client)
-        where I: 'static + Read + Send, O: 'static + Write + Send {
+    pub fn spawn<I, O>(input: I,
+                       output: O,
+                       tty_ioctl_config: TtyIoCtlConfig)
+                       -> (Sender<ClientMsg>, Client)
+        where I: 'static + Read + Send,
+              O: 'static + Write + Send
+    {
         let (draw_tx, draw_rx) = channel::<ClientMsg>();
         let (main_tx, layout, _) = MainWorker::spawn(draw_tx.clone(), tty_ioctl_config);
         DrawWorker::spawn(output, draw_rx, layout);

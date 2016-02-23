@@ -2,14 +2,15 @@ use libintermix::client::layout::*;
 
 pub fn draw_screen(screen: &Screen) -> String {
     // scene is 2d vec organized rows then cols
-    let mut scene: Vec<Vec<char>> = vec![vec![' '; screen.size.cols as usize]; screen.size.rows as usize];
+    let mut scene: Vec<Vec<char>> =
+        vec![vec![' '; screen.size.cols as usize]; screen.size.rows as usize];
 
     // May include orphans? IDK
     let bordered: Vec<&Wrap> = screen.tree()
-        .nodes()
-        .map(|n| n.value())
-        .filter(|w| w.has_border())
-        .collect();
+                                     .nodes()
+                                     .map(|n| n.value())
+                                     .filter(|w| w.has_border())
+                                     .collect();
 
     for wrap in bordered {
         // this could be:
@@ -19,11 +20,15 @@ pub fn draw_screen(screen: &Screen) -> String {
 
         let top = wrap.border_y().unwrap() as usize;
         let mut bottom = (wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1) as usize;
-        if bottom >= screen.size.rows as usize { bottom = screen.size.rows as usize - 1 }
+        if bottom >= screen.size.rows as usize {
+            bottom = screen.size.rows as usize - 1
+        }
 
         let left = wrap.border_x().unwrap() as usize;
         let mut right = (wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1) as usize;
-        if right >= screen.size.cols as usize { right = screen.size.cols as usize - 1 }
+        if right >= screen.size.cols as usize {
+            right = screen.size.cols as usize - 1
+        }
 
         scene[top][left] = '┌';
         scene[top][right] = '┐';
@@ -42,23 +47,29 @@ pub fn draw_screen(screen: &Screen) -> String {
     }
 
     let leafs: Vec<&Wrap> = screen.tree()
-        .nodes()
-        .filter(|n| !n.has_children())
-        .map(|n| n.value())
-        .collect();
+                                  .nodes()
+                                  .filter(|n| !n.has_children())
+                                  .map(|n| n.value())
+                                  .collect();
 
     for leaf in leafs {
-        if leaf.computed_x().unwrap() >= screen.size.cols as i16 { continue }
-        if leaf.computed_y().unwrap() >= screen.size.rows as i16 { continue }
+        if leaf.computed_x().unwrap() >= screen.size.cols as i16 {
+            continue;
+        }
+        if leaf.computed_y().unwrap() >= screen.size.rows as i16 {
+            continue;
+        }
 
-        let col_end = *[leaf.computed_x().unwrap() + leaf.computed_width().unwrap(), screen.size.cols as i16]
-            .iter()
-            .min()
-            .unwrap();
-        let row_end = *[leaf.computed_y().unwrap() + leaf.computed_height().unwrap(), screen.size.rows as i16]
-            .iter()
-            .min()
-            .unwrap();
+        let col_end = *[leaf.computed_x().unwrap() + leaf.computed_width().unwrap(),
+                        screen.size.cols as i16]
+                           .iter()
+                           .min()
+                           .unwrap();
+        let row_end = *[leaf.computed_y().unwrap() + leaf.computed_height().unwrap(),
+                        screen.size.rows as i16]
+                           .iter()
+                           .min()
+                           .unwrap();
 
         for y in leaf.computed_y().unwrap()..row_end {
             for x in leaf.computed_x().unwrap()..col_end {
@@ -85,7 +96,7 @@ pub fn draw_screen(screen: &Screen) -> String {
 
     // convert 2d vec into a newline separated string
     scene.iter()
-        .map(|row| row.iter().cloned().collect::<String>())
-        .collect::<Vec<String>>()
-        .join("\n")
+         .map(|row| row.iter().cloned().collect::<String>())
+         .collect::<Vec<String>>()
+         .join("\n")
 }
