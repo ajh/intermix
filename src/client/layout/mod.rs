@@ -1,20 +1,17 @@
-use vterm_sys;
+use vterm_sys::{ScreenSize, Pos};
 use ego_tree;
 
-pub type Size = vterm_sys::ScreenSize;
-pub type Pos = vterm_sys::Pos;
-
-pub const GRID_COLUMNS_COUNT: i16 = 12;
+pub const GRID_COLUMNS_COUNT: isize = 12;
 
 /// Represents the Screen for an entire screen.
 #[derive(Debug, Clone)]
 pub struct Screen {
-    pub size: Size,
+    pub size: ScreenSize,
     tree: ego_tree::Tree<Wrap>,
 }
 
 impl Screen {
-    pub fn new(size: Size) -> Screen {
+    pub fn new(size: ScreenSize) -> Screen {
         let root = WrapBuilder::row().name("root".to_string()).build();
 
         Screen {
@@ -52,9 +49,9 @@ impl Screen {
         let grid_width = root_wrap.grid_width();
         root_wrap.set_computed_grid_width(grid_width);
         root_wrap.set_is_new_line(false);
-        root_wrap.set_outside_width(Some(self.size.cols as i16));
+        root_wrap.set_outside_width(Some(self.size.cols));
         root_wrap.set_outside_x(Some(0));
-        root_wrap.set_outside_height(Some(self.size.rows as i16));
+        root_wrap.set_outside_height(Some(self.size.rows));
         root_wrap.set_outside_y(Some(0));
     }
 
@@ -127,7 +124,7 @@ impl Screen {
                                    .min()
                                    .unwrap() as f32 /
                               parent_grid_width as f32;
-                let width = (parent_width as f32 * percent).floor() as i16;
+                let width = (parent_width as f32 * percent).floor() as isize;
 
                 child_wrap.set_outside_width(Some(width));
 
@@ -139,7 +136,7 @@ impl Screen {
             let mut unused_cols = {
                 let percent = line_grid_columns_count as f32 / parent_grid_width as f32;
 
-                let mut expected_width = (parent_width as f32 * percent).round() as i16;
+                let mut expected_width = (parent_width as f32 * percent).round() as isize;
                 if expected_width > parent_width {
                     expected_width = parent_width
                 }
@@ -195,7 +192,7 @@ impl Screen {
             let unused_cols = parent_width - line_width;
             let offset = match parent_align {
                 Align::Left => 0,
-                Align::Center => (unused_cols as f32 / 2.0).round() as i16,
+                Align::Center => (unused_cols as f32 / 2.0).round() as isize,
                 Align::Right => unused_cols,
             };
 
@@ -221,7 +218,7 @@ impl Screen {
     ///
     /// * set_outside_height
     ///
-    fn compute_height(&mut self, parent_id: ego_tree::NodeId<Wrap>) -> i16 {
+    fn compute_height(&mut self, parent_id: ego_tree::NodeId<Wrap>) -> isize {
         let lines = self.tree.get(parent_id).lines();
 
         for line in lines.iter() {
@@ -272,7 +269,7 @@ impl Screen {
         let unused_rows = parent_height - lines_height;
         let offset = match parent_vertical_align {
             VerticalAlign::Top => 0,
-            VerticalAlign::Middle => (unused_rows as f32 / 2.0).round() as i16,
+            VerticalAlign::Middle => (unused_rows as f32 / 2.0).round() as isize,
             VerticalAlign::Bottom => unused_rows,
         };
 
@@ -352,20 +349,20 @@ impl Default for VerticalAlign {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Wrap {
     align: Align,
-    computed_grid_width: Option<i16>,
-    computed_height: Option<i16>,
-    computed_width: Option<i16>,
-    computed_x: Option<i16>,
-    computed_y: Option<i16>,
-    grid_width: Option<i16>,
+    computed_grid_width: Option<isize>,
+    computed_height: Option<isize>,
+    computed_width: Option<isize>,
+    computed_x: Option<isize>,
+    computed_y: Option<isize>,
+    grid_width: Option<isize>,
     has_border: bool,
-    height: Option<i16>,
+    height: Option<isize>,
     is_new_line: bool,
-    margin: i16,
+    margin: isize,
     name: String,
-    padding: i16,
+    padding: isize,
     vertical_align: VerticalAlign,
-    width: Option<i16>,
+    width: Option<isize>,
 }
 
 macro_rules! fn_option_accessor {
@@ -399,20 +396,20 @@ impl Wrap {
         Default::default()
     }
 
-    fn_option_accessor!(computed_grid_width, set_computed_grid_width, i16);
-    fn_option_accessor!(computed_height, set_computed_height, i16);
-    fn_option_accessor!(computed_width, set_computed_width, i16);
-    fn_option_accessor!(computed_x, set_computed_x, i16);
-    fn_option_accessor!(computed_y, set_computed_y, i16);
-    fn_option_accessor!(grid_width, set_grid_width, i16);
-    fn_option_accessor!(height, set_height, i16);
-    fn_option_accessor!(width, set_width, i16);
+    fn_option_accessor!(computed_grid_width, set_computed_grid_width, isize);
+    fn_option_accessor!(computed_height, set_computed_height, isize);
+    fn_option_accessor!(computed_width, set_computed_width, isize);
+    fn_option_accessor!(computed_x, set_computed_x, isize);
+    fn_option_accessor!(computed_y, set_computed_y, isize);
+    fn_option_accessor!(grid_width, set_grid_width, isize);
+    fn_option_accessor!(height, set_height, isize);
+    fn_option_accessor!(width, set_width, isize);
 
     fn_accessor!(align, set_align, Align);
     fn_accessor!(has_border, set_has_border, bool);
     fn_accessor!(is_new_line, set_is_new_line, bool);
-    fn_accessor!(margin, set_margin, i16);
-    fn_accessor!(padding, set_padding, i16);
+    fn_accessor!(margin, set_margin, isize);
+    fn_accessor!(padding, set_padding, isize);
     fn_accessor!(vertical_align, set_vertical_align, VerticalAlign);
 
     pub fn name(&self) -> &String {
@@ -423,7 +420,7 @@ impl Wrap {
         self.name = val
     }
 
-    pub fn outside_height(&self) -> Option<i16> {
+    pub fn outside_height(&self) -> Option<isize> {
         if let Some(mut h) = self.computed_height() {
             h += 2 *
                  (self.margin + self.padding +
@@ -438,7 +435,7 @@ impl Wrap {
         }
     }
 
-    pub fn set_outside_height(&mut self, val: Option<i16>) {
+    pub fn set_outside_height(&mut self, val: Option<isize>) {
         if let Some(mut v) = val {
             v -= 2 *
                  (self.margin + self.padding +
@@ -453,7 +450,7 @@ impl Wrap {
         }
     }
 
-    pub fn outside_width(&self) -> Option<i16> {
+    pub fn outside_width(&self) -> Option<isize> {
         if let Some(mut w) = self.computed_width() {
             w += 2 *
                  (self.margin + self.padding +
@@ -468,7 +465,7 @@ impl Wrap {
         }
     }
 
-    pub fn set_outside_width(&mut self, val: Option<i16>) {
+    pub fn set_outside_width(&mut self, val: Option<isize>) {
         if let Some(mut v) = val {
             v -= 2 *
                  (self.margin + self.padding +
@@ -483,7 +480,7 @@ impl Wrap {
         }
     }
 
-    pub fn outside_x(&self) -> Option<i16> {
+    pub fn outside_x(&self) -> Option<isize> {
         if let Some(mut x) = self.computed_x() {
             x -= self.margin + self.padding +
                  if self.has_border {
@@ -497,7 +494,7 @@ impl Wrap {
         }
     }
 
-    pub fn set_outside_x(&mut self, val: Option<i16>) {
+    pub fn set_outside_x(&mut self, val: Option<isize>) {
         if let Some(mut v) = val {
             v += self.margin + self.padding +
                  if self.has_border {
@@ -511,7 +508,7 @@ impl Wrap {
         }
     }
 
-    pub fn outside_y(&self) -> Option<i16> {
+    pub fn outside_y(&self) -> Option<isize> {
         if let Some(mut y) = self.computed_y() {
             y -= self.margin + self.padding +
                  if self.has_border {
@@ -525,7 +522,7 @@ impl Wrap {
         }
     }
 
-    pub fn set_outside_y(&mut self, val: Option<i16>) {
+    pub fn set_outside_y(&mut self, val: Option<isize>) {
         if let Some(mut v) = val {
             v += self.margin + self.padding +
                  if self.has_border {
@@ -539,7 +536,7 @@ impl Wrap {
         }
     }
 
-    pub fn border_height(&self) -> Option<i16> {
+    pub fn border_height(&self) -> Option<isize> {
         if let Some(mut h) = self.computed_height() {
             h += 2 *
                  (self.padding +
@@ -554,7 +551,7 @@ impl Wrap {
         }
     }
 
-    pub fn border_width(&self) -> Option<i16> {
+    pub fn border_width(&self) -> Option<isize> {
         if let Some(mut w) = self.computed_width() {
             w += 2 *
                  (self.padding +
@@ -569,7 +566,7 @@ impl Wrap {
         }
     }
 
-    pub fn border_x(&self) -> Option<i16> {
+    pub fn border_x(&self) -> Option<isize> {
         if let Some(mut x) = self.computed_x() {
             x -= self.padding +
                  if self.has_border {
@@ -583,7 +580,7 @@ impl Wrap {
         }
     }
 
-    pub fn border_y(&self) -> Option<i16> {
+    pub fn border_y(&self) -> Option<isize> {
         if let Some(mut y) = self.computed_y() {
             y -= self.padding +
                  if self.has_border {
@@ -622,14 +619,14 @@ impl Default for Wrap {
 
 pub struct WrapBuilder {
     align: Option<Align>,
-    grid_width: Option<i16>,
+    grid_width: Option<isize>,
     has_border: Option<bool>,
-    height: Option<i16>,
-    margin: Option<i16>,
+    height: Option<isize>,
+    margin: Option<isize>,
     name: Option<String>,
-    padding: Option<i16>,
+    padding: Option<isize>,
     vertical_align: Option<VerticalAlign>,
-    width: Option<i16>,
+    width: Option<isize>,
 }
 
 macro_rules! fn_writer {
@@ -643,7 +640,7 @@ macro_rules! fn_writer {
 
 impl WrapBuilder {
     /// call this to create a column
-    pub fn col(val: i16) -> WrapBuilder {
+    pub fn col(val: isize) -> WrapBuilder {
         WrapBuilder {
             align: None,
             grid_width: Some(val),
@@ -673,14 +670,14 @@ impl WrapBuilder {
     }
 
     fn_writer!(align, Align);
-    fn_writer!(grid_width, i16);
+    fn_writer!(grid_width, isize);
     fn_writer!(has_border, bool);
-    fn_writer!(height, i16);
-    fn_writer!(margin, i16);
+    fn_writer!(height, isize);
+    fn_writer!(margin, isize);
     fn_writer!(name, String);
-    fn_writer!(padding, i16);
+    fn_writer!(padding, isize);
     fn_writer!(vertical_align, VerticalAlign);
-    fn_writer!(width, i16);
+    fn_writer!(width, isize);
 
     pub fn build(self) -> Wrap {
         let mut wrap = Wrap::new();

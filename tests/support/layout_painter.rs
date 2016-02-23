@@ -53,20 +53,20 @@ pub fn draw_screen(screen: &Screen) -> String {
                                   .collect();
 
     for leaf in leafs {
-        if leaf.computed_x().unwrap() >= screen.size.cols as i16 {
+        if leaf.computed_x().unwrap() >= screen.size.cols {
             continue;
         }
-        if leaf.computed_y().unwrap() >= screen.size.rows as i16 {
+        if leaf.computed_y().unwrap() >= screen.size.rows {
             continue;
         }
 
         let col_end = *[leaf.computed_x().unwrap() + leaf.computed_width().unwrap(),
-                        screen.size.cols as i16]
+                        screen.size.cols]
                            .iter()
                            .min()
                            .unwrap();
         let row_end = *[leaf.computed_y().unwrap() + leaf.computed_height().unwrap(),
-                        screen.size.rows as i16]
+                        screen.size.rows ]
                            .iter()
                            .min()
                            .unwrap();

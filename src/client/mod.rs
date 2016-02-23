@@ -67,8 +67,8 @@ pub enum ClientMsg {
 /// other settings from `man tty_ioctl` could live here
 #[derive(Clone, PartialEq)]
 pub struct TtyIoCtlConfig {
-    pub rows: u16,
-    pub cols: u16,
+    pub rows: isize,
+    pub cols: isize,
 }
 
 impl Default for TtyIoCtlConfig {

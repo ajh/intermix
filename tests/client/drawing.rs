@@ -28,17 +28,15 @@ use std::env;
 // * [x] pass client messages to client
 // * [x] read client output into a vterm
 // * [x] wait for everything to finish???
-// * [ ] compare vterms
-// * [ ] refactor
-// * [ ] downsize screen buffers
+// * [x] compare vterms
+// * [x] refactor
+// * [x] downsize screen buffers
 // * [ ] have client start in some mode were it doesn't print 'welcome'
 //
 
 // Runs the given command and returns the expected value which is based on the contents of a vterm
 // screen buffer after writing the comands output to it.
-fn run_command_in_vterm(cmd: CommandBuilder, size: &ScreenSize) -> VTerm {
-    let size = size.clone(); // fix lifetime issue with borrow and closure
-
+fn run_command_in_vterm(cmd: CommandBuilder, size: ScreenSize) -> VTerm {
     let handle: thread::JoinHandle<VTerm> = thread::spawn(move || {
         let output = cmd.build()
                         .output()
@@ -54,7 +52,7 @@ fn run_command_in_vterm(cmd: CommandBuilder, size: &ScreenSize) -> VTerm {
 
         vterm.generate_screen_events().unwrap();
         info!("writing ttyplay output to vterm");
-        vterm.write(output.stdout.as_slice());
+        vterm.write(output.stdout.as_slice()).unwrap();
         vterm.screen_flush_damage();
 
         vterm
@@ -153,10 +151,10 @@ fn build_client(output: TestIO, size: &ScreenSize) -> Client {
 
 /// Build a new VTerm with consistent settings
 fn build_vterm(size: &ScreenSize) -> VTerm {
-    let mut vterm = VTerm::new(size.clone());
+    let mut vterm = VTerm::new(size);
     let fg = vterm.state_get_rgb_color_from_palette(7);
     let bg = vterm.state_get_rgb_color_from_palette(0);
-    vterm.state_set_default_colors(fg, bg);
+    vterm.state_set_default_colors(&fg, &bg);
     vterm.set_utf8(true);
 
     vterm.screen_reset(true);
@@ -172,7 +170,7 @@ fn it_draws_simple_echo_output() {
 
     let mut expected_vterm: VTerm = run_command_in_vterm(CommandBuilder::new("echo")
                                                              .arg("some stuff"),
-                                                         &size);
+                                                         size.clone());
     println!("{:?}", expected_vterm.state_get_default_colors());
 
     let mut test_output = TestIO::new();
@@ -185,7 +183,7 @@ fn it_draws_simple_echo_output() {
     let result = ::try_until_ok(move || {
         let mut bytes: Vec<u8> = vec![];
         test_output.read_to_end(&mut bytes).unwrap();
-        actual_vterm.write(&bytes);
+        actual_vterm.write(&bytes).unwrap();
         let diff = VTermDiff::new(&expected_vterm, &actual_vterm);
         if diff.has_diff() {
             Err(format!("{}", diff))
@@ -217,7 +215,7 @@ fn it_draws_simple_vim_session() {
                                                                              gs/vim.5x29.ttyrec")
                                                                       .to_str()
                                                                       .unwrap()),
-                                                         &size);
+                                                         size.clone());
 
     let mut test_output = TestIO::new();
     let mut client = build_client(test_output.clone(), &size);
@@ -228,7 +226,7 @@ fn it_draws_simple_vim_session() {
     let result = ::try_until_ok(move || {
         let mut bytes: Vec<u8> = vec![];
         test_output.read_to_end(&mut bytes).unwrap();
-        actual_vterm.write(&bytes);
+        actual_vterm.write(&bytes).unwrap();
         let diff = VTermDiff::new(&expected_vterm, &actual_vterm);
         if diff.has_diff() {
             Err(format!("{}", diff))

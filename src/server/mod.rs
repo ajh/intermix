@@ -1,6 +1,6 @@
 mod program;
 
-use vterm_sys::{self, ScreenCell, Rect, Pos};
+use vterm_sys::{self, ScreenCell, Rect, Pos, ScreenSize};
 use self::program::*;
 use std::io::prelude::*;
 use std::os::unix::prelude::*;
@@ -148,11 +148,11 @@ impl Server {
 
     fn start_program(&mut self, id: String, command_and_args: Vec<String>) {
         // FIXME: get size from client
-        let size = vterm_sys::ScreenSize {
+        let size = ScreenSize {
             rows: 24,
             cols: 80,
         };
-        let (program, _) = Program::new(&id, &command_and_args, self.tx.clone(), &size);
+        let (program, _) = Program::new(&id, &command_and_args, self.tx.clone(), size);
         self.programs.push(program);
 
         if let Some(client) = self.clients.first() {

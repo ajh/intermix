@@ -37,7 +37,7 @@ impl Program {
     pub fn new(id: &str,
                command_and_args: &Vec<String>,
                server_tx: Sender<ServerMsg>,
-               size: &ScreenSize)
+               size: ScreenSize)
                -> (Program, Vec<thread::JoinHandle<()>>) {
 
         let child = fork(id, command_and_args);
@@ -55,7 +55,7 @@ impl Program {
         let program = Program {
             child_pid: child.pid(),
             id: id.to_string(),
-            size: size.clone(), // todo: resize pty with this info
+            size: size, // todo: resize pty with this info
             pty: unsafe { File::from_raw_fd(fd) },
         };
 

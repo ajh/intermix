@@ -1,9 +1,10 @@
 use libintermix::client::layout::*;
 use ::support::*;
+use vterm_sys::ScreenSize;
 
 #[test]
 fn it_can_have_border_around_node() {
-    let mut screen = Screen::new(Size { rows: 4, cols: 4 });
+    let mut screen = Screen::new(ScreenSize { rows: 4, cols: 4 });
     screen.tree_mut().root_mut().value().set_has_border(true);
     screen.flush_changes();
 
@@ -19,7 +20,7 @@ fn it_can_have_border_around_node() {
 
 #[test]
 fn it_can_have_margin_around_node() {
-    let mut screen = Screen::new(Size { rows: 4, cols: 4 });
+    let mut screen = Screen::new(ScreenSize { rows: 4, cols: 4 });
     screen.tree_mut().root_mut().value().set_margin(1);
     screen.flush_changes();
 
@@ -35,7 +36,7 @@ fn it_can_have_margin_around_node() {
 
 #[test]
 fn it_can_have_padding_around_node() {
-    let mut screen = Screen::new(Size { rows: 4, cols: 4 });
+    let mut screen = Screen::new(ScreenSize { rows: 4, cols: 4 });
     screen.tree_mut().root_mut().value().set_padding(1);
     screen.flush_changes();
 
@@ -51,7 +52,7 @@ fn it_can_have_padding_around_node() {
 
 #[test]
 fn it_can_have_border_marging_and_padding() {
-    let mut screen = Screen::new(Size { rows: 8, cols: 8 });
+    let mut screen = Screen::new(ScreenSize { rows: 8, cols: 8 });
     screen.tree_mut().root_mut().value().set_has_border(true);
     screen.tree_mut().root_mut().value().set_margin(1);
     screen.tree_mut().root_mut().value().set_padding(1);
@@ -78,7 +79,7 @@ fn it_can_layout_bordered_nodes_horizontally() {
         WrapBuilder::col(6).name("b".to_string()).height(2).has_border(true).build(),
     ];
 
-    let mut screen = Screen::new(Size { rows: 4, cols: 8 });
+    let mut screen = Screen::new(ScreenSize { rows: 4, cols: 8 });
     for col in cols {
         screen.tree_mut().root_mut().append(col);
     }
@@ -101,7 +102,7 @@ fn it_can_layout_bordered_nodes_vertically() {
         WrapBuilder::row().name("b".to_string()).height(2).has_border(true).build(),
     ];
 
-    let mut screen = Screen::new(Size { rows: 8, cols: 4 });
+    let mut screen = Screen::new(ScreenSize { rows: 8, cols: 4 });
     for col in cols {
         screen.tree_mut().root_mut().append(col);
     }
@@ -132,7 +133,7 @@ fn it_can_nest_nodes_with_borders_margins_and_paddings() {
     let leaf_c = WrapBuilder::row().name("c".to_string()).height(2).build();
     let leaf_d = WrapBuilder::row().name("d".to_string()).height(2).build();
 
-    let mut screen = Screen::new(Size {
+    let mut screen = Screen::new(ScreenSize {
         rows: 12,
         cols: 20,
     });

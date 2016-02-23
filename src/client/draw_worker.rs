@@ -5,7 +5,7 @@ use std::sync::{Arc, RwLock};
 use super::*;
 use super::tty_painter::*;
 use super::layout::*;
-use vterm_sys;
+use vterm_sys::{self, Pos, ScreenSize};
 
 type Cell = vterm_sys::ScreenCell;
 
@@ -95,7 +95,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
         self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
     }
 
-    fn border_cells_for_node(&self, cells: &mut Vec<Cell>, wrap: &layout::Wrap, size: &Size) {
+    fn border_cells_for_node(&self, cells: &mut Vec<Cell>, wrap: &layout::Wrap, size: &ScreenSize) {
         if wrap.has_border() {
             let mut top = wrap.border_y().unwrap();
             if top < 0 {
@@ -103,8 +103,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             }
 
             let mut bottom = wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1;
-            if bottom >= size.rows as i16 {
-                bottom = size.rows as i16 - 1
+            if bottom >= size.rows {
+                bottom = size.rows - 1
             }
 
             let mut left = wrap.border_x().unwrap();
@@ -113,8 +113,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             }
 
             let mut right = wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1;
-            if right >= size.cols as i16 {
-                right = size.cols as i16 - 1
+            if right >= size.cols {
+                right = size.cols - 1
             }
 
             cells.push(Cell {
@@ -192,8 +192,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
 
             let mut bottom = wrap.computed_y().unwrap() + wrap.computed_height().unwrap() +
                              wrap.padding();
-            if bottom >= size.rows as i16 {
-                bottom = size.rows as i16 - 1
+            if bottom >= size.rows {
+                bottom = size.rows - 1
             }
 
             let mut left = wrap.computed_x().unwrap() - wrap.padding() - 1;
@@ -203,8 +203,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
 
             let mut right = wrap.computed_x().unwrap() + wrap.computed_width().unwrap() +
                             wrap.padding();
-            if right >= size.cols as i16 {
-                right = size.cols as i16 - 1
+            if right >= size.cols {
+                right = size.cols - 1
             }
 
             for x in left..right + 1 {
@@ -247,12 +247,12 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
     fn clear(&mut self) {
         let layout = self.layout.read().unwrap();
         let mut cells: Vec<Cell> = vec![];
-        for row in 0..layout.size.rows as usize {
-            for col in 0..layout.size.cols as usize {
+        for row in 0..layout.size.rows {
+            for col in 0..layout.size.cols {
                 cells.push(Cell {
                     pos: Pos {
-                        row: row as i16,
-                        col: col as i16,
+                        row: row,
+                        col: col,
                     },
                     chars: vec![' '],
                     ..Default::default()

@@ -86,7 +86,7 @@ impl ScreenCellBuilder {
     }
 }
 
-fn drawn_cells<T: Read>(reader: &mut T, size: ScreenSize) -> Vec<ScreenCell> {
+fn drawn_cells<T: Read>(reader: &mut T, size: &ScreenSize) -> Vec<ScreenCell> {
     let mut vterm = VTerm::new(size);
     vterm.state_set_default_colors(ColorRGB { red: 230, green: 230, blue: 230 },
                                    ColorRGB { red: 5, green: 5, blue: 5 });

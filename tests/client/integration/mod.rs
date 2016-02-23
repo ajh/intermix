@@ -8,14 +8,14 @@ use std::sync::mpsc::Sender;
 const CTRL_B: u8 = 2u8;
 
 // Build a vterm instance
-fn build_vterm(size: ScreenSize) -> VTerm {
+fn build_vterm(size: &ScreenSize) -> VTerm {
     let mut vterm = VTerm::new(size);
-    vterm.state_set_default_colors(ColorRGB {
+    vterm.state_set_default_colors(&ColorRGB {
                                        red: 230,
                                        green: 230,
                                        blue: 230,
                                    },
-                                   ColorRGB {
+                                   &ColorRGB {
                                        red: 5,
                                        green: 5,
                                        blue: 5,
@@ -30,10 +30,10 @@ fn status_line_matches<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: Regex)
     let is_success = ::is_ultimately_true(|| {
         let mut bytes: Vec<u8> = vec![];
         reader.read_to_end(&mut bytes).unwrap();
-        vterm.write(&bytes);
+        vterm.write(&bytes).unwrap();
 
         // TODO: fix this fixed size by getting size from vterm
-        let actual = vterm.screen_get_text(Rect {
+        let actual = vterm.screen_get_text(&Rect {
             start_row: 0,
             end_row: 1,
             start_col: 0,
@@ -43,7 +43,7 @@ fn status_line_matches<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: Regex)
     });
 
     // TODO: fix this fixed size by getting size from vterm
-    let actual = vterm.screen_get_text(Rect {
+    let actual = vterm.screen_get_text(&Rect {
         start_row: 0,
         end_row: 5,
         start_col: 0,
@@ -69,7 +69,7 @@ fn client_starts_in_welcome_mode() {
                                         rows: 5,
                                         cols: 10,
                                     });
-    let mut vterm = build_vterm(ScreenSize {
+    let mut vterm = build_vterm(&ScreenSize {
         rows: 5,
         cols: 10,
     });
@@ -90,7 +90,7 @@ fn client_can_enter_command_mode() {
                                          cols: 10,
                                      });
 
-    let mut vterm = build_vterm(ScreenSize {
+    let mut vterm = build_vterm(&ScreenSize {
         rows: 5,
         cols: 10,
     });
@@ -112,7 +112,7 @@ fn client_can_enter_program_mode() {
                                          cols: 80,
                                      });
 
-    let mut vterm = build_vterm(ScreenSize {
+    let mut vterm = build_vterm(&ScreenSize {
         rows: 24,
         cols: 80,
     });
@@ -146,7 +146,7 @@ fn client_can_exit_program_mode() {
                                      });
 
     // The screen size here is hard coded through the client code. Need to fix that.
-    let mut vterm = build_vterm(ScreenSize {
+    let mut vterm = build_vterm(&ScreenSize {
         rows: 24,
         cols: 80,
     });

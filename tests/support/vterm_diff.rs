@@ -1,4 +1,5 @@
 use vterm_sys::*;
+use std::io::prelude::*;
 
 pub struct VTermDiff<'a, 'b> {
     expected: &'a VTerm,
@@ -235,9 +236,9 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
         let mut pos: Pos = Default::default();
         for y in 0..size.rows {
             let mut line: String = format!("{}", BORDER);
-            pos.row = y as i16;
+            pos.row = y ;
             for x in 0..size.cols {
-                pos.col = x as i16;
+                pos.col = x ;
                 let cell = vterm.screen_get_cell(&pos);
                 f(cell, &mut line);
             }
@@ -279,11 +280,12 @@ mod tests {
     use super::*;
     use vterm_sys::*;
     use regex;
+    use std::io::prelude::*;
 
     #[test]
     fn has_no_diff_when_vterms_are_the_same() {
         let size = ScreenSize { rows: 1, cols: 1 };
-        let vterm = VTerm::new(size.clone());
+        let vterm = VTerm::new(&size);
         let diff = VTermDiff::new(&vterm, &vterm);
         assert!(!diff.has_diff());
     }
@@ -291,10 +293,10 @@ mod tests {
     #[test]
     fn has_diff_when_printables_are_different() {
         let size = ScreenSize { rows: 1, cols: 1 };
-        let mut a = VTerm::new(size.clone());
-        let b = VTerm::new(size.clone());
+        let mut a = VTerm::new(&size);
+        let b = VTerm::new(&size);
 
-        a.write(b"a");
+        a.write(b"a").unwrap();
 
         let diff = VTermDiff::new(&a, &b);
         assert!(diff.has_diff());
@@ -336,11 +338,11 @@ mod tests {
     #[test]
     fn has_diff_when_bolds_are_different() {
         let size = ScreenSize { rows: 1, cols: 1 };
-        let mut a = VTerm::new(size.clone());
-        let mut b = VTerm::new(size.clone());
+        let mut a = VTerm::new(&size);
+        let mut b = VTerm::new(&size);
 
-        a.write(b"\x1b[1mo");
-        b.write(b"o");
+        a.write(b"\x1b[1mo").unwrap();
+        b.write(b"o").unwrap();
 
         let diff = VTermDiff::new(&a, &b);
         assert!(diff.has_diff());
@@ -350,11 +352,11 @@ mod tests {
     #[test]
     fn has_diff_when_underlines_are_different() {
         let size = ScreenSize { rows: 1, cols: 1 };
-        let mut a = VTerm::new(size.clone());
-        let mut b = VTerm::new(size.clone());
+        let mut a = VTerm::new(&size);
+        let mut b = VTerm::new(&size);
 
-        a.write(b"\x1b[4mo");
-        b.write(b"o");
+        a.write(b"\x1b[4mo").unwrap();
+        b.write(b"o").unwrap();
 
         let diff = VTermDiff::new(&a, &b);
         assert!(diff.has_diff());
@@ -364,11 +366,11 @@ mod tests {
     #[test]
     fn has_diff_when_fg_rbgs_are_different() {
         let size = ScreenSize { rows: 1, cols: 1 };
-        let mut a = VTerm::new(size.clone());
-        let mut b = VTerm::new(size.clone());
+        let mut a = VTerm::new(&size);
+        let mut b = VTerm::new(&size);
 
-        a.write(b"\x1b[31mo");
-        b.write(b"o");
+        a.write(b"\x1b[31mo").unwrap();
+        b.write(b"o").unwrap();
 
         let diff = VTermDiff::new(&a, &b);
         assert!(diff.has_diff());

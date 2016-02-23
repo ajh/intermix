@@ -6,7 +6,7 @@ use super::*;
 use super::layout::*;
 use super::servers::*;
 use uuid::Uuid;
-use vterm_sys;
+use vterm_sys::{self, ScreenSize};
 
 /// This worker handles:
 /// * user input
@@ -35,7 +35,7 @@ impl MainWorker {
                      Arc<RwLock<layout::Screen>>,
                      JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
-        let layout = Arc::new(RwLock::new(layout::Screen::new(Size {
+        let layout = Arc::new(RwLock::new(layout::Screen::new(ScreenSize {
             rows: tty_ioctl_config.rows,
             cols: tty_ioctl_config.cols,
         })));
@@ -308,7 +308,7 @@ impl MainWorker {
             cells.push(vterm_sys::ScreenCell {
                 pos: vterm_sys::Pos {
                     row: 0,
-                    col: i as i16,
+                    col: i as isize,
                 },
                 chars: vec![char],
                 width: 1,
