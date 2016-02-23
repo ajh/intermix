@@ -47,7 +47,7 @@ fn is_ultimately_true<F>(mut f: F) -> bool where F: FnMut() -> bool {
 /// Returns Ok on success, and the last returned value of the function inside Err on timeout.
 fn try_until_ok<F, T>(mut f: F) -> Result<(), T> where F: FnMut() -> Result<(), T> {
     let start_time = time::now();
-    let timeout = time::Duration::seconds(15);
+    let timeout = time::Duration::seconds(5);
 
     loop {
         match f() {

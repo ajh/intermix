@@ -47,11 +47,7 @@ fn run_command_in_vterm(cmd: CommandBuilder, size: &ScreenSize) -> VTerm {
                    String::from_utf8_lossy(&output.stderr));
         }
 
-        let mut vterm = VTerm::new(ScreenSize {
-            rows: size.rows,
-            cols: size.cols,
-        });
-        vterm.set_utf8(true);
+        let mut vterm = build_vterm(&size);
         vterm.screen_set_damage_merge(ffi::VTermDamageSize::VTermDamageRow);
 
         vterm.generate_screen_events().unwrap();
@@ -153,6 +149,19 @@ fn build_client(output: TestIO, size: &ScreenSize) -> Client {
     client
 }
 
+/// Build a new VTerm with consistent settings
+fn build_vterm(size: &ScreenSize) -> VTerm {
+    let mut vterm = VTerm::new(size.clone());
+    let fg = vterm.state_get_rgb_color_from_palette(7);
+    let bg = vterm.state_get_rgb_color_from_palette(0);
+    vterm.state_set_default_colors(fg, bg);
+    vterm.set_utf8(true);
+
+    vterm.screen_reset(true);
+
+    vterm
+}
+
 #[test]
 fn it_draws_simple_echo_output() {
     ::setup_logging();
@@ -160,12 +169,14 @@ fn it_draws_simple_echo_output() {
     let size = ScreenSize { rows: 4, cols: 4 };
 
     let mut expected_vterm: VTerm = run_command_in_vterm(CommandBuilder::new("echo").arg("some stuff"), &size);
+    println!("{:?}", expected_vterm.state_get_default_colors());
 
     let mut test_output = TestIO::new();
     let mut client = build_client(test_output.clone(), &size);
     load_vterm_events_into_client(&mut expected_vterm, &mut client);
 
-    let mut actual_vterm = VTerm::new(size.clone());
+    let mut actual_vterm = build_vterm(&size);
+    println!("{:?}", actual_vterm.state_get_default_colors());
 
     let result = ::try_until_ok(move || {
         let mut bytes: Vec<u8> = vec![];
@@ -203,7 +214,7 @@ fn it_draws_vim_recording() {
     let mut client = build_client(test_output.clone(), &size);
     load_vterm_events_into_client(&mut expected_vterm, &mut client);
 
-    let mut actual_vterm = VTerm::new(size.clone());
+    let mut actual_vterm = build_vterm(&size);
 
     let result = ::try_until_ok(move || {
         let mut bytes: Vec<u8> = vec![];

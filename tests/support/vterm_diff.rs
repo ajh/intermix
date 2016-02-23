@@ -1,17 +1,17 @@
 use vterm_sys::*;
 
 pub struct VTermDiff<'a, 'b> {
-    a: &'a VTerm,
-    b: &'b VTerm,
+    expected: &'a VTerm,
+    actual: &'b VTerm,
 }
 
 const BORDER: char = '·';
 
 impl<'a, 'b> VTermDiff<'a, 'b> {
-    pub fn new(a: &'a VTerm, b: &'b VTerm) -> VTermDiff<'a, 'b> {
+    pub fn new(expected: &'a VTerm, actual: &'b VTerm) -> VTermDiff<'a, 'b> {
         VTermDiff {
-            a: a,
-            b: b,
+            expected: expected,
+            actual: actual,
         }
     }
 
@@ -22,84 +22,83 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
     pub fn diff(&self) -> Option<String> {
         let mut diff = String::new();
 
-        let a_printables = VTermDiff::printables(self.a);
-        let b_printables = VTermDiff::printables(self.b);
+        let a_printables = VTermDiff::printables(self.expected);
+        let b_printables = VTermDiff::printables(self.actual);
         if a_printables != b_printables {
             diff.push_str(&VTermDiff::diff_string("printables", &a_printables, &b_printables));
         }
 
-        let a_unprintables = VTermDiff::unprintables(self.a);
-        let b_unprintables = VTermDiff::unprintables(self.b);
+        let a_unprintables = VTermDiff::unprintables(self.expected);
+        let b_unprintables = VTermDiff::unprintables(self.actual);
         if a_unprintables != b_unprintables {
             diff.push_str(&VTermDiff::diff_string("unprintables", &a_unprintables, &b_unprintables));
         }
 
-        let a_bolds = VTermDiff::bolds(self.a);
-        let b_bolds = VTermDiff::bolds(self.b);
+        let a_bolds = VTermDiff::bolds(self.expected);
+        let b_bolds = VTermDiff::bolds(self.actual);
         if a_bolds != b_bolds {
             diff.push_str(&VTermDiff::diff_string("bolds", &a_bolds, &b_bolds));
         }
 
-        let a_underlines = VTermDiff::underlines(self.a);
-        let b_underlines = VTermDiff::underlines(self.b);
+        let a_underlines = VTermDiff::underlines(self.expected);
+        let b_underlines = VTermDiff::underlines(self.actual);
         if a_underlines != b_underlines {
             diff.push_str(&VTermDiff::diff_string("underlines", &a_underlines, &b_underlines));
         }
 
-        let a_italics = VTermDiff::italics(self.a);
-        let b_italics = VTermDiff::italics(self.b);
+        let a_italics = VTermDiff::italics(self.expected);
+        let b_italics = VTermDiff::italics(self.actual);
         if a_italics != b_italics {
             diff.push_str(&VTermDiff::diff_string("italics", &a_italics, &b_italics));
         }
 
-        let a_blinks = VTermDiff::blinks(self.a);
-        let b_blinks = VTermDiff::blinks(self.b);
+        let a_blinks = VTermDiff::blinks(self.expected);
+        let b_blinks = VTermDiff::blinks(self.actual);
         if a_blinks != b_blinks {
             diff.push_str(&VTermDiff::diff_string("blinks", &a_blinks, &b_blinks));
         }
 
-        let a_reverses = VTermDiff::reverses(self.a);
-        let b_reverses = VTermDiff::reverses(self.b);
+        let a_reverses = VTermDiff::reverses(self.expected);
+        let b_reverses = VTermDiff::reverses(self.actual);
         if a_reverses != b_reverses {
             diff.push_str(&VTermDiff::diff_string("reverses", &a_reverses, &b_reverses));
         }
 
-        let a_strikes = VTermDiff::strikes(self.a);
-        let b_strikes = VTermDiff::strikes(self.b);
+        let a_strikes = VTermDiff::strikes(self.expected);
+        let b_strikes = VTermDiff::strikes(self.actual);
         if a_strikes != b_strikes {
             diff.push_str(&VTermDiff::diff_string("strikes", &a_strikes, &b_strikes));
         }
 
-        let a_fonts = VTermDiff::fonts(self.a);
-        let b_fonts = VTermDiff::fonts(self.b);
+        let a_fonts = VTermDiff::fonts(self.expected);
+        let b_fonts = VTermDiff::fonts(self.actual);
         if a_fonts != b_fonts {
             diff.push_str(&VTermDiff::diff_string("fonts", &a_fonts, &b_fonts));
         }
 
-        let a_dwls = VTermDiff::dwls(self.a);
-        let b_dwls = VTermDiff::dwls(self.b);
+        let a_dwls = VTermDiff::dwls(self.expected);
+        let b_dwls = VTermDiff::dwls(self.actual);
         if a_dwls != b_dwls {
             diff.push_str(&VTermDiff::diff_string("dwls", &a_dwls, &b_dwls));
         }
 
-        let a_dhls = VTermDiff::dhls(self.a);
-        let b_dhls = VTermDiff::dhls(self.b);
+        let a_dhls = VTermDiff::dhls(self.expected);
+        let b_dhls = VTermDiff::dhls(self.actual);
         if a_dhls != b_dhls {
             diff.push_str(&VTermDiff::diff_string("dhls", &a_dhls, &b_dhls));
         }
 
-        // My code isn't ready for this yet
-        //let a_fg_rgbs = VTermDiff::fg_rgbs(self.a);
-        //let b_fg_rgbs = VTermDiff::fg_rgbs(self.b);
-        //if a_fg_rgbs != b_fg_rgbs {
-            //diff.push_str(&VTermDiff::diff_string("fg_rgbs", &a_fg_rgbs, &b_fg_rgbs));
-        //}
+        let a_fg_rgbs = VTermDiff::fg_rgbs(self.expected);
+        let b_fg_rgbs = VTermDiff::fg_rgbs(self.actual);
+        if a_fg_rgbs != b_fg_rgbs {
+            diff.push_str(&VTermDiff::diff_string("fg_rgbs", &a_fg_rgbs, &b_fg_rgbs));
+        }
 
-        //let a_bg_rgbs = VTermDiff::bg_rgbs(self.a);
-        //let b_bg_rgbs = VTermDiff::bg_rgbs(self.b);
-        //if a_bg_rgbs != b_bg_rgbs {
-            //diff.push_str(&VTermDiff::diff_string("bg_rgbs", &a_bg_rgbs, &b_bg_rgbs));
-        //}
+        let a_bg_rgbs = VTermDiff::bg_rgbs(self.expected);
+        let b_bg_rgbs = VTermDiff::bg_rgbs(self.actual);
+        if a_bg_rgbs != b_bg_rgbs {
+            diff.push_str(&VTermDiff::diff_string("bg_rgbs", &a_bg_rgbs, &b_bg_rgbs));
+        }
 
         if diff.len() > 0 { Some(diff) } else { None }
     }
@@ -184,25 +183,19 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
 
     fn fg_rgbs(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            line.push_str(&format!("({:3}, {:3}, {:3})", cell.fg_rgb.red, cell.fg_rgb.green, cell.fg_rgb.blue));
+            line.push_str(&format!(" ({:3},{:3},{:3}) ", cell.fg_rgb.red, cell.fg_rgb.green, cell.fg_rgb.blue));
         })
     }
 
     fn bg_rgbs(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            line.push_str(&format!("({:3}, {:3}, {:3})", cell.bg_rgb.red, cell.bg_rgb.green, cell.bg_rgb.blue));
+            line.push_str(&format!(" ({:3},{:3},{:3}) ", cell.bg_rgb.red, cell.bg_rgb.green, cell.bg_rgb.blue));
         })
     }
 
     fn scene_drawer<F>(vterm: &VTerm, mut f: F) -> String where F: FnMut(ScreenCell, &mut String) {
         let size = vterm.get_size();
         let mut lines: Vec<String> = vec![];
-        let mut top_bottom = String::new();
-        for _ in 0..size.cols + 2 {
-            top_bottom.push(BORDER);
-        }
-        lines.push(top_bottom.clone());
-
         let mut pos: Pos = Default::default();
         for y in 0..size.rows {
             let mut line: String = format!("{}", BORDER);
@@ -217,13 +210,20 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
             lines.push(line);
         }
 
-        lines.push(top_bottom);
+        if lines.len() > 0 {
+            let mut top_bottom = String::new();
+            for _ in 0..lines[0].len() {
+                top_bottom.push(BORDER);
+            }
+            lines.insert(0, top_bottom.clone());
+            lines.push(top_bottom);
+        }
 
         lines.join("\n")
     }
 
-    fn diff_string(field: &str, a: &String, b: &String) -> String {
-        format!("{} not equal:\n\n{}\n\nvs:\n\n{}\n", field, a, b)
+    fn diff_string(field: &str, expected: &String, actual: &String) -> String {
+        format!("{} not equal. expected:\n\n{}\n\nbut got:\n\n{}\n", field, expected, actual)
     }
 }
 
@@ -334,22 +334,20 @@ mod tests {
         assert!(regex::is_match("underlines", &format!("{}", diff)).unwrap());
     }
 
-    // disabled for now because turning on this feature breaks other tests. Need to fix those
-    // first.
-    //#[test]
-    //fn has_diff_when_fg_rbgs_are_different() {
-        //let size = ScreenSize {
-            //rows: 1,
-            //cols: 1,
-        //};
-        //let mut a = VTerm::new(size.clone());
-        //let mut b = VTerm::new(size.clone());
+    #[test]
+    fn has_diff_when_fg_rbgs_are_different() {
+        let size = ScreenSize {
+            rows: 1,
+            cols: 1,
+        };
+        let mut a = VTerm::new(size.clone());
+        let mut b = VTerm::new(size.clone());
 
-        //a.write(b"\x1b[31mo");
-        //b.write(b"o");
+        a.write(b"\x1b[31mo");
+        b.write(b"o");
 
-        //let diff = VTermDiff::new(&a, &b);
-        //assert!(diff.has_diff());
-        //assert!(regex::is_match("fg_rbgs", &format!("{}", diff)).unwrap(), format!("expected {} to match", diff));
-    //}
+        let diff = VTermDiff::new(&a, &b);
+        assert!(diff.has_diff());
+        assert!(regex::is_match("fg_rgbs", &format!("{}", diff)).unwrap(), format!("expected {} to match", diff));
+    }
 }
