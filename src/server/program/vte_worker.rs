@@ -82,6 +82,7 @@ impl VteWorker {
                 let event = ::server::ServerMsg::ProgramDamage {
                     program_id: self.program_id.clone(),
                     cells: self.vterm.screen_get_cells_in_rect(&rect),
+                    rect: rect,
                 };
                 self.server_tx.send(event).unwrap();
             }
@@ -102,7 +103,15 @@ impl VteWorker {
                 info!("MoveRect: dest={:?} src={:?}", dest, src);
                 let event = ::server::ServerMsg::ProgramDamage {
                     program_id: self.program_id.clone(),
+                    cells: self.vterm.screen_get_cells_in_rect(&src),
+                    rect: src,
+                };
+                self.server_tx.send(event).unwrap();
+
+                let event = ::server::ServerMsg::ProgramDamage {
+                    program_id: self.program_id.clone(),
                     cells: self.vterm.screen_get_cells_in_rect(&dest),
+                    rect: dest,
                 };
                 self.server_tx.send(event).unwrap();
             }

@@ -249,7 +249,7 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
 
         if lines.len() > 0 {
             let mut top_bottom = String::new();
-            for _ in 0..lines[0].len() {
+            for _ in 0..lines[0].chars().count() {
                 top_bottom.push(BORDER);
             }
             lines.insert(0, top_bottom.clone());
@@ -302,38 +302,6 @@ mod tests {
         assert!(diff.has_diff());
         assert!(regex::is_match("printables", &format!("{}", diff)).unwrap());
     }
-
-    // Not sure how to test these, or if VTerm even responds when writing unprintables?
-    // #[test]
-    // fn has_diff_when_unprintables_are_different() {
-    // let size = ScreenSize {
-    // rows: 1,
-    // cols: 1,
-    // };
-    // let mut a = VTerm::new(size.clone());
-    // let mut b = VTerm::new(size.clone());
-
-    // a.write(b"\x00");
-
-    // let diff = VTermDiff::new(&a, &b);
-    // println!("{}", diff);
-    // assert!(diff.has_diff());
-    // }
-
-    // #[test]
-    // fn displays_diff_when_unprintables_are_different() {
-    // let size = ScreenSize {
-    // rows: 1,
-    // cols: 1,
-    // };
-    // let mut a = VTerm::new(size.clone());
-    // let mut b = VTerm::new(size.clone());
-
-    // a.write(b"\x00");
-
-    // let diff = VTermDiff::new(&a, &b);
-    // assert!(regex::is_match("x", &format!("{}", diff)).unwrap());
-    // }
 
     #[test]
     fn has_diff_when_bolds_are_different() {

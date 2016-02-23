@@ -6,7 +6,7 @@ use super::*;
 use super::layout::*;
 use super::servers::*;
 use uuid::Uuid;
-use vterm_sys::{self, ScreenSize};
+use vterm_sys::{self, ScreenSize, Rect};
 
 /// This worker handles:
 /// * user input
@@ -306,7 +306,6 @@ impl MainWorker {
         let mut cells = vec![];
         for (i, char) in self.modal_key_handler.mode_name().chars().enumerate() {
             cells.push(vterm_sys::ScreenCell {
-                pos: vterm_sys::Pos { row: 0, col: i },
                 chars: vec![char],
                 width: 1,
                 attrs: Default::default(),
@@ -316,11 +315,13 @@ impl MainWorker {
             });
         }
 
+        let rect = Rect { start_row: 0, end_row: 1, start_col: 0, end_col: cells.len() };
         // Does this make sense? A status line is not a program.
         self.draw_worker_tx
             .send(ClientMsg::ProgramDamage {
                 program_id: STATUS_LINE.to_string(),
                 cells: cells,
+                rect: rect,
             })
             .unwrap();
     }

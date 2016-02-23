@@ -13,6 +13,7 @@ pub enum ServerMsg {
     ProgramDamage {
         program_id: String,
         cells: Vec<ScreenCell>,
+        rect: Rect,
     },
     ProgramInput {
         program_id: String,
@@ -97,12 +98,13 @@ impl Server {
             match msg {
                 ServerMsg::Quit => break,
 
-                ServerMsg::ProgramDamage { program_id, cells } => {
+                ServerMsg::ProgramDamage { program_id, cells, rect } => {
                     // What is Vec going to do with the cell data on the heap? Hopefully it will
                     // leave it alone?
                     self.send_msg_to_clients(::client::ClientMsg::ProgramDamage {
                                                  program_id: program_id,
                                                  cells: cells,
+                                                 rect: rect,
                                              },
                                              true);
                 }

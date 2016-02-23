@@ -73,6 +73,7 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
                         let event = ClientMsg::ProgramDamage {
                             program_id: "test_program".to_string(),
                             cells: vterm.screen_get_cells_in_rect(&rect),
+                            rect: rect,
                         };
                         client.tx().send(event).unwrap();
                     }
@@ -93,7 +94,14 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
                         info!("MoveRect: dest={:?} src={:?}", dest, src);
                         let event = ClientMsg::ProgramDamage {
                             program_id: "test_program".to_string(),
+                            cells: vterm.screen_get_cells_in_rect(&src),
+                            rect: src,
+                        };
+                        client.tx().send(event).unwrap();
+                        let event = ClientMsg::ProgramDamage {
+                            program_id: "test_program".to_string(),
                             cells: vterm.screen_get_cells_in_rect(&dest),
+                            rect: dest,
                         };
                         client.tx().send(event).unwrap();
                     }
@@ -171,14 +179,11 @@ fn it_draws_simple_echo_output() {
     let mut expected_vterm: VTerm = run_command_in_vterm(CommandBuilder::new("echo")
                                                              .arg("some stuff"),
                                                          size.clone());
-    println!("{:?}", expected_vterm.state_get_default_colors());
-
     let mut test_output = TestIO::new();
     let mut client = build_client(test_output.clone(), &size);
     load_vterm_events_into_client(&mut expected_vterm, &mut client);
 
     let mut actual_vterm = build_vterm(&size);
-    println!("{:?}", actual_vterm.state_get_default_colors());
 
     let result = ::try_until_ok(move || {
         let mut bytes: Vec<u8> = vec![];
@@ -206,8 +211,6 @@ fn it_draws_simple_vim_session() {
         rows: 5,
         cols: 29,
     };
-    let mut cmd = Command::new("ttyplay2");
-    cmd.arg(env::current_dir().unwrap().join("tests/tty_recordings/vim.5x29.ttyrec"));
     let mut expected_vterm: VTerm = run_command_in_vterm(CommandBuilder::new("ttyplay")
                                                              .arg(env::current_dir()
                                                                       .unwrap()

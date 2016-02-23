@@ -5,9 +5,7 @@ use std::sync::{Arc, RwLock};
 use super::*;
 use super::tty_painter::*;
 use super::layout::*;
-use vterm_sys::{self, Pos, ScreenSize};
-
-type Cell = vterm_sys::ScreenCell;
+use vterm_sys::{self, Pos, ScreenSize, ScreenCell, Rect};
 
 /// # todos
 /// * [ ] make message enum more specific
@@ -34,9 +32,13 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
     }
 
     fn new(rx: Receiver<ClientMsg>, io: F, layout: Arc<RwLock<layout::Screen>>) -> DrawWorker<F> {
+        let size = { layout.read().unwrap().size.clone() };
+        let mut painter = TtyPainter::new(io, size);
+        painter.reset();
+
         DrawWorker {
             rx: rx,
-            painter: TtyPainter::new(io),
+            painter: painter,
             layout: layout,
         }
     }
@@ -51,8 +53,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
 
             match msg {
                 ClientMsg::Quit => break,
-                ClientMsg::ProgramDamage { program_id, cells } => {
-                    self.program_damage(program_id, cells)
+                ClientMsg::ProgramDamage { program_id, cells, rect } => {
+                    self.program_damage(program_id, cells, rect)
                 }
                 ClientMsg::Clear => self.clear(),
                 ClientMsg::LayoutDamage => self.layout_damage(),
@@ -65,16 +67,18 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
         }
     }
 
-    fn program_damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>) {
+    fn program_damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>, rect: vterm_sys::Rect) {
         trace!("program_damage for {}", program_id);
 
         let layout = self.layout.read().unwrap();
         if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
-            self.painter.draw_cells(&cells,
-                                    &Pos {
-                                        row: wrap.computed_y().unwrap(),
-                                        col: wrap.computed_x().unwrap(),
-                                    });
+            let rect_with_offset = Rect {
+                start_row: rect.start_row + wrap.computed_y().unwrap(),
+                end_row: rect.end_row + wrap.computed_y().unwrap(),
+                start_col: rect.start_col + wrap.computed_x().unwrap(),
+                end_col: rect.end_col + wrap.computed_x().unwrap(),
+            };
+            self.painter.draw_cells(&cells, &rect_with_offset);
         } else {
             warn!("didnt find node with value: {:?}", program_id);
         }
@@ -86,17 +90,12 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
         let layout = self.layout.read().unwrap();
         // trace!("{:#?}", layout.tree());
 
-        let mut cells: Vec<Cell> = vec![];
-
         for wrap in layout.tree().values() {
-            self.border_cells_for_node(&mut cells, wrap, &layout.size);
+            DrawWorker::draw_border_for_node(&mut self.painter, wrap, &layout.size);
         }
-
-        self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
     }
 
-    fn border_cells_for_node(&self,
-                             cells: &mut Vec<Cell>,
+    fn draw_border_for_node(painter: &mut TtyPainter<F>,
                              wrap: &layout::Wrap,
                              size: &ScreenSize) {
         if wrap.has_border() {
@@ -120,72 +119,100 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                 right = size.cols - 1
             }
 
-            cells.push(Cell {
-                pos: Pos {
-                    row: top,
-                    col: left,
-                },
-                chars: vec!['┌'],
-                ..Default::default()
-            });
-            cells.push(Cell {
-                pos: Pos {
-                    row: top,
-                    col: right,
-                },
-                chars: vec!['┐'],
-                ..Default::default()
-            });
-            cells.push(Cell {
-                pos: Pos {
-                    row: bottom,
-                    col: left,
-                },
+            painter.draw_cells(&vec![
+                                    ScreenCell {
+                                        chars: vec!['┌'],
+                                        ..Default::default()
+                                    }],
+                                    &Rect {
+                                        start_row: top,
+                                        end_row: top + 1,
+                                        start_col: left,
+                                        end_col: left + 1,
+                                    });
+            painter.draw_cells(&vec![
+                                    ScreenCell {
+                                        chars: vec!['┐'],
+                                        ..Default::default()
+                                    }],
+                                    &Rect {
+                                        start_row: top,
+                                        end_row: top + 1,
+                                        start_col: right,
+                                        end_col: right + 1,
+                                    });
+            painter.draw_cells(&vec![
+            ScreenCell {
                 chars: vec!['└'],
                 ..Default::default()
-            });
-            cells.push(Cell {
-                pos: Pos {
-                    row: bottom,
-                    col: right,
-                },
+            }],
+                &Rect {
+                    start_row: bottom,
+                    end_row: bottom + 1,
+                    start_col: left,
+                    end_col: left + 1,
+                });
+            painter.draw_cells(&vec![
+            ScreenCell {
                 chars: vec!['┘'],
                 ..Default::default()
-            });
+            }],
+                &Rect {
+                    start_row: bottom,
+                    end_row: bottom + 1,
+                    start_col: right,
+                    end_col: right + 1,
+                });
 
             for x in left + 1..right {
-                cells.push(Cell {
-                    pos: Pos { row: top, col: x },
+                painter.draw_cells(&vec![
+                ScreenCell {
                     chars: vec!['─'],
                     ..Default::default()
-                });
-                cells.push(Cell {
-                    pos: Pos {
-                        row: bottom,
-                        col: x,
-                    },
+                }],
+                    &Rect {
+                            start_row: top,
+                            end_row: top + 1,
+                            start_col: x,
+                            end_col: x + 1,
+                    }
+                    );
+                painter.draw_cells(&vec![
+                ScreenCell {
                     chars: vec!['─'],
                     ..Default::default()
-                });
+                }],
+                    &Rect {
+                        start_row: bottom,
+                        end_row: bottom + 1,
+                        start_col: x,
+                        end_col: x + 1,
+                    });
             }
 
             for y in top + 1..bottom {
-                cells.push(Cell {
-                    pos: Pos {
-                        row: y,
-                        col: left,
-                    },
+                painter.draw_cells(&vec![
+                ScreenCell {
                     chars: vec!['│'],
                     ..Default::default()
-                });
-                cells.push(Cell {
-                    pos: Pos {
-                        row: y,
-                        col: right,
-                    },
+                }],
+                    &Rect {
+                        start_row: y,
+                        end_row: y + 1,
+                        start_col: left,
+                        end_col: left + 1,
+                    });
+                painter.draw_cells(&vec![
+                ScreenCell {
                     chars: vec!['│'],
                     ..Default::default()
-                });
+                }],
+                    &Rect {
+                        start_row: y,
+                        end_row: y + 1,
+                        start_col: right,
+                        end_col: right + 1,
+                    });
             }
         } else if wrap.margin() > 0 {
             let mut top = wrap.computed_y().unwrap() - wrap.padding() - 1;
@@ -211,59 +238,70 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             }
 
             for x in left..right + 1 {
-                cells.push(Cell {
-                    pos: Pos { row: top, col: x },
+                painter.draw_cells(&vec![
+                ScreenCell {
                     chars: vec![' '],
                     ..Default::default()
-                });
-                cells.push(Cell {
-                    pos: Pos {
-                        row: bottom,
-                        col: x,
-                    },
+                }],
+                    &Rect {
+                        start_row: top,
+                        end_row: top + 1,
+                        start_col: x,
+                        end_col: x + 1,
+                    });
+                painter.draw_cells(&vec![
+                ScreenCell {
                     chars: vec![' '],
                     ..Default::default()
-                });
+                }],
+                    &Rect {
+                        start_row: bottom,
+                        end_row: bottom + 1,
+                        start_col: x,
+                        end_col: x + 1,
+                    });
             }
 
             for y in top + 1..bottom {
-                cells.push(Cell {
-                    pos: Pos {
-                        row: y,
-                        col: left,
-                    },
+            painter.draw_cells(&vec![
+                ScreenCell {
                     chars: vec![' '],
                     ..Default::default()
-                });
-                cells.push(Cell {
-                    pos: Pos {
-                        row: y,
-                        col: right,
-                    },
+                }],
+                    &Rect {
+                        start_row: y,
+                        end_row: y + 1,
+                        start_col: left,
+                        end_col: left + 1,
+                    });
+            painter.draw_cells(&vec![
+                ScreenCell {
                     chars: vec![' '],
                     ..Default::default()
-                });
+                }],
+                    &Rect {
+                        start_row: y,
+                        end_row: y + 1,
+                        start_col: right,
+                        end_col: right + 1,
+                    });
             }
         }
     }
 
     fn clear(&mut self) {
         let layout = self.layout.read().unwrap();
-        let mut cells: Vec<Cell> = vec![];
-        for row in 0..layout.size.rows {
-            for col in 0..layout.size.cols {
-                cells.push(Cell {
-                    pos: Pos {
-                        row: row,
-                        col: col,
-                    },
+        let mut cells: Vec<ScreenCell> = vec![];
+        for _ in 0..layout.size.rows {
+            for _ in 0..layout.size.cols {
+                cells.push(ScreenCell {
                     chars: vec![' '],
                     ..Default::default()
                 });
             }
         }
 
-        self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
+        self.painter.draw_cells(&cells, &Rect { start_row: 0, start_col: 0, end_row: layout.size.rows - 1, end_col: layout.size.cols - 1 });
     }
 
     fn move_cursor(&mut self, program_id: String, _: vterm_sys::Pos, _: bool) {

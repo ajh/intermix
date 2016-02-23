@@ -44,6 +44,7 @@ pub enum ClientMsg {
     ProgramDamage {
         program_id: String,
         cells: Vec<vterm_sys::ScreenCell>,
+        rect: vterm_sys::Rect,
     },
     ProgramMoveCursor {
         program_id: String,
