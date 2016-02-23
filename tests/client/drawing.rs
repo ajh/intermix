@@ -201,7 +201,7 @@ fn it_draws_simple_echo_output() {
 }
 
 #[test]
-fn it_draws_vim_recording() {
+fn it_draws_simple_vim_session() {
     ::setup_logging();
 
     let size = ScreenSize {
