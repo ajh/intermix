@@ -95,7 +95,10 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
         self.painter.draw_cells(&cells, &Pos { row: 0, col: 0 });
     }
 
-    fn border_cells_for_node(&self, cells: &mut Vec<Cell>, wrap: &layout::Wrap, size: &ScreenSize) {
+    fn border_cells_for_node(&self,
+                             cells: &mut Vec<Cell>,
+                             wrap: &layout::Wrap,
+                             size: &ScreenSize) {
         if wrap.has_border() {
             let mut top = wrap.border_y().unwrap();
             if top < 0 {

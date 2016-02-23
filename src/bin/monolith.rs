@@ -50,7 +50,7 @@ fn main() {
     unsafe {
         let mut size: WinSize = std::mem::zeroed();
         libc::ioctl(1, TIOCGWINSZ, &mut size);
-        tty_ioctl_config = libintermix::client::TtyIoCtlConfig { rows: size.rows as isize, cols: size.cols as isize, ..Default::default() };
+        tty_ioctl_config = libintermix::client::TtyIoCtlConfig { rows: size.rows as usize, cols: size.cols as usize, ..Default::default() };
     }
     let (client_tx, _) = libintermix::client::Client::spawn(io::stdin(), io::stdout(), tty_ioctl_config);
 

@@ -236,9 +236,9 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
         let mut pos: Pos = Default::default();
         for y in 0..size.rows {
             let mut line: String = format!("{}", BORDER);
-            pos.row = y ;
+            pos.row = y;
             for x in 0..size.cols {
-                pos.col = x ;
+                pos.col = x;
                 let cell = vterm.screen_get_cell(&pos);
                 f(cell, &mut line);
             }

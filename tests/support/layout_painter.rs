@@ -66,7 +66,7 @@ pub fn draw_screen(screen: &Screen) -> String {
                            .min()
                            .unwrap();
         let row_end = *[leaf.computed_y().unwrap() + leaf.computed_height().unwrap(),
-                        screen.size.rows ]
+                        screen.size.rows]
                            .iter()
                            .min()
                            .unwrap();

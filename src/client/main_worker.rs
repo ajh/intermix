@@ -306,10 +306,7 @@ impl MainWorker {
         let mut cells = vec![];
         for (i, char) in self.modal_key_handler.mode_name().chars().enumerate() {
             cells.push(vterm_sys::ScreenCell {
-                pos: vterm_sys::Pos {
-                    row: 0,
-                    col: i as isize,
-                },
+                pos: vterm_sys::Pos { row: 0, col: i },
                 chars: vec![char],
                 width: 1,
                 attrs: Default::default(),

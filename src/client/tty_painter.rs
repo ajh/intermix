@@ -35,7 +35,7 @@ impl<F: Write + Send> TtyPainter<F> {
     ///
     /// TODO: DRY with draw_cell
     pub fn reset(&mut self) {
-        let mut sgrs: Vec<isize> = vec![];
+        let mut sgrs: Vec<usize> = vec![];
 
         if self.pen.attrs.bold {
             sgrs.push(1);
@@ -74,7 +74,7 @@ impl<F: Write + Send> TtyPainter<F> {
         }
 
         if self.pen.attrs.font != 0 {
-            sgrs.push(10 + self.pen.attrs.font as isize);
+            sgrs.push(10 + self.pen.attrs.font as usize);
         } else {
             sgrs.push(10);
         }
@@ -151,7 +151,7 @@ impl<F: Write + Send> TtyPainter<F> {
 
     fn draw_cell(&mut self, cell: &ScreenCell, offset: &Pos) {
         // trace!("draw_cell cell={:?}", cell);
-        let mut sgrs: Vec<isize> = vec![];
+        let mut sgrs: Vec<usize> = vec![];
 
         if self.pen.attrs.bold != cell.attrs.bold {
             if cell.attrs.bold {
@@ -209,7 +209,7 @@ impl<F: Write + Send> TtyPainter<F> {
 
         if self.pen.attrs.font != cell.attrs.font {
             if cell.attrs.font != 0 {
-                sgrs.push(10 + cell.attrs.font as isize);
+                sgrs.push(10 + cell.attrs.font as usize);
             } else {
                 sgrs.push(10);
             }
@@ -218,25 +218,25 @@ impl<F: Write + Send> TtyPainter<F> {
 
         if self.pen.fg != cell.fg_palette {
             if cell.fg_palette < 8 {
-                sgrs.push(30 + cell.fg_palette as isize);
+                sgrs.push(30 + cell.fg_palette as usize);
             } else if cell.fg_palette < 16 {
-                sgrs.push(90 + (cell.fg_palette as isize - 8));
+                sgrs.push(90 + (cell.fg_palette as usize - 8));
             } else {
                 sgrs.push(38);
                 sgrs.push(5 | (1 << 31));
-                sgrs.push(cell.fg_palette as isize | (1 << 31));
+                sgrs.push(cell.fg_palette as usize | (1 << 31));
             }
         }
 
         if self.pen.bg != cell.bg_palette {
             if cell.bg_palette < 8 {
-                sgrs.push(40 + cell.bg_palette as isize);
+                sgrs.push(40 + cell.bg_palette as usize);
             } else if cell.bg_palette < 16 {
-                sgrs.push(100 + (cell.bg_palette as isize - 8));
+                sgrs.push(100 + (cell.bg_palette as usize - 8));
             } else {
                 sgrs.push(48);
                 sgrs.push(5 | (1 << 31));
-                sgrs.push(cell.bg_palette as isize | (1 << 31));
+                sgrs.push(cell.bg_palette as usize | (1 << 31));
             }
         }
 

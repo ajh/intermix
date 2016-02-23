@@ -1,7 +1,7 @@
 use vterm_sys::{ScreenSize, Pos};
 use ego_tree;
 
-pub const GRID_COLUMNS_COUNT: isize = 12;
+pub const GRID_COLUMNS_COUNT: usize = 12;
 
 /// Represents the Screen for an entire screen.
 #[derive(Debug, Clone)]
@@ -124,7 +124,7 @@ impl Screen {
                                    .min()
                                    .unwrap() as f32 /
                               parent_grid_width as f32;
-                let width = (parent_width as f32 * percent).floor() as isize;
+                let width = (parent_width as f32 * percent).floor() as usize;
 
                 child_wrap.set_outside_width(Some(width));
 
@@ -136,12 +136,16 @@ impl Screen {
             let mut unused_cols = {
                 let percent = line_grid_columns_count as f32 / parent_grid_width as f32;
 
-                let mut expected_width = (parent_width as f32 * percent).round() as isize;
+                let mut expected_width = (parent_width as f32 * percent).round() as usize;
                 if expected_width > parent_width {
                     expected_width = parent_width
                 }
 
-                expected_width - line_width
+                if expected_width > line_width {
+                    expected_width - line_width
+                } else {
+                    0
+                }
             };
 
             // add them back in fairly
@@ -189,10 +193,16 @@ impl Screen {
                                  .map(|id| self.tree.get(*id).value())
                                  .map(|b| b.outside_width().unwrap())
                                  .fold(0, ::std::ops::Add::add);
-            let unused_cols = parent_width - line_width;
+
+            let unused_cols = if parent_width > line_width {
+                parent_width - line_width
+            } else {
+                0
+            };
+
             let offset = match parent_align {
                 Align::Left => 0,
-                Align::Center => (unused_cols as f32 / 2.0).round() as isize,
+                Align::Center => (unused_cols as f32 / 2.0).round() as usize,
                 Align::Right => unused_cols,
             };
 
@@ -218,7 +228,7 @@ impl Screen {
     ///
     /// * set_outside_height
     ///
-    fn compute_height(&mut self, parent_id: ego_tree::NodeId<Wrap>) -> isize {
+    fn compute_height(&mut self, parent_id: ego_tree::NodeId<Wrap>) -> usize {
         let lines = self.tree.get(parent_id).lines();
 
         for line in lines.iter() {
@@ -266,10 +276,15 @@ impl Screen {
                                         .unwrap()
                                 })
                                 .fold(0, ::std::ops::Add::add);
-        let unused_rows = parent_height - lines_height;
+        let unused_rows = if parent_height > lines_height {
+            parent_height - lines_height
+        } else {
+            0
+        };
+
         let offset = match parent_vertical_align {
             VerticalAlign::Top => 0,
-            VerticalAlign::Middle => (unused_rows as f32 / 2.0).round() as isize,
+            VerticalAlign::Middle => (unused_rows as f32 / 2.0).round() as usize,
             VerticalAlign::Bottom => unused_rows,
         };
 
@@ -349,20 +364,20 @@ impl Default for VerticalAlign {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Wrap {
     align: Align,
-    computed_grid_width: Option<isize>,
-    computed_height: Option<isize>,
-    computed_width: Option<isize>,
-    computed_x: Option<isize>,
-    computed_y: Option<isize>,
-    grid_width: Option<isize>,
+    computed_grid_width: Option<usize>,
+    computed_height: Option<usize>,
+    computed_width: Option<usize>,
+    computed_x: Option<usize>,
+    computed_y: Option<usize>,
+    grid_width: Option<usize>,
     has_border: bool,
-    height: Option<isize>,
+    height: Option<usize>,
     is_new_line: bool,
-    margin: isize,
+    margin: usize,
     name: String,
-    padding: isize,
+    padding: usize,
     vertical_align: VerticalAlign,
-    width: Option<isize>,
+    width: Option<usize>,
 }
 
 macro_rules! fn_option_accessor {
@@ -396,20 +411,20 @@ impl Wrap {
         Default::default()
     }
 
-    fn_option_accessor!(computed_grid_width, set_computed_grid_width, isize);
-    fn_option_accessor!(computed_height, set_computed_height, isize);
-    fn_option_accessor!(computed_width, set_computed_width, isize);
-    fn_option_accessor!(computed_x, set_computed_x, isize);
-    fn_option_accessor!(computed_y, set_computed_y, isize);
-    fn_option_accessor!(grid_width, set_grid_width, isize);
-    fn_option_accessor!(height, set_height, isize);
-    fn_option_accessor!(width, set_width, isize);
+    fn_option_accessor!(computed_grid_width, set_computed_grid_width, usize);
+    fn_option_accessor!(computed_height, set_computed_height, usize);
+    fn_option_accessor!(computed_width, set_computed_width, usize);
+    fn_option_accessor!(computed_x, set_computed_x, usize);
+    fn_option_accessor!(computed_y, set_computed_y, usize);
+    fn_option_accessor!(grid_width, set_grid_width, usize);
+    fn_option_accessor!(height, set_height, usize);
+    fn_option_accessor!(width, set_width, usize);
 
     fn_accessor!(align, set_align, Align);
     fn_accessor!(has_border, set_has_border, bool);
     fn_accessor!(is_new_line, set_is_new_line, bool);
-    fn_accessor!(margin, set_margin, isize);
-    fn_accessor!(padding, set_padding, isize);
+    fn_accessor!(margin, set_margin, usize);
+    fn_accessor!(padding, set_padding, usize);
     fn_accessor!(vertical_align, set_vertical_align, VerticalAlign);
 
     pub fn name(&self) -> &String {
@@ -420,7 +435,7 @@ impl Wrap {
         self.name = val
     }
 
-    pub fn outside_height(&self) -> Option<isize> {
+    pub fn outside_height(&self) -> Option<usize> {
         if let Some(mut h) = self.computed_height() {
             h += 2 *
                  (self.margin + self.padding +
@@ -435,7 +450,7 @@ impl Wrap {
         }
     }
 
-    pub fn set_outside_height(&mut self, val: Option<isize>) {
+    pub fn set_outside_height(&mut self, val: Option<usize>) {
         if let Some(mut v) = val {
             v -= 2 *
                  (self.margin + self.padding +
@@ -450,7 +465,7 @@ impl Wrap {
         }
     }
 
-    pub fn outside_width(&self) -> Option<isize> {
+    pub fn outside_width(&self) -> Option<usize> {
         if let Some(mut w) = self.computed_width() {
             w += 2 *
                  (self.margin + self.padding +
@@ -465,7 +480,7 @@ impl Wrap {
         }
     }
 
-    pub fn set_outside_width(&mut self, val: Option<isize>) {
+    pub fn set_outside_width(&mut self, val: Option<usize>) {
         if let Some(mut v) = val {
             v -= 2 *
                  (self.margin + self.padding +
@@ -480,7 +495,7 @@ impl Wrap {
         }
     }
 
-    pub fn outside_x(&self) -> Option<isize> {
+    pub fn outside_x(&self) -> Option<usize> {
         if let Some(mut x) = self.computed_x() {
             x -= self.margin + self.padding +
                  if self.has_border {
@@ -494,7 +509,7 @@ impl Wrap {
         }
     }
 
-    pub fn set_outside_x(&mut self, val: Option<isize>) {
+    pub fn set_outside_x(&mut self, val: Option<usize>) {
         if let Some(mut v) = val {
             v += self.margin + self.padding +
                  if self.has_border {
@@ -508,7 +523,7 @@ impl Wrap {
         }
     }
 
-    pub fn outside_y(&self) -> Option<isize> {
+    pub fn outside_y(&self) -> Option<usize> {
         if let Some(mut y) = self.computed_y() {
             y -= self.margin + self.padding +
                  if self.has_border {
@@ -522,7 +537,7 @@ impl Wrap {
         }
     }
 
-    pub fn set_outside_y(&mut self, val: Option<isize>) {
+    pub fn set_outside_y(&mut self, val: Option<usize>) {
         if let Some(mut v) = val {
             v += self.margin + self.padding +
                  if self.has_border {
@@ -536,7 +551,7 @@ impl Wrap {
         }
     }
 
-    pub fn border_height(&self) -> Option<isize> {
+    pub fn border_height(&self) -> Option<usize> {
         if let Some(mut h) = self.computed_height() {
             h += 2 *
                  (self.padding +
@@ -551,7 +566,7 @@ impl Wrap {
         }
     }
 
-    pub fn border_width(&self) -> Option<isize> {
+    pub fn border_width(&self) -> Option<usize> {
         if let Some(mut w) = self.computed_width() {
             w += 2 *
                  (self.padding +
@@ -566,7 +581,7 @@ impl Wrap {
         }
     }
 
-    pub fn border_x(&self) -> Option<isize> {
+    pub fn border_x(&self) -> Option<usize> {
         if let Some(mut x) = self.computed_x() {
             x -= self.padding +
                  if self.has_border {
@@ -580,7 +595,7 @@ impl Wrap {
         }
     }
 
-    pub fn border_y(&self) -> Option<isize> {
+    pub fn border_y(&self) -> Option<usize> {
         if let Some(mut y) = self.computed_y() {
             y -= self.padding +
                  if self.has_border {
@@ -619,14 +634,14 @@ impl Default for Wrap {
 
 pub struct WrapBuilder {
     align: Option<Align>,
-    grid_width: Option<isize>,
+    grid_width: Option<usize>,
     has_border: Option<bool>,
-    height: Option<isize>,
-    margin: Option<isize>,
+    height: Option<usize>,
+    margin: Option<usize>,
     name: Option<String>,
-    padding: Option<isize>,
+    padding: Option<usize>,
     vertical_align: Option<VerticalAlign>,
-    width: Option<isize>,
+    width: Option<usize>,
 }
 
 macro_rules! fn_writer {
@@ -640,7 +655,7 @@ macro_rules! fn_writer {
 
 impl WrapBuilder {
     /// call this to create a column
-    pub fn col(val: isize) -> WrapBuilder {
+    pub fn col(val: usize) -> WrapBuilder {
         WrapBuilder {
             align: None,
             grid_width: Some(val),
@@ -670,14 +685,14 @@ impl WrapBuilder {
     }
 
     fn_writer!(align, Align);
-    fn_writer!(grid_width, isize);
+    fn_writer!(grid_width, usize);
     fn_writer!(has_border, bool);
-    fn_writer!(height, isize);
-    fn_writer!(margin, isize);
+    fn_writer!(height, usize);
+    fn_writer!(margin, usize);
     fn_writer!(name, String);
-    fn_writer!(padding, isize);
+    fn_writer!(padding, usize);
     fn_writer!(vertical_align, VerticalAlign);
-    fn_writer!(width, isize);
+    fn_writer!(width, usize);
 
     pub fn build(self) -> Wrap {
         let mut wrap = Wrap::new();
