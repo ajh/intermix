@@ -8,6 +8,16 @@ use vterm_sys::{self, ScreenSize, Pos, ColorPalette, ScreenCell, Rect};
 // * [ ] use terminfo for all writing
 // * [ ] set cursor visiblity in reset method
 // * [ ] audit other things missed in reset method
+// * [ ] DRY sgr code
+//
+// # Idea to DRY sgr code
+//
+// 1. Have constant defaults defined for attrs and stuff like BOLD = false;
+// 2. all values in Pen are Option
+// 3. pull out an sgr function that takes a pen, and writes bytes for Some(_) values
+// 4. reset adds Some(_) values for all attrs and writes sgr for everything
+// 5. draw cell builds up a pen with Some(_) values that are different than the current pen, then
+//    passes it to the sgr fn. Then updates the current pen.
 
 #[derive(Debug, Clone)]
 pub struct Pen {
