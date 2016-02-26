@@ -243,3 +243,44 @@ fn it_draws_simple_vim_session() {
         Err(diff) => assert!(false, diff),
     }
 }
+
+#[test]
+fn it_draws_vim_cargo_toml_with_scrolling() {
+    ::setup_logging();
+
+    let size = ScreenSize {
+        rows: 5,
+        cols: 29,
+    };
+    let mut expected_vterm: VTerm = run_command_in_vterm(CommandBuilder::new("ttyplay")
+                                                             .arg(env::current_dir()
+                                                                      .unwrap()
+                                                                      .join("tests/tty_recordin\
+                                                                             gs/vim_cargo_toml.5x32.ttyrec")
+                                                                      .to_str()
+                                                                      .unwrap()),
+                                                         size.clone());
+
+    let mut test_output = TestIO::new();
+    let mut client = build_client(test_output.clone(), &size);
+    load_vterm_events_into_client(&mut expected_vterm, &mut client);
+
+    let mut actual_vterm = build_vterm(&size);
+
+    let result = ::try_until_ok(move || {
+        let mut bytes: Vec<u8> = vec![];
+        test_output.read_to_end(&mut bytes).unwrap();
+        actual_vterm.write(&bytes).unwrap();
+        let diff = VTermDiff::new(&expected_vterm, &actual_vterm);
+        if diff.has_diff() {
+            Err(format!("{}", diff))
+        } else {
+            Ok(())
+        }
+    });
+
+    match result {
+        Ok(()) => {}
+        Err(diff) => assert!(false, diff),
+    }
+}

@@ -209,7 +209,7 @@ impl<F: Write + Send> TtyPainter<F> {
     }
 
     fn draw_cell(&mut self, cell: &ScreenCell) {
-        trace!("draw_cell cell={:?} pen.pos={:?}", cell, self.pen.pos);
+        //trace!("draw_cell cell={:?} pen.pos={:?}", cell, self.pen.pos);
         let mut sgrs: Vec<usize> = vec![];
 
         if self.pen.bold != cell.attrs.bold {
