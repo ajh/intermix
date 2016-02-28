@@ -4,7 +4,6 @@ use libintermix::client::*;
 use vterm_sys::*;
 use ::support::*;
 use std::thread;
-use std::process::Command;
 use std::env;
 
 // This is an integration test on the client that tests drawing to the tty.

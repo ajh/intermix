@@ -1,6 +1,6 @@
 use std::io::prelude::*;
 use std::io::BufWriter;
-use term;
+use term::terminfo::{parm, TermInfo};
 use vterm_sys::{self, ScreenSize, Pos, ColorPalette, ScreenCell, Rect};
 
 // TODO:
@@ -21,19 +21,33 @@ use vterm_sys::{self, ScreenSize, Pos, ColorPalette, ScreenCell, Rect};
 
 #[derive(Debug, Clone)]
 pub struct Pen {
-    bg: ColorPalette,
-    blink: bool,
-    bold: bool,
-    dhl: u8,
-    dwl: bool,
-    fg: ColorPalette,
-    font: u8,
-    is_visible: bool,
-    italic: bool,
-    pos: Pos,
-    reverse: bool,
-    strike: bool,
-    underline: u8,
+    pub bg: ColorPalette,
+    pub blink: bool,
+    pub bold: bool,
+    pub dhl: u8,
+    pub dwl: bool,
+    pub fg: ColorPalette,
+    pub font: u8,
+    pub is_visible: bool,
+    pub italic: bool,
+    pub pos: Pos,
+    pub reverse: bool,
+    pub strike: bool,
+    pub underline: u8,
+
+    disp_bg: Option<ColorPalette>,
+    disp_blink: Option<bool>,
+    disp_bold: Option<bool>,
+    disp_dhl: Option<u8>,
+    disp_dwl: Option<bool>,
+    disp_fg: Option<ColorPalette>,
+    disp_font: Option<u8>,
+    disp_is_visible: Option<bool>,
+    disp_italic: Option<bool>,
+    disp_pos: Option<Pos>,
+    disp_reverse: Option<bool>,
+    disp_strike: Option<bool>,
+    disp_underline: Option<u8>,
 }
 
 impl Default for Pen {
@@ -46,13 +60,130 @@ impl Default for Pen {
             dwl: false,
             fg: 7,
             font: 0,
-            is_visible: false,
+            is_visible: true,
             italic: false,
             pos: Pos { row: 0, col: 0 },
             reverse: false,
             strike: false,
             underline: 0,
+            disp_bg: None,
+            disp_blink: None,
+            disp_bold: None,
+            disp_dhl: None,
+            disp_dwl: None,
+            disp_fg: None,
+            disp_font: None,
+            disp_is_visible: None,
+            disp_italic: None,
+            disp_pos: None,
+            disp_reverse: None,
+            disp_strike: None,
+            disp_underline: None,
         }
+    }
+}
+
+impl Pen {
+    pub fn flush<W: Write>(&mut self, io: &mut W) {
+        let ti = TermInfo::from_env().unwrap();
+        let mut vars = parm::Variables::new();
+        let mut params: Vec<parm::Param> = vec![];
+
+        if self.disp_pos.is_none() || *self.disp_pos.as_ref().unwrap() != self.pos {
+            params.push(parm::Param::Number(self.pos.row as i32));
+            params.push(parm::Param::Number(self.pos.col as i32));
+            Pen::write("cup", io, &ti, &mut vars, &mut params);
+        }
+
+        // may have to reset here because there's no way to turn off stuff like bold through the
+        // term crate?
+        let need_reset_bold = *self.disp_bold.as_ref().unwrap_or(&true) && !self.bold;
+        let need_reset_blink = *self.disp_blink.as_ref().unwrap_or(&true) && !self.blink;
+        let need_reset_reverse = *self.disp_reverse.as_ref().unwrap_or(&true) && !self.reverse;
+
+        if need_reset_bold || need_reset_blink || need_reset_reverse {
+            self.reset(io, &ti, &mut vars);
+        }
+
+        if self.disp_bold.is_none() || *self.disp_bold.as_ref().unwrap() != self.bold {
+            self.disp_bold = Some(self.bold);
+
+            if self.bold {
+                Pen::write("bold", io, &ti, &mut vars, &mut params);
+            }
+        }
+
+        if self.disp_underline.is_none() || *self.disp_underline.as_ref().unwrap() != self.underline {
+            self.disp_underline = Some(self.underline);
+
+            if self.underline != 0 {
+                Pen::write("smul", io, &ti, &mut vars, &mut params);
+            } else {
+                Pen::write("rmul", io, &ti, &mut vars, &mut params);
+            };
+        }
+
+        if self.disp_italic.is_none() || *self.disp_italic.as_ref().unwrap() != self.italic {
+            self.disp_italic = Some(self.italic);
+
+            if self.italic {
+                Pen::write("sitm", io, &ti, &mut vars, &mut params);
+            } else {
+                Pen::write("ritm", io, &ti, &mut vars, &mut params);
+            };
+        }
+
+        if self.disp_blink.is_none() || *self.disp_blink.as_ref().unwrap() != self.blink {
+            self.disp_blink = Some(self.blink);
+
+            if self.blink {
+                Pen::write("blink", io, &ti, &mut vars, &mut params);
+            }
+        }
+
+        if self.disp_reverse.is_none() || *self.disp_reverse.as_ref().unwrap() != self.reverse {
+            self.disp_reverse = Some(self.reverse);
+
+            if self.reverse {
+                Pen::write("rev", io, &ti, &mut vars, &mut params);
+            }
+        }
+
+        if self.disp_fg.is_none() || *self.disp_fg.as_ref().unwrap() != self.fg {
+            self.disp_fg = Some(self.fg);
+
+            params.push(parm::Param::Number(self.fg as i32));
+            Pen::write("setaf", io, &ti, &mut vars, &mut params);
+        }
+
+        if self.disp_bg.is_none() || *self.disp_bg.as_ref().unwrap() != self.bg {
+            self.disp_bg = Some(self.bg);
+
+            params.push(parm::Param::Number(self.bg as i32));
+            Pen::write("setab", io, &ti, &mut vars, &mut params);
+        }
+    }
+
+    fn reset<W: Write>(&mut self, io: &mut W, ti: &TermInfo, vars: &mut parm::Variables) {
+        self.disp_bg = Some(0);
+        self.disp_blink = Some(false);
+        self.disp_bold = Some(false);
+        self.disp_dhl = Some(0);
+        self.disp_dwl = Some(false);
+        self.disp_fg = Some(7);
+        self.disp_font = Some(0);
+        self.disp_is_visible = Some(true);
+        self.disp_italic = Some(false);
+        self.disp_reverse = Some(false);
+        self.disp_strike = Some(false);
+        self.disp_underline = Some(0);
+        Pen::write("sgr", io, ti, vars, &mut vec![parm::Param::Number(0)]);
+    }
+
+    fn write<W: Write>(cap: &str, io: &mut W, ti: &TermInfo, vars: &mut parm::Variables, params: &mut Vec<parm::Param>) {
+        let bytes = apply_cap(cap, ti, vars, params);
+        io.write_all(&bytes).unwrap();
+        params.clear();
     }
 }
 
@@ -73,259 +204,50 @@ impl<F: Write + Send> TtyPainter<F> {
         }
     }
 
-    /// Sync physical terminal state with pen state
-    ///
-    /// TODO: DRY with draw_cell
-    pub fn reset(&mut self) {
-        trace!("reset");
-        let mut sgrs: Vec<usize> = vec![];
-
-        if self.pen.bold {
-            sgrs.push(1);
-        } else {
-            sgrs.push(22);
-        }
-
-        if self.pen.underline != 0 {
-            sgrs.push(4);
-        } else {
-            sgrs.push(24);
-        }
-
-        if self.pen.italic {
-            sgrs.push(3);
-        } else {
-            sgrs.push(23);
-        }
-
-        if self.pen.blink {
-            sgrs.push(5);
-        } else {
-            sgrs.push(25);
-        }
-
-        if self.pen.reverse {
-            sgrs.push(7);
-        } else {
-            sgrs.push(27);
-        }
-
-        if self.pen.strike {
-            sgrs.push(9);
-        } else {
-            sgrs.push(29);
-        }
-
-        if self.pen.font != 0 {
-            sgrs.push(10 + self.pen.font as usize);
-        } else {
-            sgrs.push(10);
-        }
-
-        if sgrs.len() != 0 {
-            let mut sgr = "\x1b[".to_string();
-            for (i, val) in sgrs.iter().enumerate() {
-                let bare_val = val & !(1 << 31);
-                if i == 0 {
-                    sgr.push_str(&format!("{}", bare_val));
-                } else if val & (1 << 31) != 0 {
-                    sgr.push_str(&format!(":{}", bare_val));
-                } else {
-                    sgr.push_str(&format!(";{}", bare_val));
-                }
-            }
-            sgr.push_str("m");
-            self.io.write_all(sgr.as_bytes()).unwrap();
-        }
-
-        self.io.flush().unwrap();
-    }
-
     // Draw the cells in the list starting at the given position
     pub fn draw_cells(&mut self, cells: &Vec<ScreenCell>, rect: &Rect) {
         trace!("draw_cells rect={:?}", rect);
-        //let restore_pen = self.pen.clone();
-
-        //if self.pen.is_visible {
-            //self.pen.is_visible = false;
-            //// make cursor invisible
-            //let ti = term::terminfo::TermInfo::from_env().unwrap();
-            //let cmd = ti.strings.get("civis").unwrap();
-            //let s = term::terminfo::parm::expand(&cmd,
-                                                 //&[],
-                                                 //&mut term::terminfo::parm::Variables::new())
-                        //.unwrap();
-            //self.io.write_all(&s).unwrap();
-        //}
-
-        let mut pos = Pos {
-            row: rect.start_row,
-            col: rect.start_col,
-        };
 
         for (i, cell) in cells.iter().enumerate() {
             let width = rect.end_col - rect.start_col;
-            pos.col = rect.start_col + (i % width);
-            pos.row = rect.start_row + (i as f32 / width as f32).floor() as usize;
+            let x = rect.start_col + (i % width);
+            let y = rect.start_row + (i as f32 / width as f32).floor() as usize;
 
-            if pos.col >= self.size.cols || pos.row >= self.size.rows {
+            if x >= self.size.cols || y >= self.size.rows {
                 // Not sure this is the right thing to do. How do terminals handle wrapping?
                 continue;
             }
 
-            if self.pen.pos != pos {
-                self.move_cursor(&pos);
-            }
+            self.pen.pos.col = x;
+            self.pen.pos.row = y;
             self.draw_cell(cell);
         }
-
-        //if restore_pen.is_visible {
-            //self.pen.is_visible = true;
-            //// make it visible again
-            //let ti = term::terminfo::TermInfo::from_env().unwrap();
-            //let cmd = ti.strings.get("cnorm").unwrap();
-            //let s = term::terminfo::parm::expand(&cmd,
-                                                 //&[],
-                                                 //&mut term::terminfo::parm::Variables::new())
-                        //.unwrap();
-            //self.io.write_all(&s).unwrap();
-        //}
-
-        //if restore_pen.pos != self.pen.pos {
-            //self.pen.pos = restore_pen.pos.clone();
-
-            //let ti = term::terminfo::TermInfo::from_env().unwrap();
-            //let cmd = ti.strings.get("cup").unwrap();
-            //let params = [term::terminfo::parm::Param::Number(self.pen.pos.row as i32),
-                          //term::terminfo::parm::Param::Number(self.pen.pos.col as i32)];
-            //let s = term::terminfo::parm::expand(&cmd,
-                                                 //&params,
-                                                 //&mut term::terminfo::parm::Variables::new())
-                        //.unwrap();
-            //self.io.write_all(&s).unwrap();
-        //}
 
         self.io.flush().unwrap();
     }
 
+    // This method assumes the pen is already at the correct position
     fn draw_cell(&mut self, cell: &ScreenCell) {
         //trace!("draw_cell cell={:?} pen.pos={:?}", cell, self.pen.pos);
-        let mut sgrs: Vec<usize> = vec![];
 
-        if self.pen.bold != cell.attrs.bold {
-            if cell.attrs.bold {
-                sgrs.push(1);
-            } else {
-                sgrs.push(22);
-            }
-            self.pen.bold = cell.attrs.bold;
-        }
+        self.pen.bg = cell.bg_palette;
+        self.pen.blink = cell.attrs.blink;
+        self.pen.bold = cell.attrs.bold;
+        self.pen.fg = cell.fg_palette;
+        self.pen.font = cell.attrs.font;
+        self.pen.italic = cell.attrs.italic;
+        self.pen.reverse = cell.attrs.reverse;
+        self.pen.strike = cell.attrs.strike;
+        self.pen.underline = cell.attrs.underline;
 
-        if self.pen.underline != cell.attrs.underline {
-            if cell.attrs.underline != 0 {
-                sgrs.push(4);
-            } else {
-                sgrs.push(24);
-            }
-            self.pen.underline = cell.attrs.underline;
-        }
-
-        if self.pen.italic != cell.attrs.italic {
-            if cell.attrs.italic {
-                sgrs.push(3);
-            } else {
-                sgrs.push(23);
-            }
-            self.pen.italic = cell.attrs.italic;
-        }
-
-        if self.pen.blink != cell.attrs.blink {
-            if cell.attrs.blink {
-                sgrs.push(5);
-            } else {
-                sgrs.push(25);
-            }
-            self.pen.blink = cell.attrs.blink;
-        }
-
-        if self.pen.reverse != cell.attrs.reverse {
-            if cell.attrs.reverse {
-                sgrs.push(7);
-            } else {
-                sgrs.push(27);
-            }
-            self.pen.reverse = cell.attrs.reverse;
-        }
-
-        if self.pen.strike != cell.attrs.strike {
-            if cell.attrs.strike {
-                sgrs.push(9);
-            } else {
-                sgrs.push(29);
-            }
-            self.pen.strike = cell.attrs.strike;
-        }
-
-        if self.pen.font != cell.attrs.font {
-            if cell.attrs.font != 0 {
-                sgrs.push(10 + cell.attrs.font as usize);
-            } else {
-                sgrs.push(10);
-            }
-            self.pen.font = cell.attrs.font;
-        }
-
-        if self.pen.fg != cell.fg_palette {
-            if cell.fg_palette < 8 {
-                sgrs.push(30 + cell.fg_palette as usize);
-            } else if cell.fg_palette < 16 {
-                sgrs.push(90 + (cell.fg_palette as usize - 8));
-            } else {
-                sgrs.push(38);
-                sgrs.push(5 | (1 << 31));
-                sgrs.push(cell.fg_palette as usize | (1 << 31));
-            }
-            self.pen.fg = cell.fg_palette;
-        }
-
-        if self.pen.bg != cell.bg_palette {
-            if cell.bg_palette < 8 {
-                sgrs.push(40 + cell.bg_palette as usize);
-            } else if cell.bg_palette < 16 {
-                sgrs.push(100 + (cell.bg_palette as usize - 8));
-            } else {
-                sgrs.push(48);
-                sgrs.push(5 | (1 << 31));
-                sgrs.push(cell.bg_palette as usize | (1 << 31));
-            }
-
-            self.pen.bg = cell.bg_palette;
-        }
-
-        if sgrs.len() != 0 {
-            let mut sgr = "\x1b[".to_string();
-            for (i, val) in sgrs.iter().enumerate() {
-                let bare_val = val & !(1 << 31);
-                if i == 0 {
-                    sgr.push_str(&format!("{}", bare_val));
-                } else if val & (1 << 31) != 0 {
-                    sgr.push_str(&format!(":{}", bare_val));
-                } else {
-                    sgr.push_str(&format!(";{}", bare_val));
-                }
-            }
-            sgr.push_str("m");
-            self.io.write_all(sgr.as_bytes()).unwrap();
-        }
+        self.pen.flush(&mut self.io);
 
         let bytes = cell.chars_as_utf8_bytes();
 
         // See tmux's tty.c:1155 function `tty_cell`
         if bytes.len() > 0 {
-            //trace!("writing {:?}", &bytes);
             self.io.write_all(&bytes).ok().expect("failed to write");
         } else {
-            //trace!("just writing space");
             // like tmux's tty_repeat_space
             self.io.write_all(&[b'\x20']).ok().expect("failed to write"); // space
         }
@@ -351,20 +273,7 @@ impl<F: Write + Send> TtyPainter<F> {
     /// TODO: take a offset from the pane
     pub fn move_cursor(&mut self, pos: &Pos) {
         trace!("move_cursor pos={:?}", pos);
-        let ti = term::terminfo::TermInfo::from_env().unwrap();
-
-        if *pos != self.pen.pos {
-            self.pen.pos = pos.clone();
-
-            let cmd = ti.strings.get("cup").unwrap();
-            let params = [term::terminfo::parm::Param::Number(self.pen.pos.row as i32),
-                          term::terminfo::parm::Param::Number(self.pen.pos.col as i32)];
-            let s = term::terminfo::parm::expand(&cmd,
-                                                 &params,
-                                                 &mut term::terminfo::parm::Variables::new())
-                        .unwrap();
-            self.io.write_all(&s).unwrap();
-        }
+        self.pen.pos = pos.clone();
     }
 
     /// Implemented like tmux's tty_redraw_region
@@ -382,4 +291,9 @@ impl<F: Write + Send> TtyPainter<F> {
     // pub fn delete_line<F: Write>(&mut self, pane: &Pane, io: &mut F) {
     // /deleteLine: CSR(top, bottom) + CUP(y, 0) + DL(1) + CSR(0, height)
     // }
+}
+
+fn apply_cap(cap: &str, terminfo: &TermInfo, vars: &mut parm::Variables, params: &Vec<parm::Param>) -> Vec<u8> {
+    let cmd = terminfo.strings.get(cap).unwrap();
+    parm::expand(&cmd, params.as_slice(), vars).unwrap()
 }

@@ -34,7 +34,6 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
     fn new(rx: Receiver<ClientMsg>, io: F, layout: Arc<RwLock<layout::Screen>>) -> DrawWorker<F> {
         let size = { layout.read().unwrap().size.clone() };
         let mut painter = TtyPainter::new(io, size);
-        painter.reset();
 
         DrawWorker {
             rx: rx,
