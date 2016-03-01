@@ -33,7 +33,7 @@ fn status_line_matches<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: Regex)
         vterm.write(&bytes).unwrap();
 
         // TODO: fix this fixed size by getting size from vterm
-        let actual = vterm.screen_get_text(&Rect {
+        let actual = vterm.screen_get_text_lossy(&Rect {
             start_row: 0,
             end_row: 1,
             start_col: 0,
@@ -43,7 +43,7 @@ fn status_line_matches<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: Regex)
     });
 
     // TODO: fix this fixed size by getting size from vterm
-    let actual = vterm.screen_get_text(&Rect {
+    let actual = vterm.screen_get_text_lossy(&Rect {
         start_row: 0,
         end_row: 5,
         start_col: 0,

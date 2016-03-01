@@ -23,18 +23,10 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
     pub fn diff(&self) -> Option<String> {
         let mut diff = String::new();
 
-        let a_printables = VTermDiff::printables(self.expected);
-        let b_printables = VTermDiff::printables(self.actual);
+        let a_printables = VTermDiff::glyphs(self.expected);
+        let b_printables = VTermDiff::glyphs(self.actual);
         if a_printables != b_printables {
-            diff.push_str(&VTermDiff::diff_string("printables", &a_printables, &b_printables));
-        }
-
-        let a_unprintables = VTermDiff::unprintables(self.expected);
-        let b_unprintables = VTermDiff::unprintables(self.actual);
-        if a_unprintables != b_unprintables {
-            diff.push_str(&VTermDiff::diff_string("unprintables",
-                                                  &a_unprintables,
-                                                  &b_unprintables));
+            diff.push_str(&VTermDiff::diff_string("glyphs", &a_printables, &b_printables));
         }
 
         let a_bolds = VTermDiff::bolds(self.expected);
@@ -110,22 +102,11 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
         }
     }
 
-    fn printables(vterm: &VTerm) -> String {
+    fn glyphs(vterm: &VTerm) -> String {
         VTermDiff::scene_drawer(vterm, |cell, line| {
-            let chars = cell.chars;
-            if chars.len() > 0 && !chars[0].is_control() {
-                line.push(chars[0]);
-            } else {
-                line.push('\x20');
-            }
-        })
-    }
-
-    fn unprintables(vterm: &VTerm) -> String {
-        VTermDiff::scene_drawer(vterm, |cell, line| {
-            let chars = cell.chars;
-            if chars.len() > 0 && chars[0].is_control() {
-                line.push('x'); // x marks the spot
+            if cell.chars.len() > 0 {
+                let s = String::from_utf8_lossy(&cell.chars);
+                line.push(s.chars().next().unwrap());
             } else {
                 line.push('\x20');
             }
@@ -300,7 +281,7 @@ mod tests {
 
         let diff = VTermDiff::new(&a, &b);
         assert!(diff.has_diff());
-        assert!(regex::is_match("printables", &format!("{}", diff)).unwrap());
+        assert!(regex::is_match("glyphs", &format!("{}", diff)).unwrap());
     }
 
     #[test]

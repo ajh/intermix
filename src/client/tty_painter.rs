@@ -242,11 +242,9 @@ impl<F: Write + Send> TtyPainter<F> {
 
         self.pen.flush(&mut self.io);
 
-        let bytes = cell.chars_as_utf8_bytes();
-
         // See tmux's tty.c:1155 function `tty_cell`
-        if bytes.len() > 0 {
-            self.io.write_all(&bytes).ok().expect("failed to write");
+        if cell.chars.len() > 0 {
+            self.io.write_all(&cell.chars).ok().expect("failed to write");
         } else {
             // like tmux's tty_repeat_space
             self.io.write_all(&[b'\x20']).ok().expect("failed to write"); // space

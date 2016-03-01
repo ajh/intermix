@@ -120,7 +120,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
 
             painter.draw_cells(&vec![
                                     ScreenCell {
-                                        chars: vec!['┌'],
+                                        chars: "┌".to_string().into_bytes(),
                                         ..Default::default()
                                     }],
                                     &Rect {
@@ -131,7 +131,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                                     });
             painter.draw_cells(&vec![
                                     ScreenCell {
-                                        chars: vec!['┐'],
+                                        chars: "┐".to_string().into_bytes(),
                                         ..Default::default()
                                     }],
                                     &Rect {
@@ -142,7 +142,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                                     });
             painter.draw_cells(&vec![
             ScreenCell {
-                chars: vec!['└'],
+                chars: "└".to_string().into_bytes(),
                 ..Default::default()
             }],
                 &Rect {
@@ -153,7 +153,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                 });
             painter.draw_cells(&vec![
             ScreenCell {
-                chars: vec!['┘'],
+                chars: "┘".to_string().into_bytes(),
                 ..Default::default()
             }],
                 &Rect {
@@ -166,7 +166,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             for x in left + 1..right {
                 painter.draw_cells(&vec![
                 ScreenCell {
-                    chars: vec!['─'],
+                    chars: "─".to_string().into_bytes(),
                     ..Default::default()
                 }],
                     &Rect {
@@ -178,7 +178,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                     );
                 painter.draw_cells(&vec![
                 ScreenCell {
-                    chars: vec!['─'],
+                    chars: "─".to_string().into_bytes(),
                     ..Default::default()
                 }],
                     &Rect {
@@ -192,7 +192,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             for y in top + 1..bottom {
                 painter.draw_cells(&vec![
                 ScreenCell {
-                    chars: vec!['│'],
+                    chars: "│".to_string().into_bytes(),
                     ..Default::default()
                 }],
                     &Rect {
@@ -203,7 +203,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                     });
                 painter.draw_cells(&vec![
                 ScreenCell {
-                    chars: vec!['│'],
+                    chars: "│".to_string().into_bytes(),
                     ..Default::default()
                 }],
                     &Rect {
@@ -239,7 +239,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             for x in left..right + 1 {
                 painter.draw_cells(&vec![
                 ScreenCell {
-                    chars: vec![' '],
+                    chars: " ".to_string().into_bytes(),
                     ..Default::default()
                 }],
                     &Rect {
@@ -250,7 +250,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                     });
                 painter.draw_cells(&vec![
                 ScreenCell {
-                    chars: vec![' '],
+                    chars: " ".to_string().into_bytes(),
                     ..Default::default()
                 }],
                     &Rect {
@@ -264,7 +264,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             for y in top + 1..bottom {
             painter.draw_cells(&vec![
                 ScreenCell {
-                    chars: vec![' '],
+                    chars: " ".to_string().into_bytes(),
                     ..Default::default()
                 }],
                     &Rect {
@@ -275,7 +275,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                     });
             painter.draw_cells(&vec![
                 ScreenCell {
-                    chars: vec![' '],
+                    chars: " ".to_string().into_bytes(),
                     ..Default::default()
                 }],
                     &Rect {
@@ -294,7 +294,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
         for _ in 0..layout.size.rows {
             for _ in 0..layout.size.cols {
                 cells.push(ScreenCell {
-                    chars: vec![' '],
+                    chars: " ".to_string().into_bytes(),
                     ..Default::default()
                 });
             }

@@ -304,9 +304,12 @@ impl MainWorker {
 
         // Draw it
         let mut cells = vec![];
-        for (i, char) in self.modal_key_handler.mode_name().chars().enumerate() {
+        for ch in self.modal_key_handler.mode_name().chars() {
+            let mut sigh = String::new();
+            sigh.push(ch);
+
             cells.push(vterm_sys::ScreenCell {
-                chars: vec![char],
+                chars: sigh.into_bytes(),
                 width: 1,
                 attrs: Default::default(),
                 fg_palette: 7,
