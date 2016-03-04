@@ -35,7 +35,7 @@ use std::env;
 
 // Runs the given command and returns the expected value which is based on the contents of a vterm
 // screen buffer after writing the comands output to it.
-fn run_command_in_vterm(cmd: CommandBuilder, size: ScreenSize) -> VTerm {
+fn run_command_in_vterm(cmd: CommandBuilder, size: Size) -> VTerm {
     let handle: thread::JoinHandle<VTerm> = thread::spawn(move || {
         let output = cmd.build()
                         .output()
@@ -130,7 +130,7 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
 }
 
 /// Build and return a simplified client of the given size.
-fn build_client(output: TestIO, size: &ScreenSize) -> Client {
+fn build_client(output: TestIO, size: &Size) -> Client {
     let (client_tx, client) = Client::spawn(::std::io::empty(),
                                             output,
                                             TtyIoCtlConfig {
@@ -139,7 +139,7 @@ fn build_client(output: TestIO, size: &ScreenSize) -> Client {
                                                 ..Default::default()
                                             });
 
-    let mut layout = layout::Screen::new(ScreenSize {
+    let mut layout = layout::Screen::new(Size {
         rows: size.rows,
         cols: size.cols,
     });
@@ -157,7 +157,7 @@ fn build_client(output: TestIO, size: &ScreenSize) -> Client {
 }
 
 /// Build a new VTerm with consistent settings
-fn build_vterm(size: &ScreenSize) -> VTerm {
+fn build_vterm(size: &Size) -> VTerm {
     let mut vterm = VTerm::new(size);
     let fg = vterm.state_get_rgb_color_from_palette(7);
     let bg = vterm.state_get_rgb_color_from_palette(0);
@@ -173,7 +173,7 @@ fn build_vterm(size: &ScreenSize) -> VTerm {
 fn it_draws_simple_echo_output() {
     ::setup_logging();
 
-    let size = ScreenSize { rows: 4, cols: 4 };
+    let size = Size { rows: 4, cols: 4 };
 
     let mut expected_vterm: VTerm = run_command_in_vterm(CommandBuilder::new("echo")
                                                              .arg("some stuff"),
@@ -206,7 +206,7 @@ fn it_draws_simple_echo_output() {
 fn it_draws_simple_vim_session() {
     ::setup_logging();
 
-    let size = ScreenSize {
+    let size = Size {
         rows: 5,
         cols: 29,
     };
@@ -247,7 +247,7 @@ fn it_draws_simple_vim_session() {
 fn it_draws_vim_cargo_toml_with_scrolling() {
     ::setup_logging();
 
-    let size = ScreenSize {
+    let size = Size {
         rows: 5,
         cols: 29,
     };

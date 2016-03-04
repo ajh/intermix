@@ -6,7 +6,7 @@ use super::*;
 use super::layout::*;
 use super::servers::*;
 use uuid::Uuid;
-use vterm_sys::{self, ScreenSize, Rect};
+use vterm_sys::{self, Pos, Size, Rect};
 
 /// This worker handles:
 /// * user input
@@ -35,9 +35,9 @@ impl MainWorker {
                      Arc<RwLock<layout::Screen>>,
                      JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
-        let layout = Arc::new(RwLock::new(layout::Screen::new(ScreenSize {
-            rows: tty_ioctl_config.rows,
-            cols: tty_ioctl_config.cols,
+        let layout = Arc::new(RwLock::new(layout::Screen::new(Size {
+            height: tty_ioctl_config.rows,
+            width: tty_ioctl_config.cols,
         })));
         let layout_clone = layout.clone();
         let mut worker = MainWorker::new(draw_worker_tx, rx, tty_ioctl_config, layout);
@@ -318,7 +318,7 @@ impl MainWorker {
             });
         }
 
-        let rect = Rect { start_row: 0, end_row: 1, start_col: 0, end_col: cells.len() };
+        let rect = Rect::new(Pos::new(0,0), Size::new(cells.len(), 1));
         // Does this make sense? A status line is not a program.
         self.draw_worker_tx
             .send(ClientMsg::ProgramDamage {

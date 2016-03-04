@@ -29,7 +29,7 @@ pub enum VteWorkerMsg {
 pub struct Program {
     pub child_pid: i32,
     pub id: String,
-    pub size: ScreenSize,
+    pub size: Size,
     pub pty: File,
 }
 
@@ -37,7 +37,7 @@ impl Program {
     pub fn new(id: &str,
                command_and_args: &Vec<String>,
                server_tx: Sender<ServerMsg>,
-               size: ScreenSize)
+               size: Size)
                -> (Program, Vec<thread::JoinHandle<()>>) {
 
         let child = fork(id, command_and_args);

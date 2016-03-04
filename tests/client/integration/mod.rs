@@ -8,7 +8,7 @@ use std::sync::mpsc::Sender;
 const CTRL_B: u8 = 2u8;
 
 // Build a vterm instance
-fn build_vterm(size: &ScreenSize) -> VTerm {
+fn build_vterm(size: &Size) -> VTerm {
     let mut vterm = VTerm::new(size);
     vterm.state_set_default_colors(&ColorRGB {
                                        red: 230,
@@ -69,7 +69,7 @@ fn client_starts_in_welcome_mode() {
                                         rows: 5,
                                         cols: 10,
                                     });
-    let mut vterm = build_vterm(&ScreenSize {
+    let mut vterm = build_vterm(&Size {
         rows: 5,
         cols: 10,
     });
@@ -90,7 +90,7 @@ fn client_can_enter_command_mode() {
                                          cols: 10,
                                      });
 
-    let mut vterm = build_vterm(&ScreenSize {
+    let mut vterm = build_vterm(&Size {
         rows: 5,
         cols: 10,
     });
@@ -112,7 +112,7 @@ fn client_can_enter_program_mode() {
                                          cols: 80,
                                      });
 
-    let mut vterm = build_vterm(&ScreenSize {
+    let mut vterm = build_vterm(&Size {
         rows: 24,
         cols: 80,
     });
@@ -146,7 +146,7 @@ fn client_can_exit_program_mode() {
                                      });
 
     // The screen size here is hard coded through the client code. Need to fix that.
-    let mut vterm = build_vterm(&ScreenSize {
+    let mut vterm = build_vterm(&Size {
         rows: 24,
         cols: 80,
     });

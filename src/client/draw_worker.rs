@@ -5,7 +5,7 @@ use std::sync::{Arc, RwLock};
 use super::*;
 use super::tty_painter::*;
 use super::layout::*;
-use vterm_sys::{self, Pos, ScreenSize, ScreenCell, Rect};
+use vterm_sys::{self, Pos, Size, ScreenCell, Rect};
 
 /// # todos
 /// * [ ] make message enum more specific
@@ -71,13 +71,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
 
         let layout = self.layout.read().unwrap();
         if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
-            let rect_with_offset = Rect {
-                start_row: rect.start_row + wrap.computed_y().unwrap(),
-                end_row: rect.end_row + wrap.computed_y().unwrap(),
-                start_col: rect.start_col + wrap.computed_x().unwrap(),
-                end_col: rect.end_col + wrap.computed_x().unwrap(),
-            };
-            self.painter.draw_cells(&cells, &rect_with_offset);
+            let rect = rect.translate(&Pos { x: wrap.computed_x().unwrap(), y: wrap.computed_y().unwrap() });
+            self.painter.draw_cells(&cells, &rect);
         } else {
             warn!("didnt find node with value: {:?}", program_id);
         }
@@ -96,7 +91,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
 
     fn draw_border_for_node(painter: &mut TtyPainter<F>,
                              wrap: &layout::Wrap,
-                             size: &ScreenSize) {
+                             size: &Size) {
         if wrap.has_border() {
             let mut top = wrap.border_y().unwrap();
             if top < 0 {
@@ -104,8 +99,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             }
 
             let mut bottom = wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1;
-            if bottom >= size.rows {
-                bottom = size.rows - 1
+            if bottom >= size.height {
+                bottom = size.height - 1
             }
 
             let mut left = wrap.border_x().unwrap();
@@ -114,8 +109,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             }
 
             let mut right = wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1;
-            if right >= size.cols {
-                right = size.cols - 1
+            if right >= size.width {
+                right = size.width - 1
             }
 
             painter.draw_cells(&vec![
@@ -123,45 +118,29 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                                         chars: "┌".to_string().into_bytes(),
                                         ..Default::default()
                                     }],
-                                    &Rect {
-                                        start_row: top,
-                                        end_row: top + 1,
-                                        start_col: left,
-                                        end_col: left + 1,
-                                    });
+                                    &Rect::new(Pos::new(left, top), Size::new(1, 1))
+                            );
             painter.draw_cells(&vec![
                                     ScreenCell {
                                         chars: "┐".to_string().into_bytes(),
                                         ..Default::default()
                                     }],
-                                    &Rect {
-                                        start_row: top,
-                                        end_row: top + 1,
-                                        start_col: right,
-                                        end_col: right + 1,
-                                    });
+                                    &Rect::new(Pos::new(right, top), Size::new(1,1))
+                                    );
             painter.draw_cells(&vec![
             ScreenCell {
                 chars: "└".to_string().into_bytes(),
                 ..Default::default()
             }],
-                &Rect {
-                    start_row: bottom,
-                    end_row: bottom + 1,
-                    start_col: left,
-                    end_col: left + 1,
-                });
+                &Rect::new(Pos::new(left, bottom), Size::new(1,1))
+                );
             painter.draw_cells(&vec![
             ScreenCell {
                 chars: "┘".to_string().into_bytes(),
                 ..Default::default()
             }],
-                &Rect {
-                    start_row: bottom,
-                    end_row: bottom + 1,
-                    start_col: right,
-                    end_col: right + 1,
-                });
+                &Rect::new(Pos::new(right,bottom), Size::new(1,1))
+            );
 
             for x in left + 1..right {
                 painter.draw_cells(&vec![
@@ -169,24 +148,15 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                     chars: "─".to_string().into_bytes(),
                     ..Default::default()
                 }],
-                    &Rect {
-                            start_row: top,
-                            end_row: top + 1,
-                            start_col: x,
-                            end_col: x + 1,
-                    }
+                    &Rect::new(Pos::new(x, top), Size::new(1,1))
                     );
                 painter.draw_cells(&vec![
                 ScreenCell {
                     chars: "─".to_string().into_bytes(),
                     ..Default::default()
                 }],
-                    &Rect {
-                        start_row: bottom,
-                        end_row: bottom + 1,
-                        start_col: x,
-                        end_col: x + 1,
-                    });
+                    &Rect::new(Pos::new(x, bottom), Size::new(1,1))
+                    );
             }
 
             for y in top + 1..bottom {
@@ -195,23 +165,15 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                     chars: "│".to_string().into_bytes(),
                     ..Default::default()
                 }],
-                    &Rect {
-                        start_row: y,
-                        end_row: y + 1,
-                        start_col: left,
-                        end_col: left + 1,
-                    });
+                    &Rect::new(Pos::new(left, y), Size::new(1,1))
+                    );
                 painter.draw_cells(&vec![
                 ScreenCell {
                     chars: "│".to_string().into_bytes(),
                     ..Default::default()
                 }],
-                    &Rect {
-                        start_row: y,
-                        end_row: y + 1,
-                        start_col: right,
-                        end_col: right + 1,
-                    });
+                    &Rect::new(Pos::new(right, y), Size::new(1,1))
+                    );
             }
         } else if wrap.margin() > 0 {
             let mut top = wrap.computed_y().unwrap() - wrap.padding() - 1;
@@ -221,8 +183,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
 
             let mut bottom = wrap.computed_y().unwrap() + wrap.computed_height().unwrap() +
                              wrap.padding();
-            if bottom >= size.rows {
-                bottom = size.rows - 1
+            if bottom >= size.height {
+                bottom = size.height - 1
             }
 
             let mut left = wrap.computed_x().unwrap() - wrap.padding() - 1;
@@ -232,8 +194,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
 
             let mut right = wrap.computed_x().unwrap() + wrap.computed_width().unwrap() +
                             wrap.padding();
-            if right >= size.cols {
-                right = size.cols - 1
+            if right >= size.width {
+                right = size.width - 1
             }
 
             for x in left..right + 1 {
@@ -242,23 +204,15 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                     chars: " ".to_string().into_bytes(),
                     ..Default::default()
                 }],
-                    &Rect {
-                        start_row: top,
-                        end_row: top + 1,
-                        start_col: x,
-                        end_col: x + 1,
-                    });
+                    &Rect::new(Pos::new(x, top), Size::new(1,1))
+                    );
                 painter.draw_cells(&vec![
                 ScreenCell {
                     chars: " ".to_string().into_bytes(),
                     ..Default::default()
                 }],
-                    &Rect {
-                        start_row: bottom,
-                        end_row: bottom + 1,
-                        start_col: x,
-                        end_col: x + 1,
-                    });
+                    &Rect::new(Pos::new(x, bottom), Size::new(1,1))
+                    );
             }
 
             for y in top + 1..bottom {
@@ -267,23 +221,15 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                     chars: " ".to_string().into_bytes(),
                     ..Default::default()
                 }],
-                    &Rect {
-                        start_row: y,
-                        end_row: y + 1,
-                        start_col: left,
-                        end_col: left + 1,
-                    });
+                    &Rect::new(Pos::new(left, y), Size::new(1,1))
+                    );
             painter.draw_cells(&vec![
                 ScreenCell {
                     chars: " ".to_string().into_bytes(),
                     ..Default::default()
                 }],
-                    &Rect {
-                        start_row: y,
-                        end_row: y + 1,
-                        start_col: right,
-                        end_col: right + 1,
-                    });
+                    &Rect::new(Pos::new(right, y), Size::new(1,1))
+                    );
             }
         }
     }
@@ -291,8 +237,8 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
     fn clear(&mut self) {
         let layout = self.layout.read().unwrap();
         let mut cells: Vec<ScreenCell> = vec![];
-        for _ in 0..layout.size.rows {
-            for _ in 0..layout.size.cols {
+        for _ in 0..layout.size.height {
+            for _ in 0..layout.size.width {
                 cells.push(ScreenCell {
                     chars: " ".to_string().into_bytes(),
                     ..Default::default()
@@ -300,7 +246,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             }
         }
 
-        self.painter.draw_cells(&cells, &Rect { start_row: 0, start_col: 0, end_row: layout.size.rows - 1, end_col: layout.size.cols - 1 });
+        self.painter.draw_cells(&cells, &Rect::new(Pos::new(0,0), layout.size.clone()));
     }
 
     fn move_cursor(&mut self, program_id: String, _: vterm_sys::Pos, _: bool) {

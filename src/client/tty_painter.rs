@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 use std::io::BufWriter;
 use term::terminfo::{parm, TermInfo};
-use vterm_sys::{self, ScreenSize, Pos, ColorPalette, ScreenCell, Rect};
+use vterm_sys::{self, Size, Pos, ColorPalette, ScreenCell, Rect};
 
 // TODO:
 //
@@ -62,7 +62,7 @@ impl Default for Pen {
             font: 0,
             is_visible: true,
             italic: false,
-            pos: Pos { row: 0, col: 0 },
+            pos: Pos::new(0,0),
             reverse: false,
             strike: false,
             underline: 0,
@@ -90,8 +90,8 @@ impl Pen {
         let mut params: Vec<parm::Param> = vec![];
 
         if self.disp_pos.is_none() || *self.disp_pos.as_ref().unwrap() != self.pos {
-            params.push(parm::Param::Number(self.pos.row as i32));
-            params.push(parm::Param::Number(self.pos.col as i32));
+            params.push(parm::Param::Number(self.pos.y as i32));
+            params.push(parm::Param::Number(self.pos.x as i32));
             Pen::write("cup", io, &ti, &mut vars, &mut params);
         }
 
@@ -192,11 +192,11 @@ pub struct TtyPainter<F: Write + Send> {
     // the physical state of the tty that is being painted
     pen: Pen,
     io: BufWriter<F>,
-    size: ScreenSize,
+    size: Size,
 }
 
 impl<F: Write + Send> TtyPainter<F> {
-    pub fn new(io: F, size: ScreenSize) -> TtyPainter<F> {
+    pub fn new(io: F, size: Size) -> TtyPainter<F> {
         TtyPainter {
             pen: Default::default(),
             io: BufWriter::new(io),
@@ -209,17 +209,16 @@ impl<F: Write + Send> TtyPainter<F> {
         trace!("draw_cells rect={:?}", rect);
 
         for (i, cell) in cells.iter().enumerate() {
-            let width = rect.end_col - rect.start_col;
-            let x = rect.start_col + (i % width);
-            let y = rect.start_row + (i as f32 / width as f32).floor() as usize;
+            let x = rect.origin.x + (i % rect.size.width);
+            let y = rect.origin.y + (i as f32 / rect.size.width as f32).floor() as usize;
 
-            if x >= self.size.cols || y >= self.size.rows {
+            if x >= self.size.width || y >= self.size.height {
                 // Not sure this is the right thing to do. How do terminals handle wrapping?
                 continue;
             }
 
-            self.pen.pos.col = x;
-            self.pen.pos.row = y;
+            self.pen.pos.x = x;
+            self.pen.pos.y = y;
             self.draw_cell(cell);
         }
 
@@ -250,16 +249,16 @@ impl<F: Write + Send> TtyPainter<F> {
             self.io.write_all(&[b'\x20']).ok().expect("failed to write"); // space
         }
 
-        if self.pen.pos.col + 1 < self.size.cols {
-            self.pen.pos.col += 1;
-        } else if self.pen.pos.row + 1 < self.size.rows {
-            self.pen.pos.col = 0;
-            self.pen.pos.row += 1;
+        if self.pen.pos.x + 1 < self.size.width {
+            self.pen.pos.x += 1;
+        } else if self.pen.pos.y + 1 < self.size.height {
+            self.pen.pos.x = 0;
+            self.pen.pos.y += 1;
         } else {
             warn!("cursor is beyond screen size? What is supposed to happen here?");
             // for now just wedge it into the bottom right corner
-            self.pen.pos.col = self.size.cols - 1;
-            self.pen.pos.row = self.size.rows - 1;
+            self.pen.pos.x = self.size.width - 1;
+            self.pen.pos.y = self.size.height - 1;
         }
 
         if cell.width > 1 {
@@ -281,8 +280,8 @@ impl<F: Write + Send> TtyPainter<F> {
     ///
     /// Tmux also has an optimization where it'll no-op this if the effected region is >= 50% of
     /// the pane, but will instead schedule a "pane redraw". That is also not implemented.
-    /// (&mut self, scroll_region_size: &ScreenSize, scroll_region_pos: &Pos) {
-    pub fn insert_line(&mut self, _: &ScreenSize, _: &Pos) {
+    /// (&mut self, scroll_region_size: &Size, scroll_region_pos: &Pos) {
+    pub fn insert_line(&mut self, _: &Size, _: &Pos) {
         // I'd like to iterate through all the cells in the pane. Can I get access to this?
     }
 

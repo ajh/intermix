@@ -1,6 +1,6 @@
 use libintermix::client::layout::*;
 use ::support::*;
-use vterm_sys::ScreenSize;
+use vterm_sys::Size;
 
 #[test]
 fn it_wraps_content_in_leftmost_column() {
@@ -14,7 +14,7 @@ fn it_wraps_content_in_leftmost_column() {
                      .height(2)
                      .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 4, cols: 4 });
+    let mut screen = Screen::new(Size { rows: 4, cols: 4 });
     screen.tree_mut()
           .root_mut()
           .append(WrapBuilder::col(9).build())
@@ -48,7 +48,7 @@ fn it_wraps_content_in_rightmost_column() {
                      .height(2)
                      .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 4, cols: 4 });
+    let mut screen = Screen::new(Size { rows: 4, cols: 4 });
     screen.tree_mut().root_mut().value().set_align(Align::Right);
     screen.tree_mut()
           .root_mut()

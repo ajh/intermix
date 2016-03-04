@@ -1,6 +1,6 @@
 use libintermix::client::layout::*;
 use ::support::*;
-use vterm_sys::ScreenSize;
+use vterm_sys::Size;
 
 mod align;
 mod border_margin_padding;
@@ -17,7 +17,7 @@ mod line_wrap;
 
 #[test]
 fn it_draws_a_root() {
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 2 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 2 });
     screen.flush_changes();
     assert_scene_eq(&draw_screen(&screen),
                     "
@@ -34,7 +34,7 @@ fn it_draws_only_a_row() {
                   .height(2)
                   .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 2 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 2 });
     screen.tree_mut().root_mut().append(row);
     screen.flush_changes();
 
@@ -53,7 +53,7 @@ fn it_draws_only_a_col() {
                   .height(2)
                   .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col);
     screen.flush_changes();
 
@@ -74,7 +74,7 @@ fn it_draws_a_column_inside_a_row() {
                   .height(2)
                   .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(row).append(col);
     screen.flush_changes();
 
@@ -95,7 +95,7 @@ fn it_draws_a_row_inside_a_column() {
                   .height(2)
                   .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col).append(row);
     screen.flush_changes();
 
@@ -114,7 +114,7 @@ fn it_draws_a_12_width_col() {
                   .height(2)
                   .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col);
     screen.flush_changes();
 
@@ -138,7 +138,7 @@ fn it_draws_a_9_and_3_width_col_evenly() {
                     .height(2)
                     .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
@@ -163,7 +163,7 @@ fn it_draws_a_9_and_3_width_col_unevenly() {
                     .height(2)
                     .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 3 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 3 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
@@ -188,7 +188,7 @@ fn it_draws_a_3_and_9_width_col_evenly() {
                     .height(2)
                     .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
@@ -213,7 +213,7 @@ fn it_draws_a_3_and_9_width_col_unevenly() {
                     .height(2)
                     .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 3 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 3 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
@@ -238,7 +238,7 @@ fn it_draws_a_pair_of_6_width_cols_evenly() {
                     .height(2)
                     .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
@@ -263,7 +263,7 @@ fn it_draws_a_pair_of_6_width_cols_unevenly() {
                     .height(2)
                     .build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 3 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 3 });
     screen.tree_mut().root_mut().append(col_a);
     screen.tree_mut().root_mut().append(col_b);
     screen.flush_changes();
@@ -288,7 +288,7 @@ fn it_draws_a_bunch_of_columns() {
         WrapBuilder::col(2).name("z".to_string()).height(1).build(),
     ];
 
-    let mut screen = Screen::new(ScreenSize { rows: 1, cols: 6 });
+    let mut screen = Screen::new(Size { rows: 1, cols: 6 });
     for col in cols {
         screen.tree_mut().root_mut().append(col);
     }
@@ -312,7 +312,7 @@ fn it_draws_a_bunch_of_rows() {
         WrapBuilder::row().name("z".to_string()).height(1).build(),
     ];
 
-    let mut screen = Screen::new(ScreenSize { rows: 6, cols: 1 });
+    let mut screen = Screen::new(Size { rows: 6, cols: 1 });
     for row in rows {
         screen.tree_mut().root_mut().append(row);
     }
@@ -334,7 +334,7 @@ fn it_draws_a_bunch_of_rows() {
 fn it_truncates_leaf_with_narrow_container() {
     let leaf = WrapBuilder::row().name("a".to_string()).width(3).height(1).build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 1, cols: 2 });
+    let mut screen = Screen::new(Size { rows: 1, cols: 2 });
     screen.tree_mut().root_mut().append(leaf);
     screen.flush_changes();
 
@@ -349,7 +349,7 @@ fn it_truncates_leaf_with_narrow_container() {
 fn it_truncates_leaf_with_short_container() {
     let leaf = WrapBuilder::row().name("a".to_string()).height(4).build();
 
-    let mut screen = Screen::new(ScreenSize { rows: 2, cols: 1 });
+    let mut screen = Screen::new(Size { rows: 2, cols: 1 });
     screen.tree_mut().root_mut().append(leaf);
     screen.flush_changes();
 

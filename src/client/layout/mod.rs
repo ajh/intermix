@@ -1,4 +1,4 @@
-use vterm_sys::{ScreenSize, Pos};
+use vterm_sys::{Size, Pos};
 use ego_tree;
 
 pub const GRID_COLUMNS_COUNT: usize = 12;
@@ -6,12 +6,12 @@ pub const GRID_COLUMNS_COUNT: usize = 12;
 /// Represents the Screen for an entire screen.
 #[derive(Debug, Clone)]
 pub struct Screen {
-    pub size: ScreenSize,
+    pub size: Size,
     tree: ego_tree::Tree<Wrap>,
 }
 
 impl Screen {
-    pub fn new(size: ScreenSize) -> Screen {
+    pub fn new(size: Size) -> Screen {
         let root = WrapBuilder::row().name("root".to_string()).build();
 
         Screen {
@@ -49,9 +49,9 @@ impl Screen {
         let grid_width = root_wrap.grid_width();
         root_wrap.set_computed_grid_width(grid_width);
         root_wrap.set_is_new_line(false);
-        root_wrap.set_outside_width(Some(self.size.cols));
+        root_wrap.set_outside_width(Some(self.size.width));
         root_wrap.set_outside_x(Some(0));
-        root_wrap.set_outside_height(Some(self.size.rows));
+        root_wrap.set_outside_height(Some(self.size.height));
         root_wrap.set_outside_y(Some(0));
     }
 

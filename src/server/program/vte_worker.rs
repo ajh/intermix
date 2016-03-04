@@ -42,10 +42,7 @@ impl VteWorker {
                -> VteWorker {
 
         // FIXME: get size from self
-        let mut vterm = VTerm::new(&ScreenSize {
-            rows: 24,
-            cols: 80,
-        });
+        let mut vterm = VTerm::new(&Size::new(80, 24));
         let fg = vterm.state_get_rgb_color_from_palette(7);
         let bg = vterm.state_get_rgb_color_from_palette(0);
         vterm.state_set_default_colors(&fg, &bg);
@@ -123,7 +120,7 @@ impl VteWorker {
                 };
                 self.server_tx.send(event).unwrap();
             }
-            ScreenEvent::Resize{rows, cols} => info!("Resize: rows={:?} cols={:?}", rows, cols),
+            ScreenEvent::Resize{height, width} => info!("Resize: height={:?} width={:?}", height, width),
             ScreenEvent::SbPopLine{cells: _} => info!("SbPopLine"),
             ScreenEvent::SbPushLine{cells} => info!("SbPushLine"),
             ScreenEvent::AltScreen{ is_true } => info!("AltScreen: is_true={:?}", is_true),
