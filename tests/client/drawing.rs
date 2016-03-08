@@ -104,8 +104,8 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
                         };
                         client.tx().send(event).unwrap();
                     }
-                    ScreenEvent::Resize{rows, cols} => {
-                        info!("Resize: rows={:?} cols={:?}", rows, cols)
+                    ScreenEvent::Resize{height, width} => {
+                        info!("Resize: height={:?} width={:?}", height, width)
                     }
                     ScreenEvent::SbPopLine{cells: _} => info!("SbPopLine"),
                     ScreenEvent::SbPushLine{cells: _} => info!("SbPushLine"),
@@ -134,14 +134,14 @@ fn build_client(output: TestIO, size: &Size) -> Client {
     let (client_tx, client) = Client::spawn(::std::io::empty(),
                                             output,
                                             TtyIoCtlConfig {
-                                                rows: size.rows,
-                                                cols: size.cols,
+                                                rows: size.height,
+                                                cols: size.width,
                                                 ..Default::default()
                                             });
 
     let mut layout = layout::Screen::new(Size {
-        rows: size.rows,
-        cols: size.cols,
+        height: size.height,
+        width: size.width,
     });
 
     let leaf = layout::WrapBuilder::row()
@@ -173,7 +173,7 @@ fn build_vterm(size: &Size) -> VTerm {
 fn it_draws_simple_echo_output() {
     ::setup_logging();
 
-    let size = Size { rows: 4, cols: 4 };
+    let size = Size { height: 4, width: 4 };
 
     let mut expected_vterm: VTerm = run_command_in_vterm(CommandBuilder::new("echo")
                                                              .arg("some stuff"),
@@ -207,8 +207,8 @@ fn it_draws_simple_vim_session() {
     ::setup_logging();
 
     let size = Size {
-        rows: 5,
-        cols: 29,
+        height: 5,
+        width: 29,
     };
     let mut expected_vterm: VTerm = run_command_in_vterm(CommandBuilder::new("ttyplay")
                                                              .arg(env::current_dir()
@@ -248,8 +248,8 @@ fn it_draws_vim_cargo_toml_with_scrolling() {
     ::setup_logging();
 
     let size = Size {
-        rows: 5,
-        cols: 29,
+        height: 5,
+        width: 29,
     };
     let mut expected_vterm: VTerm = run_command_in_vterm(CommandBuilder::new("ttyplay")
                                                              .arg(env::current_dir()

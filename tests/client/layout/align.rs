@@ -9,7 +9,7 @@ fn it_can_align_a_column_left() {
                   .height(2)
                   .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { height: 2, width: 4 });
     screen.tree_mut().root_mut().append(col);
     screen.flush_changes();
 
@@ -28,7 +28,7 @@ fn it_can_align_columns_left() {
         WrapBuilder::col(3).name("b".to_string()).height(2).build(),
     ];
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { height: 2, width: 4 });
     for col in cols {
         screen.tree_mut().root_mut().append(col);
     }
@@ -49,7 +49,7 @@ fn it_can_align_a_column_right() {
                   .height(2)
                   .build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { height: 2, width: 4 });
     screen.tree_mut().root_mut().value().set_align(Align::Right);
     screen.tree_mut().root_mut().append(col);
     screen.flush_changes();
@@ -69,7 +69,7 @@ fn it_can_align_columns_right() {
         WrapBuilder::col(3).name("b".to_string()).height(2).build(),
     ];
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { height: 2, width: 4 });
     screen.tree_mut().root_mut().value().set_align(Align::Right);
     for col in cols {
         screen.tree_mut().root_mut().append(col);
@@ -88,7 +88,7 @@ fn it_can_align_columns_right() {
 fn it_can_align_a_column_center() {
     let col = WrapBuilder::col(6).name("a".to_string()).height(2).build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { height: 2, width: 4 });
     screen.tree_mut().root_mut().value().set_align(Align::Center);
     screen.tree_mut().root_mut().append(col);
     screen.flush_changes();
@@ -108,7 +108,7 @@ fn it_can_align_columns_center() {
         WrapBuilder::col(3).name("b".to_string()).height(2).build(),
     ];
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { height: 2, width: 4 });
     screen.tree_mut().root_mut().value().set_align(Align::Center);
     for col in cols {
         screen.tree_mut().root_mut().append(col);
@@ -127,7 +127,7 @@ fn it_can_align_columns_center() {
 fn it_can_align_a_row_top() {
     let row = WrapBuilder::row().name("a".to_string()).height(1).build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { height: 2, width: 4 });
     screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Top);
     screen.tree_mut().root_mut().append(row);
     screen.flush_changes();
@@ -147,7 +147,7 @@ fn it_can_align_rows_top() {
         WrapBuilder::row().name("b".to_string()).height(1).build(),
     ];
 
-    let mut screen = Screen::new(Size { rows: 3, cols: 4 });
+    let mut screen = Screen::new(Size { height: 3, width: 4 });
     screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Top);
     for row in rows {
         screen.tree_mut().root_mut().append(row);
@@ -167,7 +167,7 @@ fn it_can_align_rows_top() {
 fn it_can_align_a_row_bottom() {
     let row = WrapBuilder::row().name("a".to_string()).height(1).build();
 
-    let mut screen = Screen::new(Size { rows: 2, cols: 4 });
+    let mut screen = Screen::new(Size { height: 2, width: 4 });
     screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Bottom);
     screen.tree_mut().root_mut().append(row);
     screen.flush_changes();
@@ -187,7 +187,7 @@ fn it_can_align_rows_bottom() {
         WrapBuilder::row().name("b".to_string()).height(1).build(),
     ];
 
-    let mut screen = Screen::new(Size { rows: 3, cols: 4 });
+    let mut screen = Screen::new(Size { height: 3, width: 4 });
     screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Bottom);
     for row in rows {
         screen.tree_mut().root_mut().append(row);
@@ -207,7 +207,7 @@ fn it_can_align_rows_bottom() {
 fn it_can_align_a_row_middle() {
     let row = WrapBuilder::row().name("a".to_string()).height(1).build();
 
-    let mut screen = Screen::new(Size { rows: 3, cols: 4 });
+    let mut screen = Screen::new(Size { height: 3, width: 4 });
     screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Middle);
     screen.tree_mut().root_mut().append(row);
     screen.flush_changes();
@@ -228,7 +228,7 @@ fn it_can_align_rows_middle() {
         WrapBuilder::row().name("b".to_string()).height(1).build(),
     ];
 
-    let mut screen = Screen::new(Size { rows: 4, cols: 4 });
+    let mut screen = Screen::new(Size { height: 4, width: 4 });
     screen.tree_mut().root_mut().value().set_vertical_align(VerticalAlign::Middle);
     for row in rows {
         screen.tree_mut().root_mut().append(row);

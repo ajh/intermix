@@ -214,12 +214,12 @@ impl<'a, 'b> VTermDiff<'a, 'b> {
     {
         let size = vterm.get_size();
         let mut lines: Vec<String> = vec![];
-        let mut pos: Pos = Default::default();
-        for y in 0..size.rows {
+        let mut pos = Pos { x: 0, y: 0 };
+        for y in 0..size.height {
             let mut line: String = format!("{}", BORDER);
-            pos.row = y;
-            for x in 0..size.cols {
-                pos.col = x;
+            pos.y = y;
+            for x in 0..size.width {
+                pos.x = x;
                 let cell = vterm.screen_get_cell(&pos);
                 f(cell, &mut line);
             }
@@ -265,7 +265,7 @@ mod tests {
 
     #[test]
     fn has_no_diff_when_vterms_are_the_same() {
-        let size = Size { rows: 1, cols: 1 };
+        let size = Size { height: 1, width: 1 };
         let vterm = VTerm::new(&size);
         let diff = VTermDiff::new(&vterm, &vterm);
         assert!(!diff.has_diff());
@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     fn has_diff_when_printables_are_different() {
-        let size = Size { rows: 1, cols: 1 };
+        let size = Size { height: 1, width: 1 };
         let mut a = VTerm::new(&size);
         let b = VTerm::new(&size);
 
@@ -286,7 +286,7 @@ mod tests {
 
     #[test]
     fn has_diff_when_bolds_are_different() {
-        let size = Size { rows: 1, cols: 1 };
+        let size = Size { height: 1, width: 1 };
         let mut a = VTerm::new(&size);
         let mut b = VTerm::new(&size);
 
@@ -300,7 +300,7 @@ mod tests {
 
     #[test]
     fn has_diff_when_underlines_are_different() {
-        let size = Size { rows: 1, cols: 1 };
+        let size = Size { height: 1, width: 1 };
         let mut a = VTerm::new(&size);
         let mut b = VTerm::new(&size);
 
@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn has_diff_when_fg_rbgs_are_different() {
-        let size = Size { rows: 1, cols: 1 };
+        let size = Size { height: 1, width: 1 };
         let mut a = VTerm::new(&size);
         let mut b = VTerm::new(&size);
 

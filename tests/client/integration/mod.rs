@@ -33,22 +33,12 @@ fn status_line_matches<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: Regex)
         vterm.write(&bytes).unwrap();
 
         // TODO: fix this fixed size by getting size from vterm
-        let actual = vterm.screen_get_text_lossy(&Rect {
-            start_row: 0,
-            end_row: 1,
-            start_col: 0,
-            end_col: 80,
-        });
+        let actual = vterm.screen_get_text_lossy(&Rect::new(Pos::new(0,0), Size::new(80,1)));
         regex.is_match(&actual)
     });
 
     // TODO: fix this fixed size by getting size from vterm
-    let actual = vterm.screen_get_text_lossy(&Rect {
-        start_row: 0,
-        end_row: 5,
-        start_col: 0,
-        end_col: 10,
-    });
+    let actual = vterm.screen_get_text_lossy(&Rect::new(Pos::new(0,0), Size::new(10,5)));
     assert!(is_success,
             format!("expected:\n{}\nto match {:#?}", actual, regex));
 }
@@ -70,8 +60,8 @@ fn client_starts_in_welcome_mode() {
                                         cols: 10,
                                     });
     let mut vterm = build_vterm(&Size {
-        rows: 5,
-        cols: 10,
+        height: 5,
+        width: 10,
     });
     status_line_matches(&mut vterm, &mut output, Regex::new(r"welcome").unwrap());
     client.stop();
@@ -91,8 +81,8 @@ fn client_can_enter_command_mode() {
                                      });
 
     let mut vterm = build_vterm(&Size {
-        rows: 5,
-        cols: 10,
+        height: 5,
+        width: 10,
     });
     send_keys(&tx, vec![b'a']);
     status_line_matches(&mut vterm, &mut output, Regex::new(r"command").unwrap());
@@ -113,8 +103,8 @@ fn client_can_enter_program_mode() {
                                      });
 
     let mut vterm = build_vterm(&Size {
-        rows: 24,
-        cols: 80,
+        height: 24,
+        width: 80,
     });
 
     send_keys(&tx, vec![b'a']);
@@ -147,8 +137,8 @@ fn client_can_exit_program_mode() {
 
     // The screen size here is hard coded through the client code. Need to fix that.
     let mut vterm = build_vterm(&Size {
-        rows: 24,
-        cols: 80,
+        height: 24,
+        width: 80,
     });
 
     send_keys(&tx, vec![b'a']);
