@@ -3,17 +3,17 @@ refresh_rate = 30
 [appender.root]
 kind = "file"
 path = "log/intermix.log"
-pattern = "%d %l - %m (%f:%L)"
+pattern = "%d %f:%L\t%l - %m"
 
 [appender.client]
 kind = "file"
 path = "log/client.log"
-pattern = "%d %l - %m (%f:%L)"
+pattern = "%d %f:%L\t%l - %m"
 
 [appender.server]
 kind = "file"
 path = "log/server.log"
-pattern = "%d %l - %m (%f:%L)"
+pattern = "%d %f:%L\t%l - %m"
 
 [root]
 appenders = ["root"]
