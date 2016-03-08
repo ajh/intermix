@@ -60,7 +60,7 @@ impl VteWorker {
 
     pub fn enter_listen_loop(&mut self) {
         self.vterm.set_utf8(true);
-        self.vterm.screen_set_damage_merge(ffi::VTermDamageSize::VTermDamageRow);
+        self.vterm.screen_set_damage_merge(ffi::VTermDamageSize::VTermDamageScreen);
 
         self.vterm.generate_screen_events().unwrap();
         let vterm_event_rx = self.vterm.screen_event_rx.take().unwrap();
