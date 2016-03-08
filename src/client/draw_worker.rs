@@ -67,7 +67,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
     }
 
     fn program_damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>, rect: vterm_sys::Rect) {
-        trace!("program_damage for {}", program_id);
+        trace!("program_damage {:?} for {}", rect, program_id);
 
         let layout = self.layout.read().unwrap();
         if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {

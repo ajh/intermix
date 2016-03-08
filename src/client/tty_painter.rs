@@ -206,7 +206,7 @@ impl<F: Write + Send> TtyPainter<F> {
 
     // Draw the cells in the list starting at the given position
     pub fn draw_cells(&mut self, cells: &Vec<ScreenCell>, rect: &Rect) {
-        trace!("draw_cells rect={:?}", rect);
+        //trace!("draw_cells rect={:?}", rect);
 
         for (cell, pos) in cells.iter().zip(rect.positions()) {
             if pos.x >= self.size.width || pos.y >= self.size.height {
@@ -266,7 +266,7 @@ impl<F: Write + Send> TtyPainter<F> {
 
     /// TODO: take a offset from the pane
     pub fn move_cursor(&mut self, pos: &Pos) {
-        trace!("move_cursor pos={:?}", pos);
+        //trace!("move_cursor pos={:?}", pos);
         self.pen.pos = pos.clone();
     }
 
