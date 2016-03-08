@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 use std::io::BufWriter;
 use term::terminfo::{parm, TermInfo};
-use vterm_sys::{self, Size, Pos, ColorPalette, ScreenCell, Rect};
+use vterm_sys::{self, Size, Pos, ColorPalette, ScreenCell, Rect, RectAssist};
 
 // TODO:
 //
@@ -208,17 +208,14 @@ impl<F: Write + Send> TtyPainter<F> {
     pub fn draw_cells(&mut self, cells: &Vec<ScreenCell>, rect: &Rect) {
         trace!("draw_cells rect={:?}", rect);
 
-        for (i, cell) in cells.iter().enumerate() {
-            let x = rect.origin.x + (i % rect.size.width);
-            let y = rect.origin.y + (i as f32 / rect.size.width as f32).floor() as usize;
-
-            if x >= self.size.width || y >= self.size.height {
+        for (cell, pos) in cells.iter().zip(rect.positions()) {
+            if pos.x >= self.size.width || pos.y >= self.size.height {
                 // Not sure this is the right thing to do. How do terminals handle wrapping?
+                warn!("skipping draw of cell because its position is outside of our rect");
                 continue;
             }
 
-            self.pen.pos.x = x;
-            self.pen.pos.y = y;
+            self.pen.pos = pos;
             self.draw_cell(cell);
         }
 

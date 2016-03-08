@@ -5,7 +5,7 @@ use std::sync::{Arc, RwLock};
 use super::*;
 use super::tty_painter::*;
 use super::layout::*;
-use vterm_sys::{self, Pos, Size, ScreenCell, Rect};
+use vterm_sys::{self, Pos, Size, ScreenCell, Rect, RectAssist};
 
 /// # todos
 /// * [ ] make message enum more specific
@@ -89,6 +89,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
         }
     }
 
+    /// TODO: optimize this by batching draw_cells calls
     fn draw_border_for_node(painter: &mut TtyPainter<F>,
                              wrap: &layout::Wrap,
                              size: &Size) {
@@ -237,16 +238,17 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
     fn clear(&mut self) {
         let layout = self.layout.read().unwrap();
         let mut cells: Vec<ScreenCell> = vec![];
-        for _ in 0..layout.size.height {
-            for _ in 0..layout.size.width {
-                cells.push(ScreenCell {
-                    chars: " ".to_string().into_bytes(),
-                    ..Default::default()
-                });
-            }
+
+        let rect = Rect::new(Pos::new(0,0), layout.size.clone());
+
+        for pos in rect.positions() {
+            cells.push(ScreenCell {
+                chars: vec![b' '],
+                ..Default::default()
+            });
         }
 
-        self.painter.draw_cells(&cells, &Rect::new(Pos::new(0,0), layout.size.clone()));
+        self.painter.draw_cells(&cells, &rect);
     }
 
     fn move_cursor(&mut self, program_id: String, _: vterm_sys::Pos, _: bool) {
