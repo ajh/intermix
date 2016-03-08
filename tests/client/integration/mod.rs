@@ -53,7 +53,7 @@ fn client_starts_in_welcome_mode() {
     let mut output = TestIO::new();
     let input = TestIO::new();
 
-    let (_, client) = Client::spawn(input.clone(),
+    let client = Client::spawn(input.clone(),
                                     output.clone(),
                                     TtyIoCtlConfig {
                                         rows: 5,
@@ -73,7 +73,7 @@ fn client_can_enter_command_mode() {
     let mut output = TestIO::new();
     let input = TestIO::new();
 
-    let (tx, client) = Client::spawn(input.clone(),
+    let client = Client::spawn(input.clone(),
                                      output.clone(),
                                      TtyIoCtlConfig {
                                          rows: 5,
@@ -84,7 +84,7 @@ fn client_can_enter_command_mode() {
         height: 5,
         width: 10,
     });
-    send_keys(&tx, vec![b'a']);
+    send_keys(&client.main_tx, vec![b'a']);
     status_line_matches(&mut vterm, &mut output, Regex::new(r"command").unwrap());
     client.stop();
 }
@@ -95,7 +95,7 @@ fn client_can_enter_program_mode() {
     let mut output = TestIO::new();
     let input = TestIO::new();
 
-    let (tx, client) = Client::spawn(input.clone(),
+    let client = Client::spawn(input.clone(),
                                      output.clone(),
                                      TtyIoCtlConfig {
                                          rows: 24,
@@ -107,12 +107,12 @@ fn client_can_enter_program_mode() {
         width: 80,
     });
 
-    send_keys(&tx, vec![b'a']);
+    send_keys(&client.main_tx, vec![b'a']);
     status_line_matches(&mut vterm, &mut output, Regex::new(r"command").unwrap());
 
-    send_keys(&tx, vec![b'c', b'i']);
+    send_keys(&client.main_tx, vec![b'c', b'i']);
     // sending this message is hacky
-    tx.send(ClientMsg::ProgramAdd {
+    client.main_tx.send(ClientMsg::ProgramAdd {
           server_id: "some server".to_string(),
           program_id: "123".to_string(),
       })
@@ -128,7 +128,7 @@ fn client_can_exit_program_mode() {
     let mut output = TestIO::new();
     let input = TestIO::new();
 
-    let (tx, client) = Client::spawn(input.clone(),
+    let client = Client::spawn(input.clone(),
                                      output.clone(),
                                      TtyIoCtlConfig {
                                          rows: 24,
@@ -141,19 +141,19 @@ fn client_can_exit_program_mode() {
         width: 80,
     });
 
-    send_keys(&tx, vec![b'a']);
+    send_keys(&client.main_tx, vec![b'a']);
     status_line_matches(&mut vterm, &mut output, Regex::new(r"command").unwrap());
 
-    send_keys(&tx, vec![b'c', b'i']);
+    send_keys(&client.main_tx, vec![b'c', b'i']);
     // sending this message is hacky
-    tx.send(ClientMsg::ProgramAdd {
+    client.main_tx.send(ClientMsg::ProgramAdd {
           server_id: "some server".to_string(),
           program_id: "123".to_string(),
       })
       .unwrap();
     status_line_matches(&mut vterm, &mut output, Regex::new(r"program").unwrap());
 
-    send_keys(&tx, vec![CTRL_B, b'c']);
+    send_keys(&client.main_tx, vec![CTRL_B, b'c']);
     status_line_matches(&mut vterm, &mut output, Regex::new(r"command").unwrap());
 
     client.stop();

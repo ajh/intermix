@@ -74,7 +74,7 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
                             cells: vterm.screen_get_cells_in_rect(&rect),
                             rect: rect,
                         };
-                        client.tx().send(event).unwrap();
+                        client.main_tx.send(event).unwrap();
                     }
                     ScreenEvent::MoveCursor{new, old, is_visible} => {
                         info!("MoveCursor: new={:?} old={:?} is_visible={:?}",
@@ -87,7 +87,7 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
                             old: old,
                             is_visible: is_visible,
                         };
-                        client.tx().send(event).unwrap();
+                        client.main_tx.send(event).unwrap();
                     }
                     ScreenEvent::MoveRect{dest, src} => {
                         info!("MoveRect: dest={:?} src={:?}", dest, src);
@@ -96,13 +96,13 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
                             cells: vterm.screen_get_cells_in_rect(&src),
                             rect: src,
                         };
-                        client.tx().send(event).unwrap();
+                        client.main_tx.send(event).unwrap();
                         let event = ClientMsg::ProgramDamage {
                             program_id: "test_program".to_string(),
                             cells: vterm.screen_get_cells_in_rect(&dest),
                             rect: dest,
                         };
-                        client.tx().send(event).unwrap();
+                        client.main_tx.send(event).unwrap();
                     }
                     ScreenEvent::Resize{height, width} => {
                         info!("Resize: height={:?} width={:?}", height, width)
@@ -131,7 +131,7 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
 
 /// Build and return a simplified client of the given size.
 fn build_client(output: TestIO, size: &Size) -> Client {
-    let (client_tx, client) = Client::spawn(::std::io::empty(),
+    let client = Client::spawn(::std::io::empty(),
                                             output,
                                             TtyIoCtlConfig {
                                                 rows: size.height,
@@ -151,7 +151,7 @@ fn build_client(output: TestIO, size: &Size) -> Client {
                    .build();
     layout.tree_mut().root_mut().append(leaf);
     layout.flush_changes();
-    client_tx.send(ClientMsg::LayoutSwap { layout: Arc::new(RwLock::new(layout)) }).unwrap();
+    client.main_tx.send(ClientMsg::LayoutSwap { layout: layout }).unwrap();
 
     client
 }

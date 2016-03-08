@@ -1,4 +1,3 @@
-pub mod draw_worker;
 pub mod modal;
 pub mod stdin_read_worker;
 pub mod tty_painter;
@@ -6,7 +5,6 @@ pub mod main_worker;
 pub mod servers;
 pub mod layout;
 
-use self::draw_worker::*;
 use self::main_worker::*;
 use self::servers::*;
 use self::stdin_read_worker::*;
@@ -61,7 +59,7 @@ pub enum ClientMsg {
 
     LayoutDamage,
     LayoutSwap {
-        layout: Arc<RwLock<layout::Screen>>,
+        layout: layout::Screen,
     },
 }
 
@@ -84,8 +82,7 @@ impl Default for TtyIoCtlConfig {
 /// # TODO
 /// * [ ] derive useful traits on stuff here
 pub struct Client {
-    draw_tx: Sender<ClientMsg>,
-    main_tx: Sender<ClientMsg>,
+    pub main_tx: Sender<ClientMsg>,
 }
 
 impl Client {
@@ -96,26 +93,22 @@ impl Client {
     pub fn spawn<I, O>(input: I,
                        output: O,
                        tty_ioctl_config: TtyIoCtlConfig)
-                       -> (Sender<ClientMsg>, Client)
+                       -> Client
         where I: 'static + Read + Send,
               O: 'static + Write + Send
     {
-        let (draw_tx, draw_rx) = channel::<ClientMsg>();
-        let (main_tx, layout, _) = MainWorker::spawn(draw_tx.clone(), tty_ioctl_config);
-        DrawWorker::spawn(output, draw_rx, layout);
+        let (main_tx, main_rx) = channel::<ClientMsg>();
+        // TODO: could capture thread handles too maybe
+        MainWorker::spawn(main_rx, main_tx.clone(), output, tty_ioctl_config);
         StdinReadWorker::spawn(input, main_tx.clone());
 
-        let client = Client {
-            draw_tx: draw_tx,
-            main_tx: main_tx.clone(),
-        };
-
-        (main_tx, client)
+        Client {
+            main_tx: main_tx,
+        }
     }
 
     /// Stop the client. It consumes the client so it can't be restarted.
     pub fn stop(self) {
-        self.draw_tx.send(ClientMsg::Quit).unwrap();
         self.main_tx.send(ClientMsg::Quit).unwrap();
     }
 

@@ -6,7 +6,8 @@ use super::*;
 use super::layout::*;
 use super::servers::*;
 use uuid::Uuid;
-use vterm_sys::{self, Pos, Size, Rect};
+use super::tty_painter::TtyPainter;
+use vterm_sys::{self, Pos, Size, Rect, ScreenCell, RectAssist};
 
 /// This worker handles:
 /// * user input
@@ -16,52 +17,50 @@ use vterm_sys::{self, Pos, Size, Rect};
 /// worker's internal representation.
 ///
 /// It doesn't receive any server damage messages.
-pub struct MainWorker {
+pub struct MainWorker<F: 'static + Write + Send> {
+    tx: Sender<ClientMsg>,
     rx: Receiver<ClientMsg>,
-    draw_worker_tx: Sender<ClientMsg>,
+    painter: TtyPainter<F>,
     pub servers: Servers,
     pub modal_key_handler: modal::ModalKeyHandler,
     pub tty_ioctl_config: TtyIoCtlConfig,
-    pub layout: Arc<RwLock<layout::Screen>>,
+    pub layout: layout::Screen,
     selected_program_id: Option<String>,
 }
 
 static STATUS_LINE: &'static str = "status_line";
 
-impl MainWorker {
-    pub fn spawn(draw_worker_tx: Sender<ClientMsg>,
+impl<F: 'static + Write + Send> MainWorker<F> {
+    pub fn spawn(rx: Receiver<ClientMsg>,
+                 tx: Sender<ClientMsg>,
+                 io: F,
                  tty_ioctl_config: TtyIoCtlConfig)
-                 -> (Sender<ClientMsg>,
-                     Arc<RwLock<layout::Screen>>,
-                     JoinHandle<()>) {
-        let (tx, rx) = channel::<ClientMsg>();
-        let layout = Arc::new(RwLock::new(layout::Screen::new(Size {
-            height: tty_ioctl_config.rows,
-            width: tty_ioctl_config.cols,
-        })));
-        let layout_clone = layout.clone();
-        let mut worker = MainWorker::new(draw_worker_tx, rx, tty_ioctl_config, layout);
+                 -> JoinHandle<()> {
+        let mut worker = MainWorker::new(rx, tx, io, tty_ioctl_config);
 
         info!("spawning main worker");
-        let handle = thread::spawn(move || {
+        thread::spawn(move || {
             worker.enter_listener_loop();
             info!("exiting main worker");
-        });
-
-        (tx, layout_clone, handle)
+        })
     }
 
-    fn new(draw_worker_tx: Sender<ClientMsg>,
-           rx: Receiver<ClientMsg>,
-           tty_ioctl_config: TtyIoCtlConfig,
-           layout: Arc<RwLock<layout::Screen>>)
-           -> MainWorker {
+    fn new(rx: Receiver<ClientMsg>,
+           tx: Sender<ClientMsg>,
+           io: F,
+           tty_ioctl_config: TtyIoCtlConfig)
+           -> MainWorker<F> {
+        let size = Size::new(tty_ioctl_config.cols, tty_ioctl_config.rows);
+        let layout = layout::Screen::new(size.clone());
+        let painter = TtyPainter::new(io, size);
+
         let mut worker = MainWorker {
-            draw_worker_tx: draw_worker_tx,
+            painter: painter,
+            tx: tx,
             rx: rx,
             servers: Default::default(),
             modal_key_handler: modal::ModalKeyHandler::new_with_graph(),
-            tty_ioctl_config: tty_ioctl_config.clone(),
+            tty_ioctl_config: tty_ioctl_config,
             layout: layout,
             selected_program_id: None,
         };
@@ -76,14 +75,11 @@ impl MainWorker {
                               .height(1)
                               .build();
 
-        {
-            let mut layout = self.layout.write().unwrap();
-            layout.tree_mut().root_mut().append(status_line);
-            layout.flush_changes();
-        }
+        self.layout.tree_mut().root_mut().append(status_line);
+        self.layout.flush_changes();
 
-        self.draw_worker_tx.send(ClientMsg::Clear).unwrap();
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
+        self.tx.send(ClientMsg::Clear).unwrap();
+        self.tx.send(ClientMsg::LayoutDamage).unwrap();
         self.damage_status_line();
     }
 
@@ -104,10 +100,17 @@ impl MainWorker {
                 ClientMsg::ProgramAdd { server_id, program_id } => {
                     self.add_program(server_id, program_id)
                 }
-                ClientMsg::ProgramDamage { .. } => self.forward_to_draw_worker(msg),
-                ClientMsg::ProgramMoveCursor { .. } => self.forward_to_draw_worker(msg),
+                ClientMsg::ProgramDamage { program_id, cells, rect } => {
+                    self.program_damage(program_id, cells, rect)
+                }
+                ClientMsg::ProgramMoveCursor { program_id, old: _, new, is_visible } => {
+                    self.move_cursor(program_id, new, is_visible)
+                }
                 ClientMsg::LayoutSwap { layout } => self.layout_swap(layout),
+                ClientMsg::Clear => self.clear(),
+                ClientMsg::LayoutDamage => self.layout_damage(),
                 ClientMsg::UserInput { bytes } => {
+                    // This could be moved to the stdin thread
                     self.modal_key_handler.write(&bytes).unwrap();
                     while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
                         match user_action {
@@ -136,16 +139,52 @@ impl MainWorker {
         }
     }
 
+    fn layout_damage(&mut self) {
+        trace!("layout_damage");
+
+        for wrap in self.layout.tree().values() {
+            MainWorker::draw_border_for_node(&mut self.painter, wrap, &self.layout.size);
+        }
+    }
+
+    fn clear(&mut self) {
+        let mut cells: Vec<ScreenCell> = vec![];
+
+        // TODO: I could just borrow this
+        let rect = Rect::new(Pos::new(0,0), self.layout.size.clone());
+
+        for pos in rect.positions() {
+            cells.push(ScreenCell {
+                chars: vec![b' '],
+                ..Default::default()
+            });
+        }
+
+        self.painter.draw_cells(&cells, &rect);
+    }
+
     fn quit(&self) {
         info!("quit!");
-        self.draw_worker_tx.send(ClientMsg::Quit).unwrap();
         for server in self.servers.iter() {
             server.tx.send(::server::ServerMsg::Quit).unwrap();
         }
     }
 
-    fn forward_to_draw_worker(&self, msg: ClientMsg) {
-        self.draw_worker_tx.send(msg).unwrap();
+    fn move_cursor(&mut self, program_id: String, _: vterm_sys::Pos, _: bool) {
+        trace!("move_cursor for program {}", program_id);
+        // find offset from state
+        // painter.move_cursor(pos, is_visible));
+    }
+
+    fn program_damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>, rect: vterm_sys::Rect) {
+        trace!("program_damage {:?} for {}", rect, program_id);
+
+        if let Some(wrap) = self.layout.tree().values().find(|w| *w.name() == program_id) {
+            let rect = rect.translate(&Pos { x: wrap.computed_x().unwrap(), y: wrap.computed_y().unwrap() });
+            self.painter.draw_cells(&cells, &rect);
+        } else {
+            warn!("didnt find node with value: {:?}", program_id);
+        }
     }
 
     fn program_input_cmd(&self, bytes: Vec<u8>) {
@@ -246,8 +285,7 @@ impl MainWorker {
 
     fn add_border_to_selected_program_id_wrap(&mut self) {
         if let Some(program_id) = self.selected_program_id.clone() {
-            let mut layout = self.layout.write().unwrap();
-            for mut wrap in layout.tree_mut().values_mut() {
+            for mut wrap in self.layout.tree_mut().values_mut() {
                 if *wrap.name() == "root".to_string() {
                     continue;
                 }
@@ -262,10 +300,10 @@ impl MainWorker {
                     wrap.set_margin(1);
                 }
             }
-            layout.flush_changes();
+            self.layout.flush_changes();
         }
 
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
+        self.tx.send(ClientMsg::LayoutDamage).unwrap();
     }
 
     fn add_program(&mut self, server_id: String, program_id: String) {
@@ -281,11 +319,10 @@ impl MainWorker {
                        .width(80)
                        .margin(1)
                        .build();
-        let mut layout = self.layout.write().unwrap();
-        layout.tree_mut().root_mut().append(wrap);
-        layout.flush_changes();
+        self.layout.tree_mut().root_mut().append(wrap);
+        self.layout.flush_changes();
 
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
+        self.tx.send(ClientMsg::LayoutDamage).unwrap();
     }
 
     fn damage_status_line(&self) {
@@ -293,8 +330,7 @@ impl MainWorker {
                self.modal_key_handler.mode_name());
 
         let found_status_line = {
-            let layout = self.layout.read().unwrap();
-            layout.tree().values().find(|n| *n.name() == STATUS_LINE.to_string()).is_some()
+            self.layout.tree().values().find(|n| *n.name() == STATUS_LINE.to_string()).is_some()
         };
 
         if !found_status_line {
@@ -320,7 +356,7 @@ impl MainWorker {
 
         let rect = Rect::new(Pos::new(0,0), Size::new(cells.len(), 1));
         // Does this make sense? A status line is not a program.
-        self.draw_worker_tx
+        self.tx
             .send(ClientMsg::ProgramDamage {
                 program_id: STATUS_LINE.to_string(),
                 cells: cells,
@@ -335,8 +371,6 @@ impl MainWorker {
 
     fn leaf_names(&self) -> Vec<String> {
         self.layout
-            .read()
-            .unwrap()
             .tree()
             .values()
             .map(|w| w.name().clone())
@@ -344,8 +378,153 @@ impl MainWorker {
             .collect()
     }
 
-    fn layout_swap(&mut self, layout: Arc<RwLock<layout::Screen>>) {
+    fn layout_swap(&mut self, layout: layout::Screen) {
         self.layout = layout;
-        self.draw_worker_tx.send(ClientMsg::LayoutSwap { layout: self.layout.clone() }).unwrap();
+    }
+
+    /// TODO: optimize this by batching draw_cells calls
+    fn draw_border_for_node(painter: &mut TtyPainter<F>,
+                             wrap: &layout::Wrap,
+                             size: &Size) {
+        if wrap.has_border() {
+            let mut top = wrap.border_y().unwrap();
+            if top < 0 {
+                top = 0
+            }
+
+            let mut bottom = wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1;
+            if bottom >= size.height {
+                bottom = size.height - 1
+            }
+
+            let mut left = wrap.border_x().unwrap();
+            if left < 0 {
+                left = 0
+            }
+
+            let mut right = wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1;
+            if right >= size.width {
+                right = size.width - 1
+            }
+
+            painter.draw_cells(&vec![
+                                    ScreenCell {
+                                        chars: "┌".to_string().into_bytes(),
+                                        ..Default::default()
+                                    }],
+                                    &Rect::new(Pos::new(left, top), Size::new(1, 1))
+                            );
+            painter.draw_cells(&vec![
+                                    ScreenCell {
+                                        chars: "┐".to_string().into_bytes(),
+                                        ..Default::default()
+                                    }],
+                                    &Rect::new(Pos::new(right, top), Size::new(1,1))
+                                    );
+            painter.draw_cells(&vec![
+            ScreenCell {
+                chars: "└".to_string().into_bytes(),
+                ..Default::default()
+            }],
+                &Rect::new(Pos::new(left, bottom), Size::new(1,1))
+                );
+            painter.draw_cells(&vec![
+            ScreenCell {
+                chars: "┘".to_string().into_bytes(),
+                ..Default::default()
+            }],
+                &Rect::new(Pos::new(right,bottom), Size::new(1,1))
+            );
+
+            for x in left + 1..right {
+                painter.draw_cells(&vec![
+                ScreenCell {
+                    chars: "─".to_string().into_bytes(),
+                    ..Default::default()
+                }],
+                    &Rect::new(Pos::new(x, top), Size::new(1,1))
+                    );
+                painter.draw_cells(&vec![
+                ScreenCell {
+                    chars: "─".to_string().into_bytes(),
+                    ..Default::default()
+                }],
+                    &Rect::new(Pos::new(x, bottom), Size::new(1,1))
+                    );
+            }
+
+            for y in top + 1..bottom {
+                painter.draw_cells(&vec![
+                ScreenCell {
+                    chars: "│".to_string().into_bytes(),
+                    ..Default::default()
+                }],
+                    &Rect::new(Pos::new(left, y), Size::new(1,1))
+                    );
+                painter.draw_cells(&vec![
+                ScreenCell {
+                    chars: "│".to_string().into_bytes(),
+                    ..Default::default()
+                }],
+                    &Rect::new(Pos::new(right, y), Size::new(1,1))
+                    );
+            }
+        } else if wrap.margin() > 0 {
+            let mut top = wrap.computed_y().unwrap() - wrap.padding() - 1;
+            if top < 0 {
+                top = 0
+            }
+
+            let mut bottom = wrap.computed_y().unwrap() + wrap.computed_height().unwrap() +
+                             wrap.padding();
+            if bottom >= size.height {
+                bottom = size.height - 1
+            }
+
+            let mut left = wrap.computed_x().unwrap() - wrap.padding() - 1;
+            if left < 0 {
+                left = 0
+            }
+
+            let mut right = wrap.computed_x().unwrap() + wrap.computed_width().unwrap() +
+                            wrap.padding();
+            if right >= size.width {
+                right = size.width - 1
+            }
+
+            for x in left..right + 1 {
+                painter.draw_cells(&vec![
+                ScreenCell {
+                    chars: " ".to_string().into_bytes(),
+                    ..Default::default()
+                }],
+                    &Rect::new(Pos::new(x, top), Size::new(1,1))
+                    );
+                painter.draw_cells(&vec![
+                ScreenCell {
+                    chars: " ".to_string().into_bytes(),
+                    ..Default::default()
+                }],
+                    &Rect::new(Pos::new(x, bottom), Size::new(1,1))
+                    );
+            }
+
+            for y in top + 1..bottom {
+            painter.draw_cells(&vec![
+                ScreenCell {
+                    chars: " ".to_string().into_bytes(),
+                    ..Default::default()
+                }],
+                    &Rect::new(Pos::new(left, y), Size::new(1,1))
+                    );
+            painter.draw_cells(&vec![
+                ScreenCell {
+                    chars: " ".to_string().into_bytes(),
+                    ..Default::default()
+                }],
+                    &Rect::new(Pos::new(right, y), Size::new(1,1))
+                    );
+            }
+        }
     }
 }

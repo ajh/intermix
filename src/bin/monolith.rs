@@ -52,9 +52,9 @@ fn main() {
         libc::ioctl(1, TIOCGWINSZ, &mut size);
         tty_ioctl_config = libintermix::client::TtyIoCtlConfig { rows: size.rows as usize, cols: size.cols as usize, ..Default::default() };
     }
-    let (client_tx, _) = libintermix::client::Client::spawn(io::stdin(), io::stdout(), tty_ioctl_config);
+    let client = libintermix::client::Client::spawn(io::stdin(), io::stdout(), tty_ioctl_config);
 
-    client_tx.send(libintermix::client::ClientMsg::ServerAdd {
+    client.main_tx.send(libintermix::client::ClientMsg::ServerAdd {
         server: libintermix::client::servers::Server {
             id: "some server".to_string(),
             tx: server_tx.clone(),
@@ -65,7 +65,7 @@ fn main() {
     server_tx.send(libintermix::server::ServerMsg::ClientAdd {
         client: libintermix::server::Client {
             id: "some client".to_string(),
-            tx: client_tx.clone(),
+            tx: client.main_tx.clone(),
         }
     }).unwrap();
 
