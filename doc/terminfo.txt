@@ -1,0 +1,5 @@
+# exploring
+
+Here's a way to explore terminfo for a particular terminal:
+
+    tput cup 10 12 | hexdump -C

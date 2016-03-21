@@ -282,6 +282,10 @@ impl<F: Write + Send> TtyPainter<F> {
         // I'd like to iterate through all the cells in the pane. Can I get access to this?
     }
 
+    pub fn flush(&mut self) {
+        self.pen.flush(&mut self.io);
+    }
+
     // pub fn delete_line<F: Write>(&mut self, pane: &Pane, io: &mut F) {
     // /deleteLine: CSR(top, bottom) + CUP(y, 0) + DL(1) + CSR(0, height)
     // }
