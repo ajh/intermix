@@ -87,6 +87,7 @@ fn main() {
     println!("{:?}", size);
     let mut painter = TtyPainter::new(::std::io::stdout(), size.clone());
 
+    painter.clear();
     painter.flush();
 
     println!("{:?}", args.arg_FILE);

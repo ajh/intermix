@@ -286,6 +286,10 @@ impl<F: Write + Send> TtyPainter<F> {
         self.pen.flush(&mut self.io);
     }
 
+    pub fn clear(&mut self) {
+        apply_cap("clear", )
+    }
+
     // pub fn delete_line<F: Write>(&mut self, pane: &Pane, io: &mut F) {
     // /deleteLine: CSR(top, bottom) + CUP(y, 0) + DL(1) + CSR(0, height)
     // }
