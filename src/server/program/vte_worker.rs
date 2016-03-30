@@ -47,7 +47,6 @@ impl VteWorker {
         let bg = vterm.state_get_rgb_color_from_palette(0);
         vterm.state_set_default_colors(&fg, &bg);
         vterm.set_utf8(true);
-        vterm.screen_reset(true);
 
         VteWorker {
             program_id: program_id.to_string(),
@@ -60,10 +59,9 @@ impl VteWorker {
 
     pub fn enter_listen_loop(&mut self) {
         self.vterm.set_utf8(true);
-        self.vterm.screen_set_damage_merge(ffi::VTermDamageSize::VTermDamageRow);
 
-        self.vterm.generate_screen_events().unwrap();
-        let vterm_event_rx = self.vterm.screen_event_rx.take().unwrap();
+        self.vterm.state_receive_events(&StateCallbacksConfig::all());
+        let vterm_event_rx = self.vterm.state_event_rx.take().unwrap();
 
         // work around lifetime issue
         let program_event_rx = self.rx.take().unwrap();
@@ -71,7 +69,7 @@ impl VteWorker {
         loop {
             select! {
                 program_event = program_event_rx.recv() => self.handle_program_event(program_event.unwrap()),
-                screen_event = vterm_event_rx.recv() => self.handle_screen_event(screen_event.unwrap())
+                vterm_event = vterm_event_rx.recv() => self.handle_vterm_event(vterm_event.unwrap())
             }
         }
 
@@ -79,58 +77,43 @@ impl VteWorker {
         self.rx = Some(program_event_rx);
     }
 
-    fn handle_screen_event(&mut self, event: ScreenEvent) {
+    fn handle_vterm_event(&mut self, event: StateEvent) {
         match event {
-            ScreenEvent::Bell => info!("Bell"),
-            ScreenEvent::Damage{rect} => {
-                info!("Damage: rect={:?}", rect);
-                let event = ::server::ServerMsg::ProgramDamage {
-                    program_id: self.program_id.clone(),
-                    cells: self.vterm.screen_get_cells_in_rect(&rect),
-                    rect: rect,
-                };
-                self.server_tx.send(event).unwrap();
-            }
-            ScreenEvent::MoveCursor{new, old, is_visible} => {
+            StateEvent::Bell(_) => info!("Bell"),
+            //StateEvent::Damage(e) => {
+                //info!("Damage: rect={:?}", rect);
+                //let event = ::server::ServerMsg::ProgramDamage {
+                    //program_id: self.program_id.clone(),
+                    //cells: self.vterm.screen_get_cells_in_rect(&rect),
+                    //rect: rect,
+                //};
+                //self.server_tx.send(event).unwrap();
+            //}
+            StateEvent::MoveCursor(e) => {
                 info!("MoveCursor: new={:?} old={:?} is_visible={:?}",
-                      new,
-                      old,
-                      is_visible);
+                      e.new,
+                      e.old,
+                      e.is_visible);
                 let event = ::server::ServerMsg::ProgramMoveCursor {
                     program_id: self.program_id.clone(),
-                    new: new,
-                    old: old,
-                    is_visible: is_visible,
+                    new: e.new,
+                    old: e.old,
+                    is_visible: e.is_visible,
                 };
                 self.server_tx.send(event).unwrap();
             }
-            ScreenEvent::MoveRect{dest, src} => {
-                info!("MoveRect: dest={:?} src={:?}", dest, src);
-                let event = ::server::ServerMsg::ProgramDamage {
-                    program_id: self.program_id.clone(),
-                    cells: self.vterm.screen_get_cells_in_rect(&src),
-                    rect: src,
-                };
-                self.server_tx.send(event).unwrap();
-
-                let event = ::server::ServerMsg::ProgramDamage {
-                    program_id: self.program_id.clone(),
-                    cells: self.vterm.screen_get_cells_in_rect(&dest),
-                    rect: dest,
-                };
-                self.server_tx.send(event).unwrap();
-            }
-            ScreenEvent::Resize{height, width} => info!("Resize: height={:?} width={:?}", height, width),
-            ScreenEvent::SbPopLine{cells: _} => info!("SbPopLine"),
-            ScreenEvent::SbPushLine{cells} => info!("SbPushLine"),
-            ScreenEvent::AltScreen{ is_true } => info!("AltScreen: is_true={:?}", is_true),
-            ScreenEvent::CursorBlink{ is_true } => info!("CursorBlink: is_true={:?}", is_true),
-            ScreenEvent::CursorShape{ value } => info!("CursorShape: value={:?}", value),
-            ScreenEvent::CursorVisible{ is_true } => info!("CursorVisible: is_true={:?}", is_true),
-            ScreenEvent::IconName{ text } => info!("IconName: text={:?}", text),
-            ScreenEvent::Mouse{ value } => info!("Mouse: value={:?}", value),
-            ScreenEvent::Reverse{ is_true } => info!("Reverse: is_true={:?}", is_true),
-            ScreenEvent::Title{ text } => info!("Title: text={:?}", text),
+            StateEvent::Resize(e) => info!("Resize: size={:?}", e.size),
+            //StateEvent::SbPopLine(e) => info!("SbPopLine"),
+            //StateEvent::SbPushLine(e) => info!("SbPushLine"),
+            StateEvent::AltScreen(e) => info!("AltScreen: is_on={:?}", e.is_on),
+            StateEvent::CursorBlink(e) => info!("CursorBlink: is_on={:?}", e.is_on),
+            StateEvent::CursorShape(e) => info!("CursorShape: shape={:?}", e.shape),
+            StateEvent::CursorVisible(e) => info!("CursorVisible: is_on={:?}", e.is_on),
+            StateEvent::IconName(e) => info!("IconName: name={:?}", e.name),
+            StateEvent::Mouse(e) => info!("Mouse: mode={:?}", e.mode),
+            StateEvent::Reverse(e) => info!("Reverse: is_on={:?}", e.is_on),
+            StateEvent::Title(e) => info!("Title: title={:?}", e.title),
+            event => warn!("unhandled vterm event: {:?}", event),
         }
     }
 
@@ -138,7 +121,6 @@ impl VteWorker {
         match event {
             VteWorkerMsg::PtyRead{bytes} => {
                 self.vterm.write(bytes.as_slice());
-                self.vterm.screen_flush_damage();
             }
             VteWorkerMsg::PtyReadZero => error!("got PtyReadZero"),
             VteWorkerMsg::PtyReadError => error!("got PtyReadError"),

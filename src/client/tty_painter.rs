@@ -287,7 +287,7 @@ impl<F: Write + Send> TtyPainter<F> {
     }
 
     pub fn clear(&mut self) {
-        apply_cap("clear", )
+        //apply_cap("clear", )
     }
 
     // pub fn delete_line<F: Write>(&mut self, pane: &Pane, io: &mut F) {
