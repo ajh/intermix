@@ -60,9 +60,9 @@ impl VteWorker {
 
     pub fn enter_listen_loop(&mut self) {
         self.vterm.set_utf8(true);
-        self.vterm.screen_set_damage_merge(ffi::VTermDamageSize::VTermDamageRow);
+        self.vterm.screen_set_damage_merge(DamageSize::Row);
 
-        self.vterm.generate_screen_events().unwrap();
+        self.vterm.screen_receive_events(&ScreenCallbacksConfig::all());
         let vterm_event_rx = self.vterm.screen_event_rx.take().unwrap();
 
         // work around lifetime issue
@@ -82,55 +82,52 @@ impl VteWorker {
     fn handle_screen_event(&mut self, event: ScreenEvent) {
         match event {
             ScreenEvent::Bell => info!("Bell"),
-            ScreenEvent::Damage{rect} => {
-                info!("Damage: rect={:?}", rect);
+            ScreenEvent::Damage(e) => {
+                info!("Damage: {:?}", e);
                 let event = ::server::ServerMsg::ProgramDamage {
                     program_id: self.program_id.clone(),
-                    cells: self.vterm.screen_get_cells_in_rect(&rect),
-                    rect: rect,
+                    cells: self.vterm.screen_get_cells_in_rect(&e.rect),
+                    rect: e.rect,
                 };
                 self.server_tx.send(event).unwrap();
             }
-            ScreenEvent::MoveCursor{new, old, is_visible} => {
-                info!("MoveCursor: new={:?} old={:?} is_visible={:?}",
-                      new,
-                      old,
-                      is_visible);
+            ScreenEvent::MoveCursor(e) => {
+                info!("MoveCursor: {:?}", e);
                 let event = ::server::ServerMsg::ProgramMoveCursor {
                     program_id: self.program_id.clone(),
-                    new: new,
-                    old: old,
-                    is_visible: is_visible,
+                    new: e.new,
+                    old: e.old,
+                    is_visible: e.is_visible,
                 };
                 self.server_tx.send(event).unwrap();
             }
-            ScreenEvent::MoveRect{dest, src} => {
-                info!("MoveRect: dest={:?} src={:?}", dest, src);
+            ScreenEvent::MoveRect(e) => {
+                info!("MoveRect: {:?}", e);
                 let event = ::server::ServerMsg::ProgramDamage {
                     program_id: self.program_id.clone(),
-                    cells: self.vterm.screen_get_cells_in_rect(&src),
-                    rect: src,
+                    cells: self.vterm.screen_get_cells_in_rect(&e.src),
+                    rect: e.src,
                 };
                 self.server_tx.send(event).unwrap();
 
                 let event = ::server::ServerMsg::ProgramDamage {
                     program_id: self.program_id.clone(),
-                    cells: self.vterm.screen_get_cells_in_rect(&dest),
-                    rect: dest,
+                    cells: self.vterm.screen_get_cells_in_rect(&e.dest),
+                    rect: e.dest,
                 };
                 self.server_tx.send(event).unwrap();
             }
-            ScreenEvent::Resize{height, width} => info!("Resize: height={:?} width={:?}", height, width),
-            ScreenEvent::SbPopLine{cells: _} => info!("SbPopLine"),
-            ScreenEvent::SbPushLine{cells} => info!("SbPushLine"),
-            ScreenEvent::AltScreen{ is_true } => info!("AltScreen: is_true={:?}", is_true),
-            ScreenEvent::CursorBlink{ is_true } => info!("CursorBlink: is_true={:?}", is_true),
-            ScreenEvent::CursorShape{ value } => info!("CursorShape: value={:?}", value),
-            ScreenEvent::CursorVisible{ is_true } => info!("CursorVisible: is_true={:?}", is_true),
-            ScreenEvent::IconName{ text } => info!("IconName: text={:?}", text),
-            ScreenEvent::Mouse{ value } => info!("Mouse: value={:?}", value),
-            ScreenEvent::Reverse{ is_true } => info!("Reverse: is_true={:?}", is_true),
-            ScreenEvent::Title{ text } => info!("Title: text={:?}", text),
+            ScreenEvent::Resize(e) => info!("Resize: {:?}", e),
+            ScreenEvent::SbPopLine(e) => info!("SbPopLine: {:?}", e),
+            ScreenEvent::SbPushLine(e) => info!("SbPushLine: {:?}", e),
+            ScreenEvent::AltScreen(e) => info!("AltScreen: {:?}", e),
+            ScreenEvent::CursorBlink(e) => info!("CursorBlink: {:?}", e),
+            ScreenEvent::CursorShape(e) => info!("CursorShape: {:?}", e),
+            ScreenEvent::CursorVisible(e) => info!("CursorVisible: {:?}", e),
+            ScreenEvent::IconName(e) => info!("IconName: {:?}", e),
+            ScreenEvent::Mouse(e) => info!("Mouse: {:?}", e),
+            ScreenEvent::Reverse(e) => info!("Reverse: {:?}", e),
+            ScreenEvent::Title(e) => info!("Title: {:?}", e),
         }
     }
 
