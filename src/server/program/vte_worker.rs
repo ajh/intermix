@@ -118,8 +118,8 @@ impl VteWorker {
                 self.server_tx.send(event).unwrap();
             }
             ScreenEvent::Resize(e) => info!("Resize: {:?}", e),
-            ScreenEvent::SbPopLine(e) => info!("SbPopLine: {:?}", e),
-            ScreenEvent::SbPushLine(e) => info!("SbPushLine: {:?}", e),
+            ScreenEvent::SbPopLine(e) => info!("SbPopLine"),
+            ScreenEvent::SbPushLine(e) => info!("SbPushLine"),
             ScreenEvent::AltScreen(e) => info!("AltScreen: {:?}", e),
             ScreenEvent::CursorBlink(e) => info!("CursorBlink: {:?}", e),
             ScreenEvent::CursorShape(e) => info!("CursorShape: {:?}", e),
