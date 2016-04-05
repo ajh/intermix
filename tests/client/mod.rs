@@ -23,3 +23,4 @@ pub mod layout;
 // trying to rewrite these, and they fail so turning them off
 // pub mod tty_painter;
 pub mod drawing;
+pub mod pen;

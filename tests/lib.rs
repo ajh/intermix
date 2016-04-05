@@ -1,11 +1,12 @@
+extern crate ego_tree;
+extern crate libintermix;
+extern crate log4rs;
 #[macro_use]
 extern crate log;
 extern crate regex;
-extern crate libintermix;
-extern crate log4rs;
-extern crate vterm_sys;
+extern crate term;
 extern crate time;
-extern crate ego_tree;
+extern crate vterm_sys;
 
 mod client;
 mod server;

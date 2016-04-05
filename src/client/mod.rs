@@ -1,10 +1,11 @@
 pub mod draw_worker;
+pub mod layout;
+pub mod main_worker;
 pub mod modal;
+pub mod pen;
+pub mod servers;
 pub mod stdin_read_worker;
 pub mod tty_painter;
-pub mod main_worker;
-pub mod servers;
-pub mod layout;
 
 use self::draw_worker::*;
 use self::main_worker::*;
