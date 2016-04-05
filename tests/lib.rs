@@ -22,8 +22,8 @@ fn setup_logging() {
         is_logging_setup = true;
     }
 
-    log4rs::init_file(&std::env::current_dir().unwrap().join("tests/log4rs.toml"),
-                      log4rs::toml::Creator::default())
+    log4rs::init_file(&std::env::current_dir().unwrap().join("tests/log4rs.yaml"),
+                      Default::default())
         .unwrap();
 }
 

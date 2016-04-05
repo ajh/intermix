@@ -12,18 +12,21 @@ path = "src/bin/monolith.rs"
 
 [dependencies]
 docopt = "0.6"
+ego-tree = "0.1"
 ioctl-rs = "0.1"
 itertools = "0.4"
+libc = "0.2"
 log = "0.3"
-log4rs = "0.3"
 pty = "0.1"
 rustc-serialize = "0.3"
 term = "0.4"
 termios = "0.2"
 uuid = "0.1"
 vterm-sys = "0"
-ego-tree = "0.1"
-libc = "0.2"
+
+[dependencies.log4rs]
+version = "0.4"
+features = ["yaml"]
 
 [dev-dependencies]
 regex = "0.1"

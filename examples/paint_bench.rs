@@ -34,8 +34,8 @@ struct Args {
 }
 
 fn setup_logging() {
-    log4rs::init_file(&std::env::current_dir().unwrap().join("log4rs.toml"),
-                      log4rs::toml::Creator::default())
+    log4rs::init_file(&std::env::current_dir().unwrap().join("log4rs.yaml"),
+                      Default::default())
         .unwrap();
 }
 

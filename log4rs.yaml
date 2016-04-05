@@ -1,0 +1,36 @@
+refresh_rate: 30
+
+appenders:
+  intermix:
+    kind: file
+    path: "log/intermix.log"
+    encoder:
+      pattern: "{date} {file}:{line}\t{level} - {message}{n}"
+  client:
+    kind: file
+    path: "log/client.log"
+    encoder:
+      pattern: "{date} {file}:{line}\t{level} - {message}{n}"
+  server:
+    kind: file
+    path: "log/server.log"
+    encoder:
+      pattern: "{date} {file}:{line}\t{level} - {message}{n}"
+
+root:
+  level: trace
+  appenders:
+    - intermix
+
+loggers:
+  libintermix::client:
+    level: trace
+    additive: false
+    appenders:
+      - client
+
+  libintermix::server:
+    level: trace
+    additive: false
+    appenders:
+      - server

@@ -1,7 +1,8 @@
-#[macro_use] extern crate log;
 extern crate docopt;
 extern crate libc;
 extern crate libintermix;
+#[macro_use]
+extern crate log;
 extern crate log4rs;
 extern crate rustc_serialize;
 extern crate term;
@@ -28,14 +29,17 @@ struct Args {
 }
 
 fn setup_logging() {
-    log4rs::init_file(&std::env::current_dir().expect("couldn't get current dir").join("log4rs.toml"),
-                      log4rs::toml::Creator::default())
+    log4rs::init_file(&std::env::current_dir()
+                           .expect("couldn't get current dir")
+                           .join("log4rs.yaml"),
+                      Default::default())
         .expect("log4rs couldn't init");
 }
 
 fn parse_args() -> Args {
-    docopt::Docopt::new(USAGE).and_then(|d| d.decode())
-                              .unwrap_or_else(|e| e.exit())
+    docopt::Docopt::new(USAGE)
+        .and_then(|d| d.decode())
+        .unwrap_or_else(|e| e.exit())
 }
 
 fn main() {
@@ -50,24 +54,32 @@ fn main() {
     unsafe {
         let mut size: WinSize = std::mem::zeroed();
         libc::ioctl(1, TIOCGWINSZ, &mut size);
-        tty_ioctl_config = libintermix::client::TtyIoCtlConfig { rows: size.rows as usize, cols: size.cols as usize, ..Default::default() };
+        tty_ioctl_config = libintermix::client::TtyIoCtlConfig {
+            rows: size.rows as usize,
+            cols: size.cols as usize,
+            ..Default::default()
+        };
     }
-    let (client_tx, _) = libintermix::client::Client::spawn(io::stdin(), io::stdout(), tty_ioctl_config);
+    let (client_tx, _) = libintermix::client::Client::spawn(io::stdin(),
+                                                            io::stdout(),
+                                                            tty_ioctl_config);
 
     client_tx.send(libintermix::client::ClientMsg::ServerAdd {
-        server: libintermix::client::servers::Server {
-            id: "some server".to_string(),
-            tx: server_tx.clone(),
-            programs: vec![],
-        }
-    }).expect("sending client message failed");
+                 server: libintermix::client::servers::Server {
+                     id: "some server".to_string(),
+                     tx: server_tx.clone(),
+                     programs: vec![],
+                 },
+             })
+             .expect("sending client message failed");
 
     server_tx.send(libintermix::server::ServerMsg::ClientAdd {
-        client: libintermix::server::Client {
-            id: "some client".to_string(),
-            tx: client_tx.clone(),
-        }
-    }).expect("sending server message failed");
+                 client: libintermix::server::Client {
+                     id: "some client".to_string(),
+                     tx: client_tx.clone(),
+                 },
+             })
+             .expect("sending server message failed");
 
     let threads = vec![server_handle];
     for thr in threads {
@@ -99,7 +111,7 @@ struct WinSize {
     rows: c_ushort,
     cols: c_ushort,
     x_pixels: c_ushort,
-    y_pixels: c_ushort
+    y_pixels: c_ushort,
 }
 
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
