@@ -28,9 +28,9 @@ struct Args {
 }
 
 fn setup_logging() {
-    log4rs::init_file(&std::env::current_dir().unwrap().join("log4rs.toml"),
+    log4rs::init_file(&std::env::current_dir().expect("couldn't get current dir").join("log4rs.toml"),
                       log4rs::toml::Creator::default())
-        .unwrap();
+        .expect("log4rs couldn't init");
 }
 
 fn parse_args() -> Args {
@@ -60,18 +60,18 @@ fn main() {
             tx: server_tx.clone(),
             programs: vec![],
         }
-    }).unwrap();
+    }).expect("sending client message failed");
 
     server_tx.send(libintermix::server::ServerMsg::ClientAdd {
         client: libintermix::server::Client {
             id: "some client".to_string(),
             tx: client_tx.clone(),
         }
-    }).unwrap();
+    }).expect("sending server message failed");
 
     let threads = vec![server_handle];
     for thr in threads {
-        thr.join().unwrap();
+        thr.join().expect("thread wouldn't join");
     }
 
     set_cooked_mode(0);
@@ -79,18 +79,18 @@ fn main() {
 
 // https://github.com/ruby/ruby/blob/trunk/ext/io/console/console.c
 fn set_raw_mode(fd: RawFd) {
-    let mut t = termios::Termios::from_fd(fd).unwrap();
+    let mut t = termios::Termios::from_fd(fd).expect("termios wouldn't initialize with fd");
     termios::cfmakeraw(&mut t);
-    termios::tcsetattr(fd, termios::TCSADRAIN, &t).unwrap();
+    termios::tcsetattr(fd, termios::TCSADRAIN, &t).expect("tcsetattr to raw mode failed");
 }
 
 fn set_cooked_mode(fd: RawFd) {
-    let mut t = termios::Termios::from_fd(fd).unwrap();
+    let mut t = termios::Termios::from_fd(fd).expect("termios wouldn't initialize with fd");
     t.c_iflag |= termios::BRKINT | termios::ISTRIP | termios::ICRNL | termios::IXON;
     t.c_oflag |= termios::OPOST;
     t.c_lflag |= termios::ECHO | termios::ECHOE | termios::ECHOK | termios::ECHONL |
                  termios::ICANON | termios::ISIG | termios::IEXTEN;
-    termios::tcsetattr(fd, termios::TCSANOW, &t).unwrap();
+    termios::tcsetattr(fd, termios::TCSANOW, &t).expect("tcsetattr to cooked mode failed");
 }
 
 #[derive(Debug)]
