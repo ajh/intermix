@@ -103,19 +103,31 @@ impl VteWorker {
             }
             ScreenEvent::MoveRect(e) => {
                 info!("MoveRect: {:?}", e);
-                let event = ::server::ServerMsg::ProgramDamage {
-                    program_id: self.program_id.clone(),
-                    cells: self.vterm.screen_get_cells_in_rect(&e.src),
-                    rect: e.src,
-                };
-                self.server_tx.send(event).unwrap();
 
-                let event = ::server::ServerMsg::ProgramDamage {
-                    program_id: self.program_id.clone(),
-                    cells: self.vterm.screen_get_cells_in_rect(&e.dest),
-                    rect: e.dest,
-                };
-                self.server_tx.send(event).unwrap();
+                if e.src.intersection(&e.dest).is_some() {
+                    let rect = e.src.union(&e.dest);
+                    let event = ::server::ServerMsg::ProgramDamage {
+                        program_id: self.program_id.clone(),
+                        cells: self.vterm.screen_get_cells_in_rect(&rect),
+                        rect: rect,
+                    };
+                    self.server_tx.send(event).unwrap();
+                }
+                else {
+                    let event = ::server::ServerMsg::ProgramDamage {
+                        program_id: self.program_id.clone(),
+                        cells: self.vterm.screen_get_cells_in_rect(&e.src),
+                        rect: e.src,
+                    };
+                    self.server_tx.send(event).unwrap();
+
+                    let event = ::server::ServerMsg::ProgramDamage {
+                        program_id: self.program_id.clone(),
+                        cells: self.vterm.screen_get_cells_in_rect(&e.dest),
+                        rect: e.dest,
+                    };
+                    self.server_tx.send(event).unwrap();
+                }
             }
             ScreenEvent::Resize(e) => info!("Resize: {:?}", e),
             ScreenEvent::SbPopLine(e) => info!("SbPopLine"),

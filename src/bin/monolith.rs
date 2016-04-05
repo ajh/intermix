@@ -60,8 +60,8 @@ fn main() {
             ..Default::default()
         };
     }
-    let (client_tx, _) = libintermix::client::Client::spawn(io::stdin(),
-                                                            io::stdout(),
+    let (client_tx, _) = libintermix::client::Client::spawn(io::BufReader::new(io::stdin()),
+                                                            io::BufWriter::new(io::stdout()),
                                                             tty_ioctl_config);
 
     client_tx.send(libintermix::client::ClientMsg::ServerAdd {
