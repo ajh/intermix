@@ -37,9 +37,14 @@ impl<F: Write + Send> TtyPainter<F> {
         }
     }
 
-    // Draw the cells in the list starting at the given position
+    // Draw the cells in the given rectangle
     pub fn draw_cells(&mut self, cells: &Vec<ScreenCell>, rect: &Rect) {
         trace!("draw_cells start rect={:?}", rect);
+
+        let terminfo = TermInfo::from_env().unwrap();
+        let mut vars = parm::Variables::new();
+        let bytes = apply_cap("sc", &terminfo, &mut vars, &vec![]);
+        self.io.write_all(&bytes).unwrap();
 
         for (cell, pos) in cells.iter().zip(rect.positions()) {
             if pos.x >= self.size.width || pos.y >= self.size.height {
@@ -51,6 +56,9 @@ impl<F: Write + Send> TtyPainter<F> {
             self.pen.pos = pos;
             self.draw_cell(cell);
         }
+
+        let bytes = apply_cap("rc", &terminfo, &mut vars, &vec![]);
+        self.io.write_all(&bytes).unwrap();
 
         self.io.flush().unwrap();
         trace!("draw_cells finish");
@@ -99,9 +107,11 @@ impl<F: Write + Send> TtyPainter<F> {
     }
 
     /// TODO: take a offset from the pane
-    pub fn move_cursor(&mut self, pos: &Pos) {
-        trace!("move_cursor pos={:?}", pos);
-        self.pen.pos = pos.clone();
+    pub fn move_cursor(&mut self, pos: Pos, is_visible: bool) {
+        trace!("move_cursor pos={:?} is_visible={:?}", pos, is_visible);
+        self.pen.pos = pos;
+        self.pen.is_visible = is_visible;
+        self.pen.flush(&mut self.io);
     }
 
     /// Implemented like tmux's tty_redraw_region
@@ -124,4 +134,9 @@ impl<F: Write + Send> TtyPainter<F> {
     // pub fn delete_line<F: Write>(&mut self, pane: &Pane, io: &mut F) {
     // /deleteLine: CSR(top, bottom) + CUP(y, 0) + DL(1) + CSR(0, height)
     // }
+}
+
+fn apply_cap(cap: &str, terminfo: &TermInfo, vars: &mut parm::Variables, params: &Vec<parm::Param>) -> Vec<u8> {
+    let cmd = terminfo.strings.get(cap).unwrap();
+    parm::expand(&cmd, params.as_slice(), vars).unwrap()
 }

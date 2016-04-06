@@ -6,6 +6,7 @@ use super::*;
 use super::tty_painter::*;
 use super::layout::*;
 use vterm_sys::{self, Pos, Size, ScreenCell, Rect, RectAssist};
+use std::ops::Add;
 
 /// # todos
 /// * [ ] make message enum more specific
@@ -251,10 +252,16 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
         self.painter.draw_cells(&cells, &rect);
     }
 
-    fn move_cursor(&mut self, program_id: String, _: vterm_sys::Pos, _: bool) {
-        trace!("move_cursor for program {}", program_id);
-        // find offset from state
-        // painter.move_cursor(pos, is_visible));
+    fn move_cursor(&mut self, program_id: String, pos: vterm_sys::Pos, is_visible: bool) {
+        let layout = self.layout.read().unwrap();
+        if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
+            let pos = Pos::new(
+                pos.x + wrap.computed_x().unwrap(),
+                pos.y + wrap.computed_y().unwrap());
+            self.painter.move_cursor(pos, is_visible);
+        } else {
+            warn!("didnt find node with value: {:?}", program_id);
+        }
     }
 
     fn layout_swap(&mut self, layout: Arc<RwLock<layout::Screen>>) {
