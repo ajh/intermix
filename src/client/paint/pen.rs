@@ -209,9 +209,3 @@ impl Pen {
         bytes.append(&mut sequence);
     }
 }
-
-impl ::std::fmt::Debug for Pen {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "debug not implemented")
-    }
-}

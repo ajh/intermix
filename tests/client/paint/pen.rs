@@ -1,5 +1,5 @@
 use std::io::prelude::*;
-use libintermix::client::pen::Pen;
+use libintermix::client::paint::Pen;
 use term::terminfo::TermInfo;
 use term::terminfo::parm::Variables;
 

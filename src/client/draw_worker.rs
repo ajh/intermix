@@ -3,7 +3,7 @@ use std::thread;
 use std::sync::mpsc::*;
 use std::sync::{Arc, RwLock};
 use super::*;
-use super::tty_painter::*;
+use super::paint::*;
 use super::layout::*;
 use vterm_sys::{self, Pos, Size, ScreenCell, Rect, RectAssist};
 use std::ops::Add;

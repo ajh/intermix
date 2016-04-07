@@ -1,5 +1,5 @@
 use std::io::prelude::*;
-use libintermix::client::tty_painter::*;
+use libintermix::client::paint::*;
 use vterm_sys::*;
 use ::support::test_io::*;
 

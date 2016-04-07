@@ -13,7 +13,7 @@ extern crate vterm_sys;
 
 use libc::c_ushort;
 use std::env;
-use libintermix::client::tty_painter::TtyPainter;
+use libintermix::client::paint::TtyPainter;
 use std::io::prelude::*;
 use vterm_sys::{Size, Rect, Pos};
 
