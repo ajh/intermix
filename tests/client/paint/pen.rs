@@ -64,3 +64,24 @@ fn pen_can_turn_off_bold() {
     assert_has_bytes(&flush_pen(&mut pen), b"\x1b[m");
     assert_eq!(flush_pen(&mut pen).len(), 0);
 }
+
+#[test]
+fn pen_can_turn_on_invisible() {
+    let mut pen = Pen::new();
+
+    pen.visible = false;
+    assert_has_bytes(&flush_pen(&mut pen), b"\x1b[?25l");
+    assert_eq!(flush_pen(&mut pen).len(), 0);
+}
+
+#[test]
+fn pen_can_turn_off_invisible() {
+    let mut pen = Pen::new();
+
+    pen.visible = false;
+    flush_pen(&mut pen);
+
+    pen.visible = true;
+    assert_has_bytes(&flush_pen(&mut pen), b"\x1b[?12l\x1b[?25h");
+    assert_eq!(flush_pen(&mut pen).len(), 0);
+}

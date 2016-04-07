@@ -32,6 +32,11 @@ impl<F: Write + Send> TtyPainter<F> {
     pub fn draw_cells(&mut self, cells: &Vec<ScreenCell>, rect: &Rect) {
         trace!("draw_cells start rect={:?}", rect);
 
+        let old_visible = self.pen.visible;
+        self.pen.visible = false;
+        let bytes = self.pen.flush(&self.terminfo, &mut self.vars);
+        self.io.write_all(&bytes).ok().expect("failed to write");
+
         let terminfo = TermInfo::from_env().unwrap();
         let mut vars = parm::Variables::new();
         self.write_cap("sc", &vec![]);
@@ -66,15 +71,18 @@ impl<F: Write + Send> TtyPainter<F> {
 
         self.write_cap("rc", &vec![]);
 
+        self.pen.visible = old_visible;
+        let bytes = self.pen.flush(&self.terminfo, &mut self.vars);
+        self.io.write_all(&bytes).ok().expect("failed to write");
+
         self.io.flush().unwrap();
         trace!("draw_cells finish");
     }
 
-    /// TODO: take a offset from the pane
     pub fn move_cursor(&mut self, pos: Pos, is_visible: bool) {
         trace!("move_cursor pos={:?} is_visible={:?}", pos, is_visible);
         self.pen.pos = pos;
-        self.pen.is_visible = is_visible;
+        self.pen.visible = is_visible;
         self.io.write_all(&self.pen.flush(&self.terminfo, &mut self.vars)).ok().expect("failed to write");
     }
 

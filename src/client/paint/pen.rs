@@ -13,7 +13,7 @@ pub struct Pen {
     pub dwl: bool,
     pub fg: ColorPalette,
     pub font: u8,
-    pub is_visible: bool,
+    pub visible: bool,
     pub italic: bool,
     pub pos: Pos,
     pub reverse: bool,
@@ -27,7 +27,7 @@ pub struct Pen {
     disp_dwl: Option<bool>,
     disp_fg: Option<ColorPalette>,
     disp_font: Option<u8>,
-    disp_is_visible: Option<bool>,
+    disp_visible: Option<bool>,
     disp_italic: Option<bool>,
     disp_pos: Option<Pos>,
     disp_reverse: Option<bool>,
@@ -45,7 +45,7 @@ impl Default for Pen {
             dwl: false,
             fg: 7,
             font: 0,
-            is_visible: true,
+            visible: true,
             italic: false,
             pos: Pos::new(0,0),
             reverse: false,
@@ -58,7 +58,7 @@ impl Default for Pen {
             disp_dwl: None,
             disp_fg: None,
             disp_font: None,
-            disp_is_visible: None,
+            disp_visible: None,
             disp_italic: None,
             disp_pos: None,
             disp_reverse: None,
@@ -77,6 +77,11 @@ impl Pen {
     pub fn flush(&mut self, terminfo: &TermInfo, vars: &mut parm::Variables) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
 
+        if (self.disp_visible.is_none() || *self.disp_visible.as_ref().unwrap()) && !self.visible {
+            self.disp_visible = Some(self.visible);
+            self.apply_cap("civis", &mut bytes, terminfo, vars, &vec![]);
+        }
+
         if self.disp_pos.is_none() || *self.disp_pos.as_ref().unwrap() != self.pos {
             self.disp_pos = Some(self.pos);
 
@@ -92,8 +97,7 @@ impl Pen {
         let need_reset_reverse = *self.disp_reverse.as_ref().unwrap_or(&true) && !self.reverse;
 
         if need_reset_bold || need_reset_blink || need_reset_reverse {
-            self.reset();
-            self.apply_cap("sgr0", &mut bytes, terminfo, vars, &vec![]);
+            self.sgr0(&mut bytes, terminfo, vars);
         }
 
         if self.disp_bold.is_none() || *self.disp_bold.as_ref().unwrap() != self.bold {
@@ -114,14 +118,16 @@ impl Pen {
             };
         }
 
-        if self.disp_italic.is_none() || *self.disp_italic.as_ref().unwrap() != self.italic {
-            self.disp_italic = Some(self.italic);
+        if self.is_cap_supported("sitm", terminfo) && self.is_cap_supported("ritm", terminfo) {
+            if self.disp_italic.is_none() || *self.disp_italic.as_ref().unwrap() != self.italic {
+                self.disp_italic = Some(self.italic);
 
-            if self.italic {
-                self.apply_cap("sitm", &mut bytes, terminfo, vars, &vec![]);
-            } else {
-                self.apply_cap("ritm", &mut bytes, terminfo, vars, &vec![]);
-            };
+                if self.italic {
+                    self.apply_cap("sitm", &mut bytes, terminfo, vars, &vec![]);
+                } else {
+                    self.apply_cap("ritm", &mut bytes, terminfo, vars, &vec![]);
+                };
+            }
         }
 
         if self.disp_blink.is_none() || *self.disp_blink.as_ref().unwrap() != self.blink {
@@ -154,24 +160,20 @@ impl Pen {
             self.apply_cap("setab", &mut bytes, terminfo, vars, &params);
         }
 
+        if (self.disp_visible.is_none() || !*self.disp_visible.as_ref().unwrap()) && self.visible {
+            self.disp_visible = Some(self.visible);
+            self.apply_cap("cnorm", &mut bytes, terminfo, vars, &vec![]);
+        }
+
         bytes
     }
 
-    /// reset the pen to the initial state where it doesn't think it knows anything about the
-    /// display state.
-    fn reset(&mut self) {
-        self.disp_bg = Some(0);
+    fn sgr0(&mut self, bytes: &mut Vec<u8>, terminfo: &TermInfo, vars: &mut parm::Variables) {
         self.disp_blink = Some(false);
         self.disp_bold = Some(false);
-        self.disp_dhl = Some(0);
-        self.disp_dwl = Some(false);
-        self.disp_fg = Some(7);
-        self.disp_font = Some(0);
-        self.disp_is_visible = Some(true);
-        self.disp_italic = Some(false);
         self.disp_reverse = Some(false);
-        self.disp_strike = Some(false);
         self.disp_underline = Some(0);
+        self.apply_cap("sgr0", bytes, terminfo, vars, &vec![]);
     }
 
     /// Updates many pen attributes from the given cell's attributes
@@ -207,5 +209,9 @@ impl Pen {
         let cmd = terminfo.strings.get(cap).unwrap();
         let mut sequence = parm::expand(&cmd, params.as_slice(), vars).unwrap();
         bytes.append(&mut sequence);
+    }
+
+    fn is_cap_supported(&self, cap: &str, terminfo: &TermInfo) -> bool {
+        terminfo.strings.get(cap).is_some()
     }
 }
