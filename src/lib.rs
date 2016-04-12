@@ -13,5 +13,6 @@ extern crate termios;
 extern crate uuid;
 extern crate vterm_sys;
 
+pub mod cell_buffer;
 pub mod client;
 pub mod server;

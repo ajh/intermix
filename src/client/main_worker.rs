@@ -388,7 +388,6 @@ impl<F: 'static + Write + Send> MainWorker<F> {
         trace!("layout_damage");
 
         let layout = self.layout.read().unwrap();
-        // trace!("{:#?}", layout.tree());
 
         for wrap in layout.tree().values() {
             MainWorker::draw_border_for_node(&mut self.painter, wrap, &layout.size);
