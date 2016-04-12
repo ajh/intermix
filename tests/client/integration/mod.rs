@@ -55,7 +55,6 @@ fn client_starts_in_welcome_mode() {
 
     let (_, client) = Client::spawn(input.clone(),
                                     output.clone(),
-                                    output.clone(),
                                     TtyIoCtlConfig {
                                         rows: 5,
                                         cols: 10,
@@ -75,7 +74,6 @@ fn client_can_enter_command_mode() {
     let input = TestIO::new();
 
     let (tx, client) = Client::spawn(input.clone(),
-                                     output.clone(),
                                      output.clone(),
                                      TtyIoCtlConfig {
                                          rows: 5,
@@ -98,7 +96,6 @@ fn client_can_enter_program_mode() {
     let input = TestIO::new();
 
     let (tx, client) = Client::spawn(input.clone(),
-                                     output.clone(),
                                      output.clone(),
                                      TtyIoCtlConfig {
                                          rows: 24,
@@ -132,7 +129,6 @@ fn client_can_exit_program_mode() {
     let input = TestIO::new();
 
     let (tx, client) = Client::spawn(input.clone(),
-                                     output.clone(),
                                      output.clone(),
                                      TtyIoCtlConfig {
                                          rows: 24,

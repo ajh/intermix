@@ -123,7 +123,6 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
 /// Build and return a simplified client of the given size.
 fn build_client(output: TestIO, size: &Size) -> Client {
     let (client_tx, client) = Client::spawn(::std::io::empty(),
-                                            output.clone(),
                                             output,
                                             TtyIoCtlConfig {
                                                 rows: size.height,

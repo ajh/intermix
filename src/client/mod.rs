@@ -92,7 +92,6 @@ impl Client {
     /// All the action takes place in threads so message passing is the client api more or less.
     pub fn spawn<I, O>(input: I,
                        output: O,
-                       output2: O,
                        tty_ioctl_config: TtyIoCtlConfig)
                        -> (Sender<ClientMsg>, Client)
         where I: 'static + Read + Send,
