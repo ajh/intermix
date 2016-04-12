@@ -97,7 +97,7 @@ impl Client {
         where I: 'static + Read + Send,
               O: 'static + Write + Send
     {
-        let (main_tx, layout, _) = MainWorker::spawn(tty_ioctl_config, output);
+        let (main_tx, _, _) = MainWorker::spawn(tty_ioctl_config, output);
         StdinReadWorker::spawn(input, main_tx.clone());
 
         let client = Client {

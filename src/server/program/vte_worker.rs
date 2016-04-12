@@ -10,6 +10,7 @@ use super::*;
 /// * VteWorkerMsg
 /// * and vterm_sys::ScreenEvent.
 pub struct VteWorker {
+    #[allow(dead_code)]
     tx: Sender<VteWorkerMsg>,
     rx: Option<Receiver<VteWorkerMsg>>,
     server_tx: Sender<::server::ServerMsg>,
@@ -74,9 +75,6 @@ impl VteWorker {
                 screen_event = vterm_event_rx.recv() => self.handle_screen_event(screen_event.unwrap())
             }
         }
-
-        // work around lifetime issue
-        self.rx = Some(program_event_rx);
     }
 
     fn handle_screen_event(&mut self, event: ScreenEvent) {
@@ -130,8 +128,8 @@ impl VteWorker {
                 }
             }
             ScreenEvent::Resize(e) => info!("Resize: {:?}", e),
-            ScreenEvent::SbPopLine(e) => info!("SbPopLine"),
-            ScreenEvent::SbPushLine(e) => info!("SbPushLine"),
+            ScreenEvent::SbPopLine(_) => info!("SbPopLine"),
+            ScreenEvent::SbPushLine(_) => info!("SbPushLine"),
             ScreenEvent::AltScreen(e) => info!("AltScreen: {:?}", e),
             ScreenEvent::CursorBlink(e) => info!("CursorBlink: {:?}", e),
             ScreenEvent::CursorShape(e) => info!("CursorShape: {:?}", e),
@@ -146,7 +144,7 @@ impl VteWorker {
     fn handle_program_event(&mut self, event: VteWorkerMsg) {
         match event {
             VteWorkerMsg::PtyRead{bytes} => {
-                self.vterm.write(bytes.as_slice());
+                self.vterm.write(bytes.as_slice()).unwrap();
                 self.vterm.screen_flush_damage();
             }
             VteWorkerMsg::PtyReadZero => error!("got PtyReadZero"),

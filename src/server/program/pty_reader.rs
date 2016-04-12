@@ -10,6 +10,7 @@ use super::*;
 ///
 /// An alternative would be to have 1 thread run for all programs using mio.
 pub struct PtyReader {
+    #[allow(dead_code)]
     program_id: String,
     pty: File,
     vte_tx: mpsc::Sender<VteWorkerMsg>,

@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 use std::io::BufWriter;
 use term::terminfo::{parm, TermInfo};
-use vterm_sys::{self, Size, Pos, ColorPalette, ScreenCell, Rect, RectAssist};
+use vterm_sys::{Size, Pos, ScreenCell, Rect, RectAssist};
 use super::pen::*;
 
 // TODO:
@@ -37,8 +37,6 @@ impl<F: Write + Send> TtyPainter<F> {
         let bytes = self.pen.flush(&self.terminfo, &mut self.vars);
         self.io.write_all(&bytes).ok().expect("failed to write");
 
-        let terminfo = TermInfo::from_env().unwrap();
-        let mut vars = parm::Variables::new();
         self.write_cap("sc", &vec![]);
 
         for (cell, pos) in cells.iter().zip(rect.positions()) {
@@ -100,7 +98,7 @@ impl<F: Write + Send> TtyPainter<F> {
 
     pub fn flush(&mut self) {
         self.io.write_all(&self.pen.flush(&self.terminfo, &mut self.vars)).ok().expect("failed to write");
-        self.io.flush();
+        self.io.flush().unwrap();
     }
 
     pub fn reset(&mut self) {
@@ -113,7 +111,7 @@ impl<F: Write + Send> TtyPainter<F> {
 
     fn write_cap(&mut self, cap: &str, params: &Vec<parm::Param>) {
         let cmd = self.terminfo.strings.get(cap).unwrap();
-        let mut bytes = parm::expand(&cmd, params.as_slice(), &mut self.vars).unwrap();
+        let bytes = parm::expand(&cmd, params.as_slice(), &mut self.vars).unwrap();
         self.io.write_all(&bytes).ok().expect("failed to write");
     }
 }

@@ -21,6 +21,8 @@ pub enum VteWorkerMsg {
     },
     PtyReadError,
     PtyReadZero,
+
+    #[allow(dead_code)]
     RequestRedrawRect {
         rect: Rect,
     },

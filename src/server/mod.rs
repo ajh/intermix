@@ -1,6 +1,6 @@
 mod program;
 
-use vterm_sys::{self, ScreenCell, Rect, Pos, Size};
+use vterm_sys::{ScreenCell, Rect, Pos, Size};
 use self::program::*;
 use std::io::prelude::*;
 use std::os::unix::prelude::*;
@@ -111,9 +111,9 @@ impl Server {
                 ServerMsg::ProgramInput { program_id, bytes } => {
                     self.program_input(program_id, bytes)
                 }
-                ServerMsg::ProgramKill { program_id, signal } => {}
-                ServerMsg::ProgramMoveCursor { program_id, new, old, is_visible } => {}
-                ServerMsg::ProgramRedrawRect { program_id: _, rect } => {}
+                ServerMsg::ProgramKill { .. } => {}
+                ServerMsg::ProgramMoveCursor { .. } => {}
+                ServerMsg::ProgramRedrawRect { .. } => {}
 
                 // need client id here
                 ServerMsg::ProgramStart { program_id, command_and_args } => {
@@ -123,8 +123,8 @@ impl Server {
                 ServerMsg::ClientAdd { client } => {
                     self.clients.push(client);
                 }
-                ServerMsg::ClientUpdate { client } => {}
-                ServerMsg::ClientRemote { client_id } => {}
+                ServerMsg::ClientUpdate { .. } => {}
+                ServerMsg::ClientRemote { .. } => {}
             }
         }
     }

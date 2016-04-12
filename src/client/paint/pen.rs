@@ -1,7 +1,5 @@
-use std::io::prelude::*;
-use std::io::BufWriter;
 use term::terminfo::{parm, TermInfo};
-use vterm_sys::{self, Size, Pos, ColorPalette, ScreenCell, Rect, RectAssist};
+use vterm_sys::{Size, Pos, ColorPalette, ScreenCell};
 
 /// An object that tracks the state of the physical screen and collects desired changes to it. Can
 /// help make the desired changes reality by flushing them as a terminfo byte string.
@@ -23,14 +21,18 @@ pub struct Pen {
     disp_bg: Option<ColorPalette>,
     disp_blink: Option<bool>,
     disp_bold: Option<bool>,
+    #[allow(dead_code)]
     disp_dhl: Option<u8>,
+    #[allow(dead_code)]
     disp_dwl: Option<bool>,
     disp_fg: Option<ColorPalette>,
+    #[allow(dead_code)]
     disp_font: Option<u8>,
     disp_visible: Option<bool>,
     disp_italic: Option<bool>,
     disp_pos: Option<Pos>,
     disp_reverse: Option<bool>,
+    #[allow(dead_code)]
     disp_strike: Option<bool>,
     disp_underline: Option<u8>,
 }

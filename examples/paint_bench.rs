@@ -12,7 +12,6 @@ extern crate vterm_sys;
 // cargo run --example paint_bench --release
 
 use libc::c_ushort;
-use std::env;
 use libintermix::client::paint::TtyPainter;
 use std::io::prelude::*;
 use vterm_sys::{Size, Rect, Pos};
@@ -29,6 +28,7 @@ Options:
 ";
 
 #[derive(Debug, RustcDecodable)]
+#[allow(non_snake_case)]
 struct Args {
     arg_FILE: String,
 }

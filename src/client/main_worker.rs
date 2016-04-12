@@ -4,7 +4,6 @@ use std::sync::mpsc::*;
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
 use super::*;
-use super::layout::*;
 use super::servers::*;
 use uuid::Uuid;
 use vterm_sys::{self, Pos, Size, Rect, ScreenCell, RectAssist};
@@ -61,7 +60,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
            -> MainWorker<F> {
 
         let size = { layout.read().unwrap().size.clone() };
-        let mut painter = TtyPainter::new(io, size);
+        let painter = TtyPainter::new(io, size);
 
         let mut worker = MainWorker {
             rx: rx,
@@ -375,7 +374,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
 
         let rect = Rect::new(Pos::new(0,0), layout.size.clone());
 
-        for pos in rect.positions() {
+        for _ in rect.positions() {
             cells.push(ScreenCell {
                 chars: vec![b' '],
                 ..Default::default()
@@ -401,21 +400,14 @@ impl<F: 'static + Write + Send> MainWorker<F> {
                              wrap: &layout::Wrap,
                              size: &Size) {
         if wrap.has_border() {
-            let mut top = wrap.border_y().unwrap();
-            if top < 0 {
-                top = 0
-            }
+            let top = wrap.border_y().unwrap();
 
             let mut bottom = wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1;
             if bottom >= size.height {
                 bottom = size.height - 1
             }
 
-            let mut left = wrap.border_x().unwrap();
-            if left < 0 {
-                left = 0
-            }
-
+            let left = wrap.border_x().unwrap();
             let mut right = wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1;
             if right >= size.width {
                 right = size.width - 1
@@ -484,22 +476,14 @@ impl<F: 'static + Write + Send> MainWorker<F> {
                     );
             }
         } else if wrap.margin() > 0 {
-            let mut top = wrap.computed_y().unwrap() - wrap.padding() - 1;
-            if top < 0 {
-                top = 0
-            }
-
+            let top = wrap.computed_y().unwrap() - wrap.padding() - 1;
             let mut bottom = wrap.computed_y().unwrap() + wrap.computed_height().unwrap() +
                              wrap.padding();
             if bottom >= size.height {
                 bottom = size.height - 1
             }
 
-            let mut left = wrap.computed_x().unwrap() - wrap.padding() - 1;
-            if left < 0 {
-                left = 0
-            }
-
+            let left = wrap.computed_x().unwrap() - wrap.padding() - 1;
             let mut right = wrap.computed_x().unwrap() + wrap.computed_width().unwrap() +
                             wrap.padding();
             if right >= size.width {

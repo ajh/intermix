@@ -1,4 +1,4 @@
-use vterm_sys::{Size, Pos};
+use vterm_sys::{Size};
 use ego_tree;
 
 pub const GRID_COLUMNS_COUNT: usize = 12;
