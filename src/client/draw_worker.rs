@@ -53,9 +53,6 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
 
             match msg {
                 ClientMsg::Quit => break,
-                ClientMsg::ProgramDamage { program_id, cells, rect } => {
-                    self.program_damage(program_id, cells, rect)
-                }
                 ClientMsg::Clear => self.clear(),
                 ClientMsg::LayoutDamage => self.layout_damage(),
                 ClientMsg::LayoutSwap { layout } => self.layout_swap(layout),
@@ -64,18 +61,6 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
                 }
                 _ => warn!("unhandled msg {:?}", msg),
             }
-        }
-    }
-
-    fn program_damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>, rect: vterm_sys::Rect) {
-        trace!("program_damage for {}", program_id);
-
-        let layout = self.layout.read().unwrap();
-        if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
-            let rect = rect.translate(&Pos { x: wrap.computed_x().unwrap(), y: wrap.computed_y().unwrap() });
-            self.painter.draw_cells(&cells, &rect);
-        } else {
-            warn!("didnt find node with value: {:?}", program_id);
         }
     }
 
@@ -94,6 +79,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
     fn draw_border_for_node(painter: &mut TtyPainter<F>,
                              wrap: &layout::Wrap,
                              size: &Size) {
+        painter.reset();
         if wrap.has_border() {
             let mut top = wrap.border_y().unwrap();
             if top < 0 {
@@ -249,6 +235,7 @@ impl<F: 'static + Write + Send> DrawWorker<F> {
             });
         }
 
+        self.painter.reset();
         self.painter.draw_cells(&cells, &rect);
     }
 

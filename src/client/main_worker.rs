@@ -1,4 +1,5 @@
 use std::io::prelude::*;
+use super::paint::*;
 use std::sync::mpsc::*;
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
@@ -6,7 +7,7 @@ use super::*;
 use super::layout::*;
 use super::servers::*;
 use uuid::Uuid;
-use vterm_sys::{self, Pos, Size, Rect};
+use vterm_sys::{self, Pos, Size, Rect, ScreenCell, RectAssist};
 
 /// This worker handles:
 /// * user input
@@ -16,7 +17,8 @@ use vterm_sys::{self, Pos, Size, Rect};
 /// worker's internal representation.
 ///
 /// It doesn't receive any server damage messages.
-pub struct MainWorker {
+pub struct MainWorker<F: 'static + Write + Send> {
+    tx: Sender<ClientMsg>,
     rx: Receiver<ClientMsg>,
     draw_worker_tx: Sender<ClientMsg>,
     pub servers: Servers,
@@ -24,13 +26,15 @@ pub struct MainWorker {
     pub tty_ioctl_config: TtyIoCtlConfig,
     pub layout: Arc<RwLock<layout::Screen>>,
     selected_program_id: Option<String>,
+    painter: TtyPainter<F>,
 }
 
 static STATUS_LINE: &'static str = "status_line";
 
-impl MainWorker {
+impl<F: 'static + Write + Send> MainWorker<F> {
     pub fn spawn(draw_worker_tx: Sender<ClientMsg>,
-                 tty_ioctl_config: TtyIoCtlConfig)
+                 tty_ioctl_config: TtyIoCtlConfig,
+                 io: F)
                  -> (Sender<ClientMsg>,
                      Arc<RwLock<layout::Screen>>,
                      JoinHandle<()>) {
@@ -40,7 +44,7 @@ impl MainWorker {
             width: tty_ioctl_config.cols,
         })));
         let layout_clone = layout.clone();
-        let mut worker = MainWorker::new(draw_worker_tx, rx, tty_ioctl_config, layout);
+        let mut worker = MainWorker::new(draw_worker_tx, rx, tx.clone(), tty_ioctl_config, layout, io);
 
         info!("spawning main worker");
         let handle = thread::spawn(move || {
@@ -53,17 +57,25 @@ impl MainWorker {
 
     fn new(draw_worker_tx: Sender<ClientMsg>,
            rx: Receiver<ClientMsg>,
+           tx: Sender<ClientMsg>,
            tty_ioctl_config: TtyIoCtlConfig,
-           layout: Arc<RwLock<layout::Screen>>)
-           -> MainWorker {
+           layout: Arc<RwLock<layout::Screen>>,
+           io: F)
+           -> MainWorker<F> {
+
+        let size = { layout.read().unwrap().size.clone() };
+        let mut painter = TtyPainter::new(io, size);
+
         let mut worker = MainWorker {
             draw_worker_tx: draw_worker_tx,
             rx: rx,
+            tx: tx,
             servers: Default::default(),
             modal_key_handler: modal::ModalKeyHandler::new_with_graph(),
             tty_ioctl_config: tty_ioctl_config.clone(),
             layout: layout,
             selected_program_id: None,
+            painter: painter,
         };
         worker.init();
         worker
@@ -82,8 +94,8 @@ impl MainWorker {
             layout.flush_changes();
         }
 
-        self.draw_worker_tx.send(ClientMsg::Clear).unwrap();
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
+        self.tx.send(ClientMsg::Clear).unwrap();
+        self.tx.send(ClientMsg::LayoutDamage).unwrap();
         self.damage_status_line();
     }
 
@@ -104,7 +116,11 @@ impl MainWorker {
                 ClientMsg::ProgramAdd { server_id, program_id } => {
                     self.add_program(server_id, program_id)
                 }
-                ClientMsg::ProgramDamage { .. } => self.forward_to_draw_worker(msg),
+                ClientMsg::ProgramDamage { program_id, cells, rect } => {
+                    self.program_damage(program_id, cells, rect)
+                }
+                ClientMsg::Clear { .. } => self.clear(),
+                ClientMsg::LayoutDamage { .. } => self.forward_to_draw_worker(msg),
                 ClientMsg::ProgramMoveCursor { .. } => self.forward_to_draw_worker(msg),
                 ClientMsg::LayoutSwap { layout } => self.layout_swap(layout),
                 ClientMsg::UserInput { bytes } => {
@@ -265,7 +281,7 @@ impl MainWorker {
             layout.flush_changes();
         }
 
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
+        self.tx.send(ClientMsg::LayoutDamage).unwrap();
     }
 
     fn add_program(&mut self, server_id: String, program_id: String) {
@@ -285,7 +301,7 @@ impl MainWorker {
         layout.tree_mut().root_mut().append(wrap);
         layout.flush_changes();
 
-        self.draw_worker_tx.send(ClientMsg::LayoutDamage).unwrap();
+        self.tx.send(ClientMsg::LayoutDamage).unwrap();
     }
 
     fn damage_status_line(&self) {
@@ -320,7 +336,7 @@ impl MainWorker {
 
         let rect = Rect::new(Pos::new(0,0), Size::new(cells.len(), 1));
         // Does this make sense? A status line is not a program.
-        self.draw_worker_tx
+        self.tx
             .send(ClientMsg::ProgramDamage {
                 program_id: STATUS_LINE.to_string(),
                 cells: cells,
@@ -347,5 +363,35 @@ impl MainWorker {
     fn layout_swap(&mut self, layout: Arc<RwLock<layout::Screen>>) {
         self.layout = layout;
         self.draw_worker_tx.send(ClientMsg::LayoutSwap { layout: self.layout.clone() }).unwrap();
+    }
+
+    fn program_damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>, rect: vterm_sys::Rect) {
+        trace!("program_damage for {}", program_id);
+
+        let layout = self.layout.read().unwrap();
+        if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
+            let rect = rect.translate(&Pos { x: wrap.computed_x().unwrap(), y: wrap.computed_y().unwrap() });
+            self.painter.reset();
+            self.painter.draw_cells(&cells, &rect);
+        } else {
+            warn!("didnt find node with value: {:?}", program_id);
+        }
+    }
+
+    fn clear(&mut self) {
+        let layout = self.layout.read().unwrap();
+        let mut cells: Vec<ScreenCell> = vec![];
+
+        let rect = Rect::new(Pos::new(0,0), layout.size.clone());
+
+        for pos in rect.positions() {
+            cells.push(ScreenCell {
+                chars: vec![b' '],
+                ..Default::default()
+            });
+        }
+
+        self.painter.reset();
+        self.painter.draw_cells(&cells, &rect);
     }
 }
