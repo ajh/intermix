@@ -1,5 +1,6 @@
 use std::io::prelude::*;
 use super::paint::*;
+use std::ops::{IndexMut};
 use std::sync::mpsc::*;
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
@@ -7,6 +8,7 @@ use super::*;
 use super::servers::*;
 use uuid::Uuid;
 use vterm_sys::{self, Pos, Size, Rect, ScreenCell, RectAssist};
+use ::cell_buffer::*;
 
 /// This worker handles:
 /// * user input
@@ -25,6 +27,7 @@ pub struct MainWorker<F: 'static + Write + Send> {
     pub layout: Arc<RwLock<layout::Screen>>,
     selected_program_id: Option<String>,
     painter: TtyPainter<F>,
+    screen: CellBuffer,
 }
 
 static STATUS_LINE: &'static str = "status_line";
@@ -60,7 +63,6 @@ impl<F: 'static + Write + Send> MainWorker<F> {
            -> MainWorker<F> {
 
         let size = { layout.read().unwrap().size.clone() };
-        let painter = TtyPainter::new(io, size);
 
         let mut worker = MainWorker {
             rx: rx,
@@ -70,7 +72,8 @@ impl<F: 'static + Write + Send> MainWorker<F> {
             tty_ioctl_config: tty_ioctl_config.clone(),
             layout: layout,
             selected_program_id: None,
-            painter: painter,
+            painter: TtyPainter::new(io, size.clone()),
+            screen: CellBuffer::new(size),
         };
         worker.init();
         worker
@@ -91,7 +94,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
 
         self.tx.send(ClientMsg::Clear).unwrap();
         self.tx.send(ClientMsg::LayoutDamage).unwrap();
-        self.damage_status_line();
+        self.tx.send(ClientMsg::StatusLineDamage).unwrap();
     }
 
     /// Start receiving messages from Receiver. Exits on a Quit message.
@@ -120,6 +123,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
                     self.move_cursor(program_id, new, is_visible)
                 }
                 ClientMsg::LayoutSwap { layout } => self.layout_swap(layout),
+                ClientMsg::StatusLineDamage => self.damage_status_line(),
                 ClientMsg::UserInput { bytes } => {
                     self.modal_key_handler.write(&bytes).unwrap();
                     while let Some(user_action) = self.modal_key_handler.actions_queue.pop() {
@@ -296,45 +300,37 @@ impl<F: 'static + Write + Send> MainWorker<F> {
         self.tx.send(ClientMsg::LayoutDamage).unwrap();
     }
 
-    fn damage_status_line(&self) {
+    fn damage_status_line(&mut self) {
         trace!("damage_status_line for mode {:?}",
                self.modal_key_handler.mode_name());
 
-        let found_status_line = {
-            let layout = self.layout.read().unwrap();
-            layout.tree().values().find(|n| *n.name() == STATUS_LINE.to_string()).is_some()
-        };
+        let layout = self.layout.read().unwrap();
+        if let Some(wrap) = layout.tree().values().find(|n| *n.name() == STATUS_LINE.to_string()) {
+            let rect = Rect::new(
+                Pos::new(wrap.computed_x().unwrap(), wrap.computed_y().unwrap()),
+                Size::new(wrap.computed_width().unwrap(), wrap.computed_height().unwrap())
+            );
 
-        if !found_status_line {
+            for pos in rect.positions() {
+                let cell = self.screen.index_mut(pos);
+                cell.dirty = true;
+                cell.chars.clear();
+            }
+
+            for (pos, ch) in rect.positions().zip(self.modal_key_handler.mode_name().chars()) {
+                // TODO: find a better way to convert from a char to Vec<u8>. Maybe encode_utf8?
+                let mut sigh = String::new();
+                sigh.push(ch);
+                let cell = self.screen.index_mut(pos);
+                cell.chars = sigh.into_bytes();
+                cell.dirty = true;
+            }
+
+            self.painter.draw_screen(&mut self.screen);
+        }
+        else {
             warn!("no status line node");
-            return;
         }
-
-        // Draw it
-        let mut cells = vec![];
-        for ch in self.modal_key_handler.mode_name().chars() {
-            let mut sigh = String::new();
-            sigh.push(ch);
-
-            cells.push(vterm_sys::ScreenCell {
-                chars: sigh.into_bytes(),
-                width: 1,
-                attrs: Default::default(),
-                fg_palette: 7,
-                bg_palette: 0,
-                ..Default::default()
-            });
-        }
-
-        let rect = Rect::new(Pos::new(0,0), Size::new(cells.len(), 1));
-        // Does this make sense? A status line is not a program.
-        self.tx
-            .send(ClientMsg::ProgramDamage {
-                program_id: STATUS_LINE.to_string(),
-                cells: cells,
-                rect: rect,
-            })
-            .unwrap();
     }
 
     fn mode_change(&mut self, _: &str) {
@@ -361,8 +357,17 @@ impl<F: 'static + Write + Send> MainWorker<F> {
 
         let layout = self.layout.read().unwrap();
         if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
-            let rect = rect.translate(&Pos { x: wrap.computed_x().unwrap(), y: wrap.computed_y().unwrap() });
-            self.painter.draw_cells(&cells, &rect);
+            for (vterm_cell, pos) in cells.iter().zip(rect.positions()) {
+                let pos = pos + Pos::new(wrap.computed_x().unwrap(), wrap.computed_y().unwrap());
+                let mut cell = self.screen.index_mut(pos);
+
+                // TODO: make the wire data format be the same as Cell so this is just a memcopy
+                // into a vector
+                cell.update_from_vterm_cell(&vterm_cell);
+                cell.dirty = true;
+            }
+
+            self.painter.draw_screen(&mut self.screen);
         } else {
             warn!("didnt find node with value: {:?}", program_id);
         }

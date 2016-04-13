@@ -61,6 +61,8 @@ pub enum ClientMsg {
     LayoutSwap {
         layout: Arc<RwLock<layout::Screen>>,
     },
+
+    StatusLineDamage,
 }
 
 /// other settings from `man tty_ioctl` could live here

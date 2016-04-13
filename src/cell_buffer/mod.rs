@@ -50,3 +50,6 @@
 
 mod cell;
 mod cell_buffer;
+
+pub use self::cell::*;
+pub use self::cell_buffer::*;
