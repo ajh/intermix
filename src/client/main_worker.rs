@@ -1,13 +1,13 @@
 use std::io::prelude::*;
 use super::paint::*;
-use std::ops::{IndexMut};
+use std::ops::IndexMut;
 use std::sync::mpsc::*;
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
 use super::*;
 use super::servers::*;
 use uuid::Uuid;
-use vterm_sys::{self, Pos, Size, Rect, ScreenCell, RectAssist};
+use vterm_sys::{self, Pos, Size, Rect, RectAssist};
 use ::cell_buffer::*;
 
 /// This worker handles:
@@ -62,7 +62,9 @@ impl<F: 'static + Write + Send> MainWorker<F> {
            io: F)
            -> MainWorker<F> {
 
-        let size = { layout.read().unwrap().size.clone() };
+        let size = {
+            layout.read().unwrap().size.clone()
+        };
 
         let mut worker = MainWorker {
             rx: rx,
@@ -306,10 +308,9 @@ impl<F: 'static + Write + Send> MainWorker<F> {
 
         let layout = self.layout.read().unwrap();
         if let Some(wrap) = layout.tree().values().find(|n| *n.name() == STATUS_LINE.to_string()) {
-            let rect = Rect::new(
-                Pos::new(wrap.computed_x().unwrap(), wrap.computed_y().unwrap()),
-                Size::new(wrap.computed_width().unwrap(), wrap.computed_height().unwrap())
-            );
+            let rect = Rect::new(Pos::new(wrap.computed_x().unwrap(), wrap.computed_y().unwrap()),
+                                 Size::new(wrap.computed_width().unwrap(),
+                                           wrap.computed_height().unwrap()));
 
             for pos in rect.positions() {
                 let cell = self.screen.index_mut(pos);
@@ -327,8 +328,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
             }
 
             self.painter.draw_screen(&mut self.screen);
-        }
-        else {
+        } else {
             warn!("no status line node");
         }
     }
@@ -352,7 +352,10 @@ impl<F: 'static + Write + Send> MainWorker<F> {
         self.layout = layout;
     }
 
-    fn program_damage(&mut self, program_id: String, cells: Vec<vterm_sys::ScreenCell>, rect: vterm_sys::Rect) {
+    fn program_damage(&mut self,
+                      program_id: String,
+                      cells: Vec<vterm_sys::ScreenCell>,
+                      rect: vterm_sys::Rect) {
         trace!("program_damage for {}", program_id);
 
         let layout = self.layout.read().unwrap();
@@ -374,19 +377,11 @@ impl<F: 'static + Write + Send> MainWorker<F> {
     }
 
     fn clear(&mut self) {
-        let layout = self.layout.read().unwrap();
-        let mut cells: Vec<ScreenCell> = vec![];
-
-        let rect = Rect::new(Pos::new(0,0), layout.size.clone());
-
-        for _ in rect.positions() {
-            cells.push(ScreenCell {
-                chars: vec![b' '],
-                ..Default::default()
-            });
+        for cell in self.screen.iter_mut() {
+            cell.clear();
         }
 
-        self.painter.draw_cells(&cells, &rect);
+        self.painter.draw_screen(&mut self.screen);
     }
 
     fn layout_damage(&mut self) {
@@ -395,147 +390,74 @@ impl<F: 'static + Write + Send> MainWorker<F> {
         let layout = self.layout.read().unwrap();
 
         for wrap in layout.tree().values() {
-            MainWorker::draw_border_for_node(&mut self.painter, wrap, &layout.size);
+            MainWorker::draw_node_box(&mut self.screen, wrap, &mut self.painter, &layout.size);
         }
     }
 
-    /// TODO: optimize this by batching draw_cells calls
-    fn draw_border_for_node(painter: &mut TtyPainter<F>,
-                             wrap: &layout::Wrap,
-                             size: &Size) {
-        if wrap.has_border() {
-            let top = wrap.border_y().unwrap();
+    /// Draw any margin border or padding for the given node
+    fn draw_node_box(screen: &mut CellBuffer,
+                     wrap: &layout::Wrap,
+                     painter: &mut TtyPainter<F>,
+                     size: &Size) {
+        let screen_rect = Rect::new(Pos::new(0, 0), size.clone());
 
-            let mut bottom = wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1;
-            if bottom >= size.height {
-                bottom = size.height - 1
-            }
+        let outside_rect = Rect::new(Pos::new(wrap.outside_x().unwrap(),
+                                              wrap.outside_y().unwrap()),
+                                     Size::new(wrap.outside_width().unwrap(),
+                                               wrap.outside_height().unwrap()));
+        let outside_rect = outside_rect.intersection(&screen_rect).unwrap();
 
-            let left = wrap.border_x().unwrap();
-            let mut right = wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1;
-            if right >= size.width {
-                right = size.width - 1
-            }
+        let inside_rect = Rect::new(Pos::new(wrap.computed_x().unwrap(),
+                                             wrap.computed_y().unwrap()),
+                                    Size::new(wrap.computed_width().unwrap(),
+                                              wrap.computed_height().unwrap()));
+        let inside_rect = inside_rect.intersection(&screen_rect).unwrap();
 
-            painter.draw_cells(&vec![
-                                    ScreenCell {
-                                        chars: "┌".to_string().into_bytes(),
-                                        ..Default::default()
-                                    }],
-                                    &Rect::new(Pos::new(left, top), Size::new(1, 1))
-                            );
-            painter.draw_cells(&vec![
-                                    ScreenCell {
-                                        chars: "┐".to_string().into_bytes(),
-                                        ..Default::default()
-                                    }],
-                                    &Rect::new(Pos::new(right, top), Size::new(1,1))
-                                    );
-            painter.draw_cells(&vec![
-            ScreenCell {
-                chars: "└".to_string().into_bytes(),
-                ..Default::default()
-            }],
-                &Rect::new(Pos::new(left, bottom), Size::new(1,1))
-                );
-            painter.draw_cells(&vec![
-            ScreenCell {
-                chars: "┘".to_string().into_bytes(),
-                ..Default::default()
-            }],
-                &Rect::new(Pos::new(right,bottom), Size::new(1,1))
-            );
-
-            for x in left + 1..right {
-                painter.draw_cells(&vec![
-                ScreenCell {
-                    chars: "─".to_string().into_bytes(),
-                    ..Default::default()
-                }],
-                    &Rect::new(Pos::new(x, top), Size::new(1,1))
-                    );
-                painter.draw_cells(&vec![
-                ScreenCell {
-                    chars: "─".to_string().into_bytes(),
-                    ..Default::default()
-                }],
-                    &Rect::new(Pos::new(x, bottom), Size::new(1,1))
-                    );
-            }
-
-            for y in top + 1..bottom {
-                painter.draw_cells(&vec![
-                ScreenCell {
-                    chars: "│".to_string().into_bytes(),
-                    ..Default::default()
-                }],
-                    &Rect::new(Pos::new(left, y), Size::new(1,1))
-                    );
-                painter.draw_cells(&vec![
-                ScreenCell {
-                    chars: "│".to_string().into_bytes(),
-                    ..Default::default()
-                }],
-                    &Rect::new(Pos::new(right, y), Size::new(1,1))
-                    );
-            }
-        } else if wrap.margin() > 0 {
-            let top = wrap.computed_y().unwrap() - wrap.padding() - 1;
-            let mut bottom = wrap.computed_y().unwrap() + wrap.computed_height().unwrap() +
-                             wrap.padding();
-            if bottom >= size.height {
-                bottom = size.height - 1
-            }
-
-            let left = wrap.computed_x().unwrap() - wrap.padding() - 1;
-            let mut right = wrap.computed_x().unwrap() + wrap.computed_width().unwrap() +
-                            wrap.padding();
-            if right >= size.width {
-                right = size.width - 1
-            }
-
-            for x in left..right + 1 {
-                painter.draw_cells(&vec![
-                ScreenCell {
-                    chars: " ".to_string().into_bytes(),
-                    ..Default::default()
-                }],
-                    &Rect::new(Pos::new(x, top), Size::new(1,1))
-                    );
-                painter.draw_cells(&vec![
-                ScreenCell {
-                    chars: " ".to_string().into_bytes(),
-                    ..Default::default()
-                }],
-                    &Rect::new(Pos::new(x, bottom), Size::new(1,1))
-                    );
-            }
-
-            for y in top + 1..bottom {
-            painter.draw_cells(&vec![
-                ScreenCell {
-                    chars: " ".to_string().into_bytes(),
-                    ..Default::default()
-                }],
-                    &Rect::new(Pos::new(left, y), Size::new(1,1))
-                    );
-            painter.draw_cells(&vec![
-                ScreenCell {
-                    chars: " ".to_string().into_bytes(),
-                    ..Default::default()
-                }],
-                    &Rect::new(Pos::new(right, y), Size::new(1,1))
-                    );
-            }
+        for pos in outside_rect.positions().filter(|p| !inside_rect.contains(p)) {
+            screen.index_mut(pos).clear();
         }
+
+        if wrap.has_border() {
+            let border_rect = Rect::new(Pos::new(wrap.border_x().unwrap(),
+                                                 wrap.border_y().unwrap()),
+                                        Size::new(wrap.border_width().unwrap(),
+                                                  wrap.border_height().unwrap()));
+            let border_rect = border_rect.intersection(&screen_rect).unwrap();
+
+            let top_and_bottoms = border_rect.positions().filter(|p| {
+                p.y == border_rect.min_y() || p.y == border_rect.max_y() - 1
+            });
+            for pos in top_and_bottoms {
+                screen.index_mut(pos).chars = "─".to_string().into_bytes();
+            }
+
+            let left_and_rights = border_rect.positions().filter(|p| {
+                p.x == border_rect.min_x() || p.x == border_rect.max_x() - 1
+            });
+            for pos in left_and_rights {
+                screen.index_mut(pos).chars = "│".to_string().into_bytes();
+            }
+
+            screen.index_mut(border_rect.origin).chars = "┌".to_string().into_bytes();
+            screen.index_mut(Pos::new(border_rect.origin.x + border_rect.size.width - 1,
+                                      border_rect.origin.y))
+                  .chars = "┐".to_string().into_bytes();
+            screen.index_mut(Pos::new(border_rect.origin.x,
+                                      border_rect.origin.y + border_rect.size.height - 1))
+                  .chars = "└".to_string().into_bytes();
+            screen.index_mut(Pos::new(border_rect.origin.x + border_rect.size.width - 1,
+                                      border_rect.origin.y + border_rect.size.height - 1))
+                  .chars = "┘".to_string().into_bytes();
+        }
+
+        painter.draw_screen(screen);
     }
 
     fn move_cursor(&mut self, program_id: String, pos: vterm_sys::Pos, is_visible: bool) {
         let layout = self.layout.read().unwrap();
         if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
-            let pos = Pos::new(
-                pos.x + wrap.computed_x().unwrap(),
-                pos.y + wrap.computed_y().unwrap());
+            let pos = Pos::new(pos.x + wrap.computed_x().unwrap(),
+                               pos.y + wrap.computed_y().unwrap());
             self.painter.move_cursor(pos, is_visible);
         } else {
             warn!("didnt find node with value: {:?}", program_id);
