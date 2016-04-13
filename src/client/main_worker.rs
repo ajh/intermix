@@ -2,7 +2,6 @@ use std::io::prelude::*;
 use super::paint::*;
 use std::ops::IndexMut;
 use std::sync::mpsc::*;
-use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
 use super::*;
 use super::servers::*;
@@ -24,7 +23,7 @@ pub struct MainWorker<F: 'static + Write + Send> {
     pub servers: Servers,
     pub modal_key_handler: modal::ModalKeyHandler,
     pub tty_ioctl_config: TtyIoCtlConfig,
-    pub layout: Arc<RwLock<layout::Screen>>,
+    pub layout: layout::Screen,
     selected_program_id: Option<String>,
     painter: TtyPainter<F>,
     screen: CellBuffer,
@@ -35,15 +34,9 @@ static STATUS_LINE: &'static str = "status_line";
 impl<F: 'static + Write + Send> MainWorker<F> {
     pub fn spawn(tty_ioctl_config: TtyIoCtlConfig,
                  io: F)
-                 -> (Sender<ClientMsg>,
-                     Arc<RwLock<layout::Screen>>,
-                     JoinHandle<()>) {
+                 -> (Sender<ClientMsg>, JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
-        let layout = Arc::new(RwLock::new(layout::Screen::new(Size {
-            height: tty_ioctl_config.rows,
-            width: tty_ioctl_config.cols,
-        })));
-        let layout_clone = layout.clone();
+        let layout = layout::Screen::new(Size::new(tty_ioctl_config.cols, tty_ioctl_config.rows));
         let mut worker = MainWorker::new(rx, tx.clone(), tty_ioctl_config, layout, io);
 
         info!("spawning main worker");
@@ -52,18 +45,18 @@ impl<F: 'static + Write + Send> MainWorker<F> {
             info!("exiting main worker");
         });
 
-        (tx, layout_clone, handle)
+        (tx, handle)
     }
 
     fn new(rx: Receiver<ClientMsg>,
            tx: Sender<ClientMsg>,
            tty_ioctl_config: TtyIoCtlConfig,
-           layout: Arc<RwLock<layout::Screen>>,
+           layout: layout::Screen,
            io: F)
            -> MainWorker<F> {
 
         let size = {
-            layout.read().unwrap().size.clone()
+            layout.size.clone()
         };
 
         let mut worker = MainWorker {
@@ -87,12 +80,8 @@ impl<F: 'static + Write + Send> MainWorker<F> {
                               .name(STATUS_LINE.to_string())
                               .height(1)
                               .build();
-
-        {
-            let mut layout = self.layout.write().unwrap();
-            layout.tree_mut().root_mut().append(status_line);
-            layout.flush_changes();
-        }
+        self.layout.tree_mut().root_mut().append(status_line);
+        self.layout.flush_changes();
 
         self.tx.send(ClientMsg::Clear).unwrap();
         self.tx.send(ClientMsg::LayoutDamage).unwrap();
@@ -124,7 +113,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
                 ClientMsg::ProgramMoveCursor { program_id, old: _, new, is_visible } => {
                     self.move_cursor(program_id, new, is_visible)
                 }
-                ClientMsg::LayoutSwap { layout } => self.layout_swap(layout),
+                ClientMsg::LayoutSwap { layout } => self.layout = layout,
                 ClientMsg::StatusLineDamage => self.damage_status_line(),
                 ClientMsg::UserInput { bytes } => {
                     self.modal_key_handler.write(&bytes).unwrap();
@@ -260,8 +249,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
 
     fn add_border_to_selected_program_id_wrap(&mut self) {
         if let Some(program_id) = self.selected_program_id.clone() {
-            let mut layout = self.layout.write().unwrap();
-            for mut wrap in layout.tree_mut().values_mut() {
+            for mut wrap in self.layout.tree_mut().values_mut() {
                 if *wrap.name() == "root".to_string() {
                     continue;
                 }
@@ -276,7 +264,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
                     wrap.set_margin(1);
                 }
             }
-            layout.flush_changes();
+            self.layout.flush_changes();
         }
 
         self.tx.send(ClientMsg::LayoutDamage).unwrap();
@@ -295,9 +283,8 @@ impl<F: 'static + Write + Send> MainWorker<F> {
                        .width(80)
                        .margin(1)
                        .build();
-        let mut layout = self.layout.write().unwrap();
-        layout.tree_mut().root_mut().append(wrap);
-        layout.flush_changes();
+        self.layout.tree_mut().root_mut().append(wrap);
+        self.layout.flush_changes();
 
         self.tx.send(ClientMsg::LayoutDamage).unwrap();
     }
@@ -306,8 +293,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
         trace!("damage_status_line for mode {:?}",
                self.modal_key_handler.mode_name());
 
-        let layout = self.layout.read().unwrap();
-        if let Some(wrap) = layout.tree().values().find(|n| *n.name() == STATUS_LINE.to_string()) {
+        if let Some(wrap) = self.layout.tree().values().find(|n| *n.name() == STATUS_LINE.to_string()) {
             let rect = Rect::new(Pos::new(wrap.computed_x().unwrap(), wrap.computed_y().unwrap()),
                                  Size::new(wrap.computed_width().unwrap(),
                                            wrap.computed_height().unwrap()));
@@ -339,17 +325,11 @@ impl<F: 'static + Write + Send> MainWorker<F> {
 
     fn leaf_names(&self) -> Vec<String> {
         self.layout
-            .read()
-            .unwrap()
             .tree()
             .values()
             .map(|w| w.name().clone())
             .filter(|n| *n != "root".to_string() && *n != STATUS_LINE.to_string())
             .collect()
-    }
-
-    fn layout_swap(&mut self, layout: Arc<RwLock<layout::Screen>>) {
-        self.layout = layout;
     }
 
     fn program_damage(&mut self,
@@ -358,8 +338,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
                       rect: vterm_sys::Rect) {
         trace!("program_damage for {}", program_id);
 
-        let layout = self.layout.read().unwrap();
-        if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
+        if let Some(wrap) = self.layout.tree().values().find(|w| *w.name() == program_id) {
             for (vterm_cell, pos) in cells.iter().zip(rect.positions()) {
                 let pos = pos + Pos::new(wrap.computed_x().unwrap(), wrap.computed_y().unwrap());
                 let mut cell = self.screen.index_mut(pos);
@@ -387,10 +366,8 @@ impl<F: 'static + Write + Send> MainWorker<F> {
     fn layout_damage(&mut self) {
         trace!("layout_damage");
 
-        let layout = self.layout.read().unwrap();
-
-        for wrap in layout.tree().values() {
-            MainWorker::draw_node_box(&mut self.screen, wrap, &mut self.painter, &layout.size);
+        for wrap in self.layout.tree().values() {
+            MainWorker::draw_node_box(&mut self.screen, wrap, &mut self.painter, &self.layout.size);
         }
     }
 
@@ -454,8 +431,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
     }
 
     fn move_cursor(&mut self, program_id: String, pos: vterm_sys::Pos, is_visible: bool) {
-        let layout = self.layout.read().unwrap();
-        if let Some(wrap) = layout.tree().values().find(|w| *w.name() == program_id) {
+        if let Some(wrap) = self.layout.tree().values().find(|w| *w.name() == program_id) {
             let pos = Pos::new(pos.x + wrap.computed_x().unwrap(),
                                pos.y + wrap.computed_y().unwrap());
             self.painter.move_cursor(pos, is_visible);

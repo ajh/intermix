@@ -10,7 +10,6 @@ use self::servers::*;
 use self::stdin_read_worker::*;
 use std::io::prelude::*;
 use std::sync::mpsc::*;
-use std::sync::{Arc, RwLock};
 use vterm_sys;
 
 #[derive(Clone, Debug)]
@@ -59,7 +58,7 @@ pub enum ClientMsg {
 
     LayoutDamage,
     LayoutSwap {
-        layout: Arc<RwLock<layout::Screen>>,
+        layout: layout::Screen,
     },
 
     StatusLineDamage,
@@ -99,7 +98,7 @@ impl Client {
         where I: 'static + Read + Send,
               O: 'static + Write + Send
     {
-        let (main_tx, _, _) = MainWorker::spawn(tty_ioctl_config, output);
+        let (main_tx, _) = MainWorker::spawn(tty_ioctl_config, output);
         StdinReadWorker::spawn(input, main_tx.clone());
 
         let client = Client {

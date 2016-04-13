@@ -9,7 +9,6 @@ extern crate time;
 extern crate vterm_sys;
 
 use std::io::prelude::*;
-use std::sync::{Arc, RwLock};
 use libintermix::client::*;
 use vterm_sys::*;
 use std::thread;
@@ -88,17 +87,17 @@ fn load_vterm_events_into_client(vterm: &mut VTerm, client: &mut Client) {
                         };
                         client.tx().send(event).unwrap();
                     }
-                    ScreenEvent::Resize(e) => {},
-                    ScreenEvent::SbPopLine(e) => {},
-                    ScreenEvent::SbPushLine(e) => {},
-                    ScreenEvent::AltScreen(e) => {},
-                    ScreenEvent::CursorBlink(e) => {},
-                    ScreenEvent::CursorShape(e) => {},
-                    ScreenEvent::CursorVisible(e) => {},
-                    ScreenEvent::IconName(e) => {},
-                    ScreenEvent::Mouse(e) => {},
-                    ScreenEvent::Reverse(e) => {},
-                    ScreenEvent::Title(e) => {},
+                    ScreenEvent::Resize(_) => {},
+                    ScreenEvent::SbPopLine(_) => {},
+                    ScreenEvent::SbPushLine(_) => {},
+                    ScreenEvent::AltScreen(_) => {},
+                    ScreenEvent::CursorBlink(_) => {},
+                    ScreenEvent::CursorShape(_) => {},
+                    ScreenEvent::CursorVisible(_) => {},
+                    ScreenEvent::IconName(_) => {},
+                    ScreenEvent::Mouse(_) => {},
+                    ScreenEvent::Reverse(_) => {},
+                    ScreenEvent::Title(_) => {},
                 }
             }
             Err(..) => break,
@@ -128,7 +127,7 @@ fn build_client(size: &Size) -> Client {
                    .build();
     layout.tree_mut().root_mut().append(leaf);
     layout.flush_changes();
-    client_tx.send(ClientMsg::LayoutSwap { layout: Arc::new(RwLock::new(layout)) }).unwrap();
+    client_tx.send(ClientMsg::LayoutSwap { layout: layout }).unwrap();
 
     client
 }

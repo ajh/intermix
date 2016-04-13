@@ -1,5 +1,4 @@
 use std::io::prelude::*;
-use std::sync::{Arc, RwLock};
 use libintermix::client::*;
 use vterm_sys::*;
 use ::support::*;
@@ -142,7 +141,7 @@ fn build_client(output: TestIO, size: &Size) -> Client {
                    .build();
     layout.tree_mut().root_mut().append(leaf);
     layout.flush_changes();
-    client_tx.send(ClientMsg::LayoutSwap { layout: Arc::new(RwLock::new(layout)) }).unwrap();
+    client_tx.send(ClientMsg::LayoutSwap { layout: layout }).unwrap();
 
     client
 }
