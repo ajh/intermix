@@ -1,5 +1,5 @@
 use term::terminfo::{parm, TermInfo};
-use vterm_sys::{Size, Pos, ColorPalette, ScreenCell};
+use vterm_sys::{Size, Pos, ColorPalette};
 use ::cell_buffer::Cell;
 
 /// An object that tracks the state of the physical screen and collects desired changes to it. Can
@@ -180,20 +180,7 @@ impl Pen {
     }
 
     /// Updates many pen attributes from the given cell's attributes
-    pub fn update_attrs_from_cell(&mut self, cell: &ScreenCell) {
-        self.bg = cell.bg_palette;
-        self.blink = cell.attrs.blink;
-        self.bold = cell.attrs.bold;
-        self.fg = cell.fg_palette;
-        self.font = cell.attrs.font;
-        self.italic = cell.attrs.italic;
-        self.reverse = cell.attrs.reverse;
-        self.strike = cell.attrs.strike;
-        self.underline = cell.attrs.underline;
-    }
-
-    /// Updates many pen attributes from the given cell's attributes
-    pub fn update_attrs_from_cell2(&mut self, cell: &Cell) {
+    pub fn update_attrs_from_cell(&mut self, cell: &Cell) {
         self.bg = cell.bg_palette;
         self.blink = cell.blink;
         self.bold = cell.bold;

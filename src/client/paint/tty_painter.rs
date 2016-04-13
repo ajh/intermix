@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 use std::io::BufWriter;
 use term::terminfo::{parm, TermInfo};
-use vterm_sys::{Size, Pos, ScreenCell, Rect, RectAssist};
+use vterm_sys::{Size, Pos};
 use super::pen::*;
 use ::cell_buffer::*;
 
@@ -29,55 +29,6 @@ impl<F: Write + Send> TtyPainter<F> {
         }
     }
 
-    // Draw the cells in the given rectangle
-    pub fn draw_cells(&mut self, cells: &Vec<ScreenCell>, rect: &Rect) {
-        trace!("draw_cells start rect={:?}", rect);
-
-        let old_visible = self.pen.visible;
-        self.pen.visible = false;
-        let bytes = self.pen.flush(&self.terminfo, &mut self.vars);
-        self.io.write_all(&bytes).ok().expect("failed to write");
-
-        self.write_cap("sc", &vec![]);
-
-        for (cell, pos) in cells.iter().zip(rect.positions()) {
-            if pos.x >= self.size.width || pos.y >= self.size.height {
-                // Not sure this is the right thing to do. How do terminals handle wrapping?
-                warn!("skipping draw of cell because its position is outside of our rect");
-                continue;
-            }
-
-            self.pen.pos = pos;
-            self.pen.update_attrs_from_cell(&cell);
-            let bytes = self.pen.flush(&self.terminfo, &mut self.vars);
-            self.io.write_all(&bytes).ok().expect("failed to write");
-
-            // See tmux's tty.c:1155 function `tty_cell`
-            if cell.chars.len() > 0 {
-                self.io.write_all(&cell.chars).ok().expect("failed to write");
-            } else {
-                // like tmux's tty_repeat_space
-                self.io.write_all(&[b'\x20']).ok().expect("failed to write"); // space
-            }
-
-            self.pen.notify_of_advanced_pos(&self.size);
-
-            if cell.width > 1 {
-                warn!("cell has width > 1 {:?}, but acting on this information isnt implemented",
-                      cell)
-            }
-        }
-
-        self.write_cap("rc", &vec![]);
-
-        self.pen.visible = old_visible;
-        let bytes = self.pen.flush(&self.terminfo, &mut self.vars);
-        self.io.write_all(&bytes).ok().expect("failed to write");
-
-        self.io.flush().unwrap();
-        trace!("draw_cells finish");
-    }
-
     pub fn draw_screen(&mut self, screen: &mut CellBuffer) {
         trace!("draw_screen start");
 
@@ -97,7 +48,7 @@ impl<F: Write + Send> TtyPainter<F> {
             }
 
             self.pen.pos = cell.pos.clone();
-            self.pen.update_attrs_from_cell2(cell);
+            self.pen.update_attrs_from_cell(cell);
             let bytes = self.pen.flush(&self.terminfo, &mut self.vars);
             self.io.write_all(&bytes).ok().expect("failed to write");
 
