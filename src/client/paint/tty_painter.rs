@@ -78,7 +78,7 @@ impl<F: Write + Send> TtyPainter<F> {
         self.io.write_all(&bytes).ok().expect("failed to write");
 
         self.io.flush().unwrap();
-        trace!("draw_cells finish");
+        trace!("draw_screen finish");
     }
 
     pub fn move_cursor(&mut self, pos: Pos, is_visible: bool) {
