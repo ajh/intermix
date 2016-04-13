@@ -38,16 +38,19 @@ impl<F: Write + Send> TtyPainter<F> {
         self.io.write_all(&bytes).ok().expect("failed to write");
 
         self.write_cap("sc", &vec![]);
-        for cell in screen.iter_mut().filter(|c| c.dirty) {
+        for pair in screen.iter_mut().filter(|p| p.0.dirty) {
+            let mut cell = pair.0;
+            let pos = pair.1;
+
             cell.dirty = false;
 
-            if cell.pos.x >= self.size.width || cell.pos.y >= self.size.height {
+            if pos.x >= self.size.width || pos.y >= self.size.height {
                 // Not sure this is the right thing to do. How do terminals handle wrapping?
                 warn!("skipping draw of cell because its position is outside of our rect");
                 continue;
             }
 
-            self.pen.pos = cell.pos.clone();
+            self.pen.pos = pos.clone();
             self.pen.update_attrs_from_cell(cell);
             let bytes = self.pen.flush(&self.terminfo, &mut self.vars);
             self.io.write_all(&bytes).ok().expect("failed to write");

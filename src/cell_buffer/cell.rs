@@ -1,4 +1,4 @@
-use vterm_sys::{Pos, ScreenCell, ColorPalette, ColorRGB};
+use vterm_sys::{ScreenCell, ColorPalette, ColorRGB};
 
 // TODO:
 //
@@ -21,11 +21,6 @@ pub struct Cell {
     pub fg_rgb: ColorRGB,
     pub font: u8, // 0 to 9
     pub italic: bool,
-
-    // NOTE: I don't love that this is here, but it makes returning iterators in CellBuffer
-    // possible. Maybe having pos here will work better this time.
-    pub pos: Pos,
-
     pub reverse: bool,
     pub strike: bool,
     pub underline: u8, // 0 to 3
@@ -33,7 +28,7 @@ pub struct Cell {
 }
 
 impl Cell {
-    pub fn new(pos: Pos) -> Cell {
+    pub fn new() -> Cell {
         Cell {
             bg_palette: 0,
             bg_rgb: ColorRGB {
@@ -55,7 +50,6 @@ impl Cell {
             },
             font: Default::default(),
             italic: Default::default(),
-            pos: pos,
             reverse: Default::default(),
             strike: Default::default(),
             underline: Default::default(),

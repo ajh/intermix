@@ -356,8 +356,8 @@ impl<F: 'static + Write + Send> MainWorker<F> {
     }
 
     fn clear(&mut self) {
-        for cell in self.screen.iter_mut() {
-            cell.clear();
+        for pair in self.screen.iter_mut() {
+            pair.0.clear();
         }
 
         self.painter.draw_screen(&mut self.screen);
