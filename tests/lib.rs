@@ -7,9 +7,13 @@ extern crate regex;
 extern crate term;
 extern crate time;
 extern crate vterm_sys;
+extern crate gj;
+extern crate capnp;
+extern crate capnp_rpc;
 
 mod client;
 mod server;
+mod lull;
 mod support;
 
 static mut is_logging_setup: bool = false;
