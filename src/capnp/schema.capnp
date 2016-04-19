@@ -33,4 +33,5 @@ struct Program {
 
 interface Lull {
   getPrograms @0 () -> (programs :List(Program));
+  createProgram @1 (program :Program) -> (program :Program);
 }

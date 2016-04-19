@@ -2,11 +2,11 @@
 pub struct Program {
     id: String,
     command: String,
-    pid: i32,
+    pid: Option<i32>,
 }
 
 impl Program {
-    pub fn new<S>(id: S, command: S, pid: i32) -> Program
+    pub fn new<S>(id: S, command: S, pid: Option<i32>) -> Program
         where S: Into<String>
     {
         Program {
@@ -32,11 +32,11 @@ impl Program {
         self.command = value.into();
     }
 
-    pub fn pid(&self) -> i32 {
+    pub fn pid(&self) -> Option<i32> {
         self.pid
     }
 
-    pub fn set_pid(&mut self, value: i32) {
+    pub fn set_pid(&mut self, value: Option<i32>) {
         self.pid = value;
     }
 }
