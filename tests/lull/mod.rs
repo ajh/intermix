@@ -6,19 +6,13 @@ use gj::io::unix;
 use std::thread;
 use capnp::Error;
 
-fn rpc_top_level<F>(main: F)
+fn rpc_top_level<F>(lull: Lull, main: F)
     where F: FnOnce(&::gj::WaitScope, lull::Client) -> Result<(), Error>,
           F: Send + 'static
 {
-    EventLoop::top_level(|wait_scope| {
+    EventLoop::top_level(move |wait_scope| {
         let (join_handle, stream) = try!(unix::spawn(|stream, wait_scope| {
-            let lull = Lull::new();
-
             let (reader, writer) = stream.split();
-            //let reader = ReadWrapper::new(reader,
-            //                             ::std::fs::File::create("/Users/dwrensha/Desktop/client.dat").unwrap());
-            //let writer = WriteWrapper::new(writer,
-            //                               ::std::fs::File::create("/Users/dwrensha/Desktop/server.dat").unwrap());
             let mut network =
                 Box::new(twoparty::VatNetwork::new(reader, writer,
                                                    rpc_twoparty_capnp::Side::Server,
@@ -51,7 +45,10 @@ fn rpc_top_level<F>(main: F)
 
 #[test]
 fn get_programs_returns_program() {
-    rpc_top_level(|wait_scope, client| {
+    let mut lull = Lull::new();
+    lull.programs_mut().push(Program::new("foobar", "foo -bar -baz > /dev/null", 42));
+
+    rpc_top_level(lull, |wait_scope, client| {
         let response = try!(client.get_programs_request().send().promise.wait(wait_scope));
         let programs = try!(try!(response.get()).get_programs());
         assert_eq!(programs.len(), 1);
