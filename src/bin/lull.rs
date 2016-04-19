@@ -42,5 +42,5 @@ fn main() {
 
     println!("hi there");
 
-    LullImpl::new().start();
+    Lull::new().start();
 }

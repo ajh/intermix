@@ -11,11 +11,11 @@ pub struct Program {
     pid: i32,
 }
 
-pub struct LullImpl {
+pub struct Lull {
     program: Program
 }
 
-impl schema_capnp::lull::Server for LullImpl {
+impl schema_capnp::lull::Server for Lull {
     fn get_programs(&mut self,
                     params: schema_capnp::lull::GetProgramsParams,
                     mut results: schema_capnp::lull::GetProgramsResults)
@@ -29,9 +29,9 @@ impl schema_capnp::lull::Server for LullImpl {
     }
 }
 
-impl LullImpl {
-    pub fn new() -> LullImpl {
-        LullImpl {
+impl Lull {
+    pub fn new() -> Lull {
+        Lull {
             program: Program {
                 id: "foobar".to_string(),
                 command: "foo -bar -baz > /dev/null".to_string(),

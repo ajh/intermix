@@ -12,7 +12,7 @@ fn rpc_top_level<F>(main: F)
 {
     EventLoop::top_level(|wait_scope| {
         let (join_handle, stream) = try!(unix::spawn(|stream, wait_scope| {
-            let lull = LullImpl::new();
+            let lull = Lull::new();
 
             let (reader, writer) = stream.split();
             //let reader = ReadWrapper::new(reader,
