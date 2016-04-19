@@ -22,7 +22,9 @@ impl schema_capnp::lull::Server for LullImpl {
                     -> Promise<(), Error>
     {
         let mut programs = results.get().init_programs(1);
-        programs.set(0, &self.program.command);
+        programs.borrow().get(0).set_id(&self.program.id);
+        programs.borrow().get(0).set_command(&self.program.command);
+        programs.borrow().get(0).set_pid(self.program.pid);
         Promise::ok(())
     }
 }

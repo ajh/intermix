@@ -50,12 +50,14 @@ fn rpc_top_level<F>(main: F)
 }
 
 #[test]
-fn get_programs_returns_name() {
+fn get_programs_returns_program() {
     rpc_top_level(|wait_scope, client| {
         let response = try!(client.get_programs_request().send().promise.wait(wait_scope));
         let programs = try!(try!(response.get()).get_programs());
         assert_eq!(programs.len(), 1);
-        assert_eq!(programs.get(0).unwrap(), "foo -bar -baz > /dev/null");
+        assert_eq!(programs.get(0).get_id().unwrap(), "foobar");
+        assert_eq!(programs.get(0).get_command().unwrap(), "foo -bar -baz > /dev/null");
+        assert_eq!(programs.get(0).get_pid(), 42);
 
         Ok(())
     });
