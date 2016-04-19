@@ -121,3 +121,16 @@ fn create_program_without_command_fails() {
         Ok(())
     });
 }
+
+#[test]
+fn program_input_returns_ok() {
+    rpc_top_level(Lull::new(), |wait_scope, client| {
+        let mut request = client.program_input_request();
+        request.get().set_program_id("abc123");
+        request.get().set_bytes(b"hiho");
+
+        let response = request.send().promise.wait(wait_scope);
+        assert!(response.is_ok());
+        Ok(())
+    });
+}

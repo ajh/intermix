@@ -64,6 +64,14 @@ impl schema_capnp::lull::Server for Lull {
 
         Promise::ok(())
     }
+
+    fn program_input(&mut self,
+                     params: schema_capnp::lull::ProgramInputParams,
+                     mut results: schema_capnp::lull::ProgramInputResults)
+                      -> Promise<(), Error>
+    {
+        Promise::ok(())
+    }
 }
 
 impl Lull {
