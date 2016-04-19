@@ -21,10 +21,8 @@ impl schema_capnp::lull::Server for LullImpl {
                     mut results: schema_capnp::lull::GetProgramsResults)
                     -> Promise<(), Error>
     {
-        //let op = pry!(pry!(params.get()).get_op());
-        //results.get().set_func(
-            //calculator::function::ToClient::new(OperatorImpl {op : op}).from_server::<::capnp_rpc::Server>());
-        results.get().set_program(&self.program.command);
+        let mut programs = results.get().init_programs(1);
+        programs.set(0, &self.program.command);
         Promise::ok(())
     }
 }

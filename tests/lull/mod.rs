@@ -53,8 +53,9 @@ fn rpc_top_level<F>(main: F)
 fn get_programs_returns_name() {
     rpc_top_level(|wait_scope, client| {
         let response = try!(client.get_programs_request().send().promise.wait(wait_scope));
-        let program = try!(try!(response.get()).get_program());
-        assert_eq!(program, "foo -bar -baz > /dev/null");
+        let programs = try!(try!(response.get()).get_programs());
+        assert_eq!(programs.len(), 1);
+        assert_eq!(programs.get(0).unwrap(), "foo -bar -baz > /dev/null");
 
         Ok(())
     });
