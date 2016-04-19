@@ -32,8 +32,7 @@ use std::env;
 // * [ ] have client start in some mode were it doesn't print 'welcome'
 //
 
-// Runs the given command and returns the expected value which is based on the contents of a vterm
-// screen buffer after writing the comands output to it.
+// Runs the given command and feeds its output into a vterm  which is returned.
 fn run_command_in_vterm(cmd: CommandBuilder, size: Size) -> VTerm {
     let handle: thread::JoinHandle<VTerm> = thread::spawn(move || {
         let output = cmd.build()

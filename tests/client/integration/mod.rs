@@ -25,6 +25,8 @@ fn build_vterm(size: &Size) -> VTerm {
 }
 
 fn status_line_matches<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: Regex) {
+    let size = vterm.get_size();
+
     // what would be cool is if a failure message printed the expectation and the screen buffer
     // contents
     let is_success = ::is_ultimately_true(|| {
@@ -32,13 +34,11 @@ fn status_line_matches<T: Read>(vterm: &mut VTerm, reader: &mut T, regex: Regex)
         reader.read_to_end(&mut bytes).unwrap();
         vterm.write(&bytes).unwrap();
 
-        // TODO: fix this fixed size by getting size from vterm
-        let actual = vterm.screen_get_text_lossy(&Rect::new(Pos::new(0,0), Size::new(80,1)));
+        let actual = vterm.screen_get_text_lossy(&Rect::new(Pos::new(0,0), size));
         regex.is_match(&actual)
     });
 
-    // TODO: fix this fixed size by getting size from vterm
-    let actual = vterm.screen_get_text_lossy(&Rect::new(Pos::new(0,0), Size::new(10,5)));
+    let actual = vterm.screen_get_text_lossy(&Rect::new(Pos::new(0,0), size));
     assert!(is_success,
             format!("expected:\n{}\nto match {:#?}", actual, regex));
 }
