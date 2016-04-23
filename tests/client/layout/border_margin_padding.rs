@@ -4,11 +4,11 @@ use vterm_sys::Size;
 
 #[test]
 fn it_can_have_border_around_node() {
-    let mut screen = Screen::new(Size { height: 4, width: 4 });
-    screen.tree_mut().root_mut().value().set_has_border(true);
-    screen.flush_changes();
+    let mut layout = Layout::new(Size { height: 4, width: 4 });
+    layout.tree_mut().root_mut().value().set_has_border(true);
+    layout.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen),
+    assert_scene_eq(&draw_layout(&layout),
                     "
 ······
 ·┌──┐·
@@ -20,11 +20,11 @@ fn it_can_have_border_around_node() {
 
 #[test]
 fn it_can_have_margin_around_node() {
-    let mut screen = Screen::new(Size { height: 4, width: 4 });
-    screen.tree_mut().root_mut().value().set_margin(1);
-    screen.flush_changes();
+    let mut layout = Layout::new(Size { height: 4, width: 4 });
+    layout.tree_mut().root_mut().value().set_margin(1);
+    layout.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen),
+    assert_scene_eq(&draw_layout(&layout),
                     "
 ······
 ·    ·
@@ -36,11 +36,11 @@ fn it_can_have_margin_around_node() {
 
 #[test]
 fn it_can_have_padding_around_node() {
-    let mut screen = Screen::new(Size { height: 4, width: 4 });
-    screen.tree_mut().root_mut().value().set_padding(1);
-    screen.flush_changes();
+    let mut layout = Layout::new(Size { height: 4, width: 4 });
+    layout.tree_mut().root_mut().value().set_padding(1);
+    layout.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen),
+    assert_scene_eq(&draw_layout(&layout),
                     "
 ······
 ·    ·
@@ -52,13 +52,13 @@ fn it_can_have_padding_around_node() {
 
 #[test]
 fn it_can_have_border_marging_and_padding() {
-    let mut screen = Screen::new(Size { height: 8, width: 8 });
-    screen.tree_mut().root_mut().value().set_has_border(true);
-    screen.tree_mut().root_mut().value().set_margin(1);
-    screen.tree_mut().root_mut().value().set_padding(1);
-    screen.flush_changes();
+    let mut layout = Layout::new(Size { height: 8, width: 8 });
+    layout.tree_mut().root_mut().value().set_has_border(true);
+    layout.tree_mut().root_mut().value().set_margin(1);
+    layout.tree_mut().root_mut().value().set_padding(1);
+    layout.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen),
+    assert_scene_eq(&draw_layout(&layout),
                     "
 ··········
 ·        ·
@@ -79,13 +79,13 @@ fn it_can_layout_bordered_nodes_horizontally() {
         WrapBuilder::col(6).name("b".to_string()).height(2).has_border(true).build(),
     ];
 
-    let mut screen = Screen::new(Size { height: 4, width: 8 });
+    let mut layout = Layout::new(Size { height: 4, width: 8 });
     for col in cols {
-        screen.tree_mut().root_mut().append(col);
+        layout.tree_mut().root_mut().append(col);
     }
-    screen.flush_changes();
+    layout.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen),
+    assert_scene_eq(&draw_layout(&layout),
                     "
 ··········
 ·┌──┐┌──┐·
@@ -102,13 +102,13 @@ fn it_can_layout_bordered_nodes_vertically() {
         WrapBuilder::row().name("b".to_string()).height(2).has_border(true).build(),
     ];
 
-    let mut screen = Screen::new(Size { height: 8, width: 4 });
+    let mut layout = Layout::new(Size { height: 8, width: 4 });
     for col in cols {
-        screen.tree_mut().root_mut().append(col);
+        layout.tree_mut().root_mut().append(col);
     }
-    screen.flush_changes();
+    layout.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen),
+    assert_scene_eq(&draw_layout(&layout),
                     "
 ······
 ·┌──┐·
@@ -133,23 +133,23 @@ fn it_can_nest_nodes_with_borders_margins_and_paddings() {
     let leaf_c = WrapBuilder::row().name("c".to_string()).height(2).build();
     let leaf_d = WrapBuilder::row().name("d".to_string()).height(2).build();
 
-    let mut screen = Screen::new(Size {
+    let mut layout = Layout::new(Size {
         height: 12,
         width: 20,
     });
-    screen.tree_mut().root_mut().value().set_has_border(true);
+    layout.tree_mut().root_mut().value().set_has_border(true);
     {
-        let mut root = screen.tree_mut().root_mut();
+        let mut root = layout.tree_mut().root_mut();
         let mut c = root.append(col1);
         c.append(leaf_a);
         c.append(leaf_b);
     }
-    screen.tree_mut().root_mut().append(col2).append(leaf_c);
-    screen.tree_mut().root_mut().append(row).append(leaf_d);
+    layout.tree_mut().root_mut().append(col2).append(leaf_c);
+    layout.tree_mut().root_mut().append(row).append(leaf_d);
 
-    screen.flush_changes();
+    layout.flush_changes();
 
-    assert_scene_eq(&draw_screen(&screen),
+    assert_scene_eq(&draw_layout(&layout),
                     "
 ······················
 ·┌──────────────────┐·

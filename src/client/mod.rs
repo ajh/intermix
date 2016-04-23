@@ -58,7 +58,7 @@ pub enum ClientMsg {
 
     LayoutDamage,
     LayoutSwap {
-        layout: layout::Screen,
+        layout: layout::Layout,
     },
 
     StatusLineDamage,

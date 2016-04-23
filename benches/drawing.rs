@@ -115,7 +115,7 @@ fn build_client(size: &Size) -> Client {
                                                 ..Default::default()
                                             });
 
-    let mut layout = layout::Screen::new(Size {
+    let mut layout = layout::Layout::new(Size {
         height: size.height,
         width: size.width,
     });

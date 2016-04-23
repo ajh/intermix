@@ -3,18 +3,18 @@ use ego_tree;
 
 pub const GRID_COLUMNS_COUNT: usize = 12;
 
-/// Represents the Screen for an entire screen.
+/// The root of a grid based box layout
 #[derive(Debug, Clone)]
-pub struct Screen {
+pub struct Layout {
     pub size: Size,
     tree: ego_tree::Tree<Wrap>,
 }
 
-impl Screen {
-    pub fn new(size: Size) -> Screen {
+impl Layout {
+    pub fn new(size: Size) -> Layout {
         let root = WrapBuilder::row().name("root".to_string()).build();
 
-        Screen {
+        Layout {
             size: size,
             tree: ego_tree::Tree::new(root),
         }
@@ -29,7 +29,7 @@ impl Screen {
         &mut self.tree
     }
 
-    /// recalculate layout to account for changes to the screen
+    /// recalculate to account for changes
     pub fn flush_changes(&mut self) {
         self.update_root_wrap();
         let root_id = self.tree.root().id();

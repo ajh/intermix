@@ -1,12 +1,12 @@
 use libintermix::client::layout::*;
 
-pub fn draw_screen(screen: &Screen) -> String {
+pub fn draw_layout(layout: &Layout) -> String {
     // scene is 2d vec organized rows then cols
     let mut scene: Vec<Vec<char>> =
-        vec![vec![' '; screen.size.width as usize]; screen.size.height as usize];
+        vec![vec![' '; layout.size.width as usize]; layout.size.height as usize];
 
     // May include orphans? IDK
-    let bordered: Vec<&Wrap> = screen.tree()
+    let bordered: Vec<&Wrap> = layout.tree()
                                      .nodes()
                                      .map(|n| n.value())
                                      .filter(|w| w.has_border())
@@ -20,14 +20,14 @@ pub fn draw_screen(screen: &Screen) -> String {
 
         let top = wrap.border_y().unwrap() as usize;
         let mut bottom = (wrap.border_y().unwrap() + wrap.border_height().unwrap() - 1) as usize;
-        if bottom >= screen.size.height as usize {
-            bottom = screen.size.height as usize - 1
+        if bottom >= layout.size.height as usize {
+            bottom = layout.size.height as usize - 1
         }
 
         let left = wrap.border_x().unwrap() as usize;
         let mut right = (wrap.border_x().unwrap() + wrap.border_width().unwrap() - 1) as usize;
-        if right >= screen.size.width as usize {
-            right = screen.size.width as usize - 1
+        if right >= layout.size.width as usize {
+            right = layout.size.width as usize - 1
         }
 
         scene[top][left] = '┌';
@@ -46,27 +46,27 @@ pub fn draw_screen(screen: &Screen) -> String {
         }
     }
 
-    let leafs: Vec<&Wrap> = screen.tree()
+    let leafs: Vec<&Wrap> = layout.tree()
                                   .nodes()
                                   .filter(|n| !n.has_children())
                                   .map(|n| n.value())
                                   .collect();
 
     for leaf in leafs {
-        if leaf.computed_x().unwrap() >= screen.size.width {
+        if leaf.computed_x().unwrap() >= layout.size.width {
             continue;
         }
-        if leaf.computed_y().unwrap() >= screen.size.height {
+        if leaf.computed_y().unwrap() >= layout.size.height {
             continue;
         }
 
         let col_end = *[leaf.computed_x().unwrap() + leaf.computed_width().unwrap(),
-                        screen.size.width]
+                        layout.size.width]
                            .iter()
                            .min()
                            .unwrap();
         let row_end = *[leaf.computed_y().unwrap() + leaf.computed_height().unwrap(),
-                        screen.size.height]
+                        layout.size.height]
                            .iter()
                            .min()
                            .unwrap();

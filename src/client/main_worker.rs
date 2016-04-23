@@ -23,7 +23,7 @@ pub struct MainWorker<F: 'static + Write + Send> {
     pub servers: Servers,
     pub modal_key_handler: modal::ModalKeyHandler,
     pub tty_ioctl_config: TtyIoCtlConfig,
-    pub layout: layout::Screen,
+    pub layout: layout::Layout,
     selected_program_id: Option<String>,
     painter: TtyPainter<F>,
     screen: CellBuffer,
@@ -36,7 +36,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
                  io: F)
                  -> (Sender<ClientMsg>, JoinHandle<()>) {
         let (tx, rx) = channel::<ClientMsg>();
-        let layout = layout::Screen::new(Size::new(tty_ioctl_config.cols, tty_ioctl_config.rows));
+        let layout = layout::Layout::new(Size::new(tty_ioctl_config.cols, tty_ioctl_config.rows));
         let mut worker = MainWorker::new(rx, tx.clone(), tty_ioctl_config, layout, io);
 
         info!("spawning main worker");
@@ -51,7 +51,7 @@ impl<F: 'static + Write + Send> MainWorker<F> {
     fn new(rx: Receiver<ClientMsg>,
            tx: Sender<ClientMsg>,
            tty_ioctl_config: TtyIoCtlConfig,
-           layout: layout::Screen,
+           layout: layout::Layout,
            io: F)
            -> MainWorker<F> {
 

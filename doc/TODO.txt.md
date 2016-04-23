@@ -4,7 +4,7 @@ Todo
 * [x] clear screen after starting
 * [x] allow changing selected program
 * [ ] allow maximizing selected program
-* [ ] fix all the warning msgs
+* [x] fix all the warning msgs
 * [x] client - server architecture in same process
 * [x] client takes options to control window size
 * [x] layout engine
