@@ -1,5 +1,6 @@
 use vterm_sys::{Size};
 use ego_tree;
+use std::collections::HashMap;
 
 use super::*;
 
@@ -216,40 +217,67 @@ impl Layout {
         }
     }
 
-    /// This one is botton up unlike the others which is top down. It returns the height of its
-    /// children.
+    /// Here's the algo:
     ///
-    /// Assigns:
+    /// 1. iterate through children by lines.
     ///
-    /// * set_outside_height
+    /// 2. For each lines, figure out the provisional height of each line based on highest child in the line
     ///
-    fn compute_height(&mut self, parent_id: ego_tree::NodeId<Wrap>) -> usize {
+    /// 3. for lines without any children with heights, they evenly divide the remaining parents
+    ///    height for their provisional heights. This may be zero!
+    ///
+    /// 3. if all the lines don't fit the parents height, proportionally remove height on all until
+    ///    they do.
+    ///
+    /// 3. assign heights as the min of line height or desired height.
+    ///
+    fn compute_height(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let lines = self.tree.get(parent_id).lines();
+        let parent_height = self.tree.get(parent_id).value().computed_height().unwrap();
 
-        for line in lines.iter() {
-            for child_id in line.iter() {
-                let children_height = self.compute_height(*child_id);
+        // calculate provisional line heights
+        let mut line_heights = HashMap::new();
 
+        for (i, line) in lines.iter().enumerate() {
+            let max_height = line.iter().map(|child_id| {
+                let height_maybe = self.tree.get(*child_id).value().height();
+                match height_maybe {
+                    Some(h) => h,
+                    None => 0,
+                }
+            }).max().unwrap();
+
+            line_heights.insert(i, max_height);
+        }
+
+        let sum_of_line_heights = line_heights.values().fold(0, ::std::ops::Add::add);
+        if sum_of_line_heights > parent_height {
+            // haircut
+        }
+        else if sum_of_line_heights < parent_height {
+            // add in stuff
+        }
+
+        // assign computed height and recurse
+        for (line_index, height) in line_heights.iter() {
+            for child_id in lines.get(*line_index).unwrap().iter() {
                 let mut child_ref = self.tree.get_mut(*child_id);
                 let mut child_wrap = child_ref.value();
-                let h = if let Some(i) = child_wrap.height() {
-                    i
-                } else {
-                    children_height
+
+                let computed_height = match child_wrap.height() {
+                    Some(h) => *[h, *height].iter().min().unwrap(),
+                    None => *height,
                 };
-                child_wrap.set_computed_height(Some(h));
+                child_wrap.set_outside_height(Some(computed_height));
             }
         }
 
-        lines.iter()
-             .map(|line| {
-                 line.iter()
-                     .map(|id| self.tree.get(*id).value())
-                     .map(|b| b.outside_height().unwrap())
-                     .max()
-                     .unwrap()
-             })
-             .fold(0, ::std::ops::Add::add)
+        // recurse
+        for line in lines {
+            for child_id in line {
+                self.compute_height(child_id);
+            }
+        }
     }
 
     /// Assigns:
