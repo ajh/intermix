@@ -70,3 +70,49 @@ fn it_draws_height_of_cols_on_row_with_different_heights() {
 ·    ·
 ······");
 }
+
+#[test]
+fn it_draws_col_without_a_height() {
+    let col = WrapBuilder::col(6)
+                  .name("a".to_string())
+                  .build();
+
+    let mut layout = Layout::new(Size { height: 4, width: 4 });
+    layout.tree_mut().root_mut().append(col);
+    layout.flush_changes();
+
+    println!("{:?}", layout);
+    assert_scene_eq(&draw_layout(&layout),
+                    "
+······
+·aa  ·
+·aa  ·
+·aa  ·
+·aa  ·
+······");
+}
+
+#[test]
+fn it_draws_wraps_on_top_of_eachother_without_a_heights() {
+    let col = WrapBuilder::col(6)
+                  .name("a".to_string())
+                  .build();
+    let row = WrapBuilder::row()
+                  .name("b".to_string())
+                  .build();
+
+    let mut layout = Layout::new(Size { height: 4, width: 4 });
+    layout.tree_mut().root_mut().append(col);
+    layout.tree_mut().root_mut().append(row);
+    layout.flush_changes();
+
+    println!("{:?}", layout);
+    assert_scene_eq(&draw_layout(&layout),
+                    "
+······
+·aa  ·
+·aa  ·
+·bbbb·
+·bbbb·
+······");
+}
