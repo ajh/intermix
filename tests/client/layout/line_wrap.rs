@@ -17,11 +17,9 @@ fn it_wraps_content_in_leftmost_column() {
     let mut layout = Layout::new(Size { height: 4, width: 4 });
     layout.tree_mut()
           .root_mut()
-          .append(WrapBuilder::col(9).build())
           .append(leaf_a);
     layout.tree_mut()
           .root_mut()
-          .append(WrapBuilder::col(6).build())
           .append(leaf_b);
 
     layout.flush_changes();
@@ -52,11 +50,9 @@ fn it_wraps_content_in_rightmost_column() {
     layout.tree_mut().root_mut().value().set_align(Align::Right);
     layout.tree_mut()
           .root_mut()
-          .append(WrapBuilder::col(9).build())
           .append(leaf_a);
     layout.tree_mut()
           .root_mut()
-          .append(WrapBuilder::col(9).build())
           .append(leaf_b);
 
     layout.flush_changes();
@@ -64,8 +60,8 @@ fn it_wraps_content_in_rightmost_column() {
     assert_scene_eq(&draw_layout(&layout),
                     "
 ······
-· aa ·
-· aa ·
+·  aa·
+·  aa·
 · bbb·
 · bbb·
 ······");

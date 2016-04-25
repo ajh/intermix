@@ -108,22 +108,17 @@ impl Layout {
     ///
     fn compute_width(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let lines = self.tree.get(parent_id).lines();
-        let parent_grid_width = self.tree.get(parent_id).value().computed_grid_width().unwrap();
         let parent_width = self.tree.get(parent_id).value().computed_width().unwrap();
 
         for mut line in lines {
             let mut line_width = 0;
             let mut line_grid_columns_count = 0;
 
-            // calculate provisionary widths
+            // calculate provisional widths
             for child_id in line.iter() {
                 let mut child_ref = self.tree.get_mut(*child_id);
                 let mut child_wrap = child_ref.value();
-                let percent = *[child_wrap.grid_width().unwrap(), parent_grid_width]
-                                   .into_iter()
-                                   .min()
-                                   .unwrap() as f32 /
-                              parent_grid_width as f32;
+                let percent = child_wrap.grid_width().unwrap() as f32 / GRID_COLUMNS_COUNT as f32;
                 let width = (parent_width as f32 * percent).floor() as usize;
 
                 child_wrap.set_outside_width(Some(width));
@@ -134,7 +129,7 @@ impl Layout {
 
             // figure how many columns are unused due to rounding errors
             let mut unused_cols = {
-                let percent = line_grid_columns_count as f32 / parent_grid_width as f32;
+                let percent = line_grid_columns_count as f32 / GRID_COLUMNS_COUNT as f32;
 
                 let mut expected_width = (parent_width as f32 * percent).round() as usize;
                 if expected_width > parent_width {
