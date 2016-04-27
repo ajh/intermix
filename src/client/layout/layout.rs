@@ -1,6 +1,7 @@
 use vterm_sys::{Size};
 use ego_tree;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
+use std::iter::Iterator;
 
 use super::*;
 
@@ -233,40 +234,68 @@ impl Layout {
     ///
     fn compute_height(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let lines = self.tree.get(parent_id).lines();
+        if lines.len() == 0 {
+            return;
+        }
+
         let parent_height = self.tree.get(parent_id).value().computed_height().unwrap();
 
         // calculate provisional line heights
-        let mut line_heights = HashMap::new();
+        struct HeightInfo {
+            height: usize,
+            is_defined: bool,
+        };
+        let mut line_heights = BTreeMap::new();
 
         for (i, line) in lines.iter().enumerate() {
-            let max_height = line.iter().map(|child_id| {
-                let height_maybe = self.tree.get(*child_id).value().height();
-                match height_maybe {
+            let height_maybe = line.iter().map(|child_id| {
+                self.tree.get(*child_id).value().height()
+            }).max_by_key(|height_maybe| {
+                match *height_maybe {
                     Some(h) => h,
                     None => 0,
                 }
-            }).max().unwrap();
+            }).unwrap();
 
-            line_heights.insert(i, max_height);
+            let info = match height_maybe {
+                Some(h) => HeightInfo { height: h, is_defined: true },
+                None => HeightInfo { height: 0, is_defined: false },
+            };
+
+            line_heights.insert(i, info);
         }
 
-        let sum_of_line_heights = line_heights.values().fold(0, ::std::ops::Add::add);
+        let sum_of_line_heights = line_heights.values().fold(0, |sum, info| sum + info.height);
         if sum_of_line_heights > parent_height {
             // haircut
         }
         else if sum_of_line_heights < parent_height {
-            // add in stuff
+            // add height evenly to lines that don't have defined height
+            let unused = parent_height - sum_of_line_heights;
+            //let lines_count = line_heights.iter().filter(|&(_, i)| {true});
+            let lines_count = line_heights.iter().filter(|&(_,i)| !i.is_defined).count();
+
+            if lines_count > 0 {
+                for (_,i) in line_heights.iter_mut().filter(|&(_, ref i)| !i.is_defined) {
+                    i.height += unused / lines_count; // integer division
+                }
+
+                // add in remainders
+                for (_,i) in line_heights.iter_mut().filter(|&(_, ref i)| !i.is_defined).take(unused % lines_count) {
+                    i.height += 1;
+                }
+            }
         }
 
         // assign computed height and recurse
-        for (line_index, height) in line_heights.iter() {
+        for (line_index, info) in line_heights.iter() {
             for child_id in lines.get(*line_index).unwrap().iter() {
                 let mut child_ref = self.tree.get_mut(*child_id);
                 let mut child_wrap = child_ref.value();
 
                 let computed_height = match child_wrap.height() {
-                    Some(h) => *[h, *height].iter().min().unwrap(),
-                    None => *height,
+                    Some(h) => *[h, info.height].iter().min().unwrap(),
+                    None => info.height,
                 };
                 child_wrap.set_outside_height(Some(computed_height));
             }
