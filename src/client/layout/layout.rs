@@ -241,6 +241,7 @@ impl Layout {
         let parent_height = self.tree.get(parent_id).value().computed_height().unwrap();
 
         // calculate provisional line heights
+        #[derive(Debug)]
         struct HeightInfo {
             height: usize,
             is_defined: bool,
@@ -268,11 +269,23 @@ impl Layout {
         let sum_of_line_heights = line_heights.values().fold(0, |sum, info| sum + info.height);
         if sum_of_line_heights > parent_height {
             // haircut
+            let excess = sum_of_line_heights - parent_height;
+            let lines_count = line_heights.iter().filter(|&(_,i)| i.is_defined).count();
+
+            if lines_count > 0 {
+                for (_,i) in line_heights.iter_mut().filter(|&(_, ref i)| i.is_defined) {
+                    i.height -= excess / lines_count; // integer division
+                }
+
+                // add in remainders
+                for (_,i) in line_heights.iter_mut().filter(|&(_, ref i)| i.is_defined).take(excess % lines_count) {
+                    i.height -= 1;
+                }
+            }
         }
         else if sum_of_line_heights < parent_height {
             // add height evenly to lines that don't have defined height
             let unused = parent_height - sum_of_line_heights;
-            //let lines_count = line_heights.iter().filter(|&(_, i)| {true});
             let lines_count = line_heights.iter().filter(|&(_,i)| !i.is_defined).count();
 
             if lines_count > 0 {

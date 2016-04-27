@@ -205,3 +205,158 @@ fn it_draws_rows_when_only_one_has_height() {
 ·bbbb·
 ······");
 }
+
+#[test]
+fn it_draws_col_that_is_too_tall() {
+    let col = WrapBuilder::col(6)
+                  .name("a".to_string())
+                  .height(3)
+                  .build();
+
+    let mut layout = Layout::new(Size { height: 2, width: 1 });
+    layout.tree_mut().root_mut().append(col);
+    layout.flush_changes();
+
+    assert_scene_eq(&draw_layout(&layout),
+                    "
+···
+·a·
+·a·
+···");
+
+    assert_eq!(layout.tree().root().first_child().unwrap().value().computed_height(), Some(2));
+}
+
+#[test]
+fn it_draws_row_that_is_too_tall() {
+    let row = WrapBuilder::row()
+                  .name("a".to_string())
+                  .height(3)
+                  .build();
+
+    let mut layout = Layout::new(Size { height: 2, width: 1 });
+    layout.tree_mut().root_mut().append(row);
+    layout.flush_changes();
+
+    assert_scene_eq(&draw_layout(&layout),
+                    "
+···
+·a·
+·a·
+···");
+
+    assert_eq!(layout.tree().root().first_child().unwrap().value().computed_height(), Some(2));
+}
+
+#[test]
+fn it_draws_rows_that_are_too_tall() {
+    let row_a = WrapBuilder::row()
+                  .name("a".to_string())
+                  .height(4)
+                  .build();
+    let row_b = WrapBuilder::row()
+                  .name("b".to_string())
+                  .height(3)
+                  .build();
+
+    let mut layout = Layout::new(Size { height: 4, width: 1 });
+    layout.tree_mut().root_mut().append(row_a);
+    layout.tree_mut().root_mut().append(row_b);
+    layout.flush_changes();
+
+    assert_scene_eq(&draw_layout(&layout),
+                    "
+···
+·a·
+·a·
+·b·
+·b·
+···");
+
+    assert_eq!(layout.tree().root().first_child().unwrap().value().computed_height(), Some(2));
+    assert_eq!(layout.tree().root().last_child().unwrap().value().computed_height(), Some(2));
+}
+
+#[test]
+fn it_draws_mix_of_rows_and_cols_that_are_too_tall() {
+    let row = WrapBuilder::row()
+                  .name("a".to_string())
+                  .height(4)
+                  .build();
+    let col = WrapBuilder::col(6)
+                  .name("b".to_string())
+                  .height(3)
+                  .build();
+
+    let mut layout = Layout::new(Size { height: 4, width: 4 });
+    layout.tree_mut().root_mut().append(row);
+    layout.tree_mut().root_mut().append(col);
+    layout.flush_changes();
+
+    assert_scene_eq(&draw_layout(&layout),
+                    "
+······
+·aaaa·
+·aaaa·
+·bb  ·
+·bb  ·
+······");
+
+    assert_eq!(layout.tree().root().first_child().unwrap().value().computed_height(), Some(2));
+    assert_eq!(layout.tree().root().last_child().unwrap().value().computed_height(), Some(2));
+}
+
+#[test]
+fn it_draws_rows_that_are_too_tall_and_one_doesnt_define_height() {
+    let row_a = WrapBuilder::row()
+                  .name("a".to_string())
+                  .height(3)
+                  .build();
+    let row_b = WrapBuilder::row()
+                  .name("b".to_string())
+                  .height(3)
+                  .build();
+    let row_c = WrapBuilder::row()
+                  .name("c".to_string())
+                  .build();
+
+    let mut layout = Layout::new(Size { height: 4, width: 1 });
+    layout.tree_mut().root_mut().append(row_a);
+    layout.tree_mut().root_mut().append(row_b);
+    layout.tree_mut().root_mut().append(row_c);
+    layout.flush_changes();
+
+    assert_scene_eq(&draw_layout(&layout),
+                    "
+···
+·a·
+·a·
+·b·
+·b·
+···");
+}
+
+#[test]
+fn it_draws_rows_that_are_too_tall_and_only_one_defines_height() {
+    let row_a = WrapBuilder::row()
+                  .name("a".to_string())
+                  .height(6)
+                  .build();
+    let row_b = WrapBuilder::row()
+                  .name("b".to_string())
+                  .build();
+
+    let mut layout = Layout::new(Size { height: 4, width: 1 });
+    layout.tree_mut().root_mut().append(row_a);
+    layout.tree_mut().root_mut().append(row_b);
+    layout.flush_changes();
+
+    assert_scene_eq(&draw_layout(&layout),
+                    "
+···
+·a·
+·a·
+·a·
+·a·
+···");
+}
