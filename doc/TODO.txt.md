@@ -22,6 +22,7 @@ Todo
   channel
 * [x] figure out performance implications about moving values between enums
 * [ ] dwarf fortress style background pictures
+* [ ] encryption transformation and decryption effect on focus
 * [x] alias some `vterm_sys` types like ScreenSize for ease of use
 
 Client Server Work

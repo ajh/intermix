@@ -51,9 +51,9 @@ impl Layout {
         let grid_width = root_wrap.grid_width();
         root_wrap.set_computed_grid_width(grid_width);
         root_wrap.set_is_new_line(false);
-        root_wrap.set_outside_width(Some(self.size.width));
+        root_wrap.set_computed_outside_width(Some(self.size.width));
         root_wrap.set_outside_x(Some(0));
-        root_wrap.set_outside_height(Some(self.size.height));
+        root_wrap.set_computed_outside_height(Some(self.size.height));
         root_wrap.set_outside_y(Some(0));
     }
 
@@ -106,7 +106,7 @@ impl Layout {
     ///
     /// Assigns:
     ///
-    /// * set_outside_width
+    /// * set_computed_outside_width
     ///
     fn compute_width(&mut self, parent_id: ego_tree::NodeId<Wrap>) {
         let lines = self.tree.get(parent_id).lines();
@@ -123,7 +123,7 @@ impl Layout {
                 let percent = child_wrap.grid_width().unwrap() as f32 / GRID_COLUMNS_COUNT as f32;
                 let width = (parent_width as f32 * percent).floor() as usize;
 
-                child_wrap.set_outside_width(Some(width));
+                child_wrap.set_computed_outside_width(Some(width));
 
                 line_width += width;
                 line_grid_columns_count += child_wrap.grid_width().unwrap();
@@ -151,7 +151,7 @@ impl Layout {
                 let a_wrap = a_ref.value();
                 let b_ref = self.tree.get(*b);
                 let b_wrap = b_ref.value();
-                a_wrap.outside_width().unwrap().cmp(&b_wrap.outside_width().unwrap())
+                a_wrap.computed_outside_width().unwrap().cmp(&b_wrap.computed_outside_width().unwrap())
             });
 
             for child_id in line.iter() {
@@ -164,8 +164,8 @@ impl Layout {
                     break;
                 }
 
-                let val = child_wrap.outside_width().unwrap() + 1;
-                child_wrap.set_outside_width(Some(val));
+                let val = child_wrap.computed_outside_width().unwrap() + 1;
+                child_wrap.set_computed_outside_width(Some(val));
             }
 
             // recurse
@@ -188,7 +188,7 @@ impl Layout {
         for line in lines {
             let line_width = line.iter()
                                  .map(|id| self.tree.get(*id).value())
-                                 .map(|b| b.outside_width().unwrap())
+                                 .map(|b| b.computed_outside_width().unwrap())
                                  .fold(0, ::std::ops::Add::add);
 
             let unused_cols = if parent_width > line_width {
@@ -210,7 +210,7 @@ impl Layout {
                     let mut child_ref = self.tree.get_mut(id);
                     let mut child_wrap = child_ref.value();
                     child_wrap.set_outside_x(Some(x));
-                    x += child_wrap.outside_width().unwrap();
+                    x += child_wrap.computed_outside_width().unwrap();
                 }
 
                 self.compute_x_position(id);
@@ -246,11 +246,12 @@ impl Layout {
             height: usize,
             is_defined: bool,
         };
+
         let mut line_heights = BTreeMap::new();
 
         for (i, line) in lines.iter().enumerate() {
             let height_maybe = line.iter().map(|child_id| {
-                self.tree.get(*child_id).value().height()
+                self.tree.get(*child_id).value().outside_height()
             }).max_by_key(|height_maybe| {
                 match *height_maybe {
                     Some(h) => h,
@@ -267,6 +268,7 @@ impl Layout {
         }
 
         let sum_of_line_heights = line_heights.values().fold(0, |sum, info| sum + info.height);
+
         if sum_of_line_heights > parent_height {
             // haircut
             let excess = sum_of_line_heights - parent_height;
@@ -279,6 +281,7 @@ impl Layout {
 
                 // add in remainders
                 for (_,i) in line_heights.iter_mut().filter(|&(_, ref i)| i.is_defined).take(excess % lines_count) {
+                    if i.height == 0 { continue }
                     i.height -= 1;
                 }
             }
@@ -306,11 +309,12 @@ impl Layout {
                 let mut child_ref = self.tree.get_mut(*child_id);
                 let mut child_wrap = child_ref.value();
 
-                let computed_height = match child_wrap.height() {
+                let computed_height = match child_wrap.outside_height() {
                     Some(h) => *[h, info.height].iter().min().unwrap(),
                     None => info.height,
                 };
-                child_wrap.set_outside_height(Some(computed_height));
+
+                child_wrap.set_computed_outside_height(Some(computed_height));
             }
         }
 
@@ -336,7 +340,7 @@ impl Layout {
                                 .map(|line| {
                                     line.iter()
                                         .map(|id| self.tree.get(*id).value())
-                                        .map(|n| n.outside_height().unwrap())
+                                        .map(|n| n.computed_outside_height().unwrap())
                                         .max()
                                         .unwrap()
                                 })
@@ -368,7 +372,7 @@ impl Layout {
 
             y += line.iter()
                      .map(|id| self.tree.get(*id).value())
-                     .map(|n| n.outside_height().unwrap())
+                     .map(|n| n.computed_outside_height().unwrap())
                      .max()
                      .unwrap();
         }

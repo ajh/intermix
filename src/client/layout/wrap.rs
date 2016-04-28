@@ -75,6 +75,21 @@ impl Wrap {
     }
 
     pub fn outside_height(&self) -> Option<usize> {
+        if let Some(mut h) = self.height() {
+            h += 2 *
+                 (self.margin + self.padding +
+                  if self.has_border {
+                1
+            } else {
+                0
+            });
+            Some(h)
+        } else {
+            None
+        }
+    }
+
+    pub fn computed_outside_height(&self) -> Option<usize> {
         if let Some(mut h) = self.computed_height() {
             h += 2 *
                  (self.margin + self.padding +
@@ -89,7 +104,7 @@ impl Wrap {
         }
     }
 
-    pub fn set_outside_height(&mut self, val: Option<usize>) {
+    pub fn set_computed_outside_height(&mut self, val: Option<usize>) {
         if let Some(mut v) = val {
             v -= 2 *
                  (self.margin + self.padding +
@@ -105,6 +120,21 @@ impl Wrap {
     }
 
     pub fn outside_width(&self) -> Option<usize> {
+        if let Some(mut w) = self.width() {
+            w += 2 *
+                 (self.margin + self.padding +
+                  if self.has_border {
+                1
+            } else {
+                0
+            });
+            Some(w)
+        } else {
+            None
+        }
+    }
+
+    pub fn computed_outside_width(&self) -> Option<usize> {
         if let Some(mut w) = self.computed_width() {
             w += 2 *
                  (self.margin + self.padding +
@@ -119,7 +149,7 @@ impl Wrap {
         }
     }
 
-    pub fn set_outside_width(&mut self, val: Option<usize>) {
+    pub fn set_computed_outside_width(&mut self, val: Option<usize>) {
         if let Some(mut v) = val {
             v -= 2 *
                  (self.margin + self.padding +

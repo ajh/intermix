@@ -3,7 +3,7 @@ use ::support::*;
 use vterm_sys::Size;
 
 #[test]
-fn it_draws_a_12_width_column_as_wide_as_parent() {
+fn it_draws_a_12_grid_width_column_as_wide_as_parent() {
     let parent = WrapBuilder::col(9).build();
     let col = WrapBuilder::col(12)
                   .name("a".to_string())
@@ -23,7 +23,7 @@ fn it_draws_a_12_width_column_as_wide_as_parent() {
 }
 
 #[test]
-fn it_draws_a_8_width_column_as_two_thirds_of_parents_width() {
+fn it_draws_a_8_grid_width_column_as_two_thirds_of_parents_width() {
     let parent = WrapBuilder::col(9).build();
     let col = WrapBuilder::col(8)
                   .name("a".to_string())
@@ -43,7 +43,7 @@ fn it_draws_a_8_width_column_as_two_thirds_of_parents_width() {
 }
 
 #[test]
-fn it_draws_a_6_width_column_as_half_of_parents_width() {
+fn it_draws_a_6_grid_width_column_as_half_of_parents_width() {
     let parent = WrapBuilder::col(9).build();
     let col = WrapBuilder::col(6)
                   .name("a".to_string())
@@ -63,7 +63,7 @@ fn it_draws_a_6_width_column_as_half_of_parents_width() {
 }
 
 #[test]
-fn it_draws_a_4_width_column_as_one_third_of_parents_width() {
+fn it_draws_a_4_grid_width_column_as_one_third_of_parents_width() {
     let parent = WrapBuilder::col(9).build();
     let col = WrapBuilder::col(4)
                   .name("a".to_string())

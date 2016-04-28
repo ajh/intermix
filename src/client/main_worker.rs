@@ -380,8 +380,8 @@ impl<F: 'static + Write + Send> MainWorker<F> {
 
         let outside_rect = Rect::new(Pos::new(wrap.outside_x().unwrap(),
                                               wrap.outside_y().unwrap()),
-                                     Size::new(wrap.outside_width().unwrap(),
-                                               wrap.outside_height().unwrap()));
+                                     Size::new(wrap.computed_outside_width().unwrap(),
+                                               wrap.computed_outside_height().unwrap()));
         let outside_rect = outside_rect.intersection(&screen_rect).unwrap();
 
         let inside_rect = Rect::new(Pos::new(wrap.computed_x().unwrap(),

@@ -95,7 +95,7 @@ fn it_draws_a_row_inside_a_column() {
 }
 
 #[test]
-fn it_draws_a_12_width_col() {
+fn it_draws_a_12_grid_width_col() {
     let col = WrapBuilder::col(12)
                   .name("a".to_string())
                   .height(2)
@@ -114,7 +114,7 @@ fn it_draws_a_12_width_col() {
 }
 
 #[test]
-fn it_draws_a_9_and_3_width_col_evenly() {
+fn it_draws_a_9_and_3_grid_width_col_evenly() {
     let col_a = WrapBuilder::col(9)
                     .name("a".to_string())
                     .height(2)
@@ -139,7 +139,7 @@ fn it_draws_a_9_and_3_width_col_evenly() {
 }
 
 #[test]
-fn it_draws_a_9_and_3_width_col_unevenly() {
+fn it_draws_a_9_and_3_grid_width_col_unevenly() {
     let col_a = WrapBuilder::col(9)
                     .name("a".to_string())
                     .height(2)
@@ -164,7 +164,7 @@ fn it_draws_a_9_and_3_width_col_unevenly() {
 }
 
 #[test]
-fn it_draws_a_3_and_9_width_col_evenly() {
+fn it_draws_a_3_and_9_grid_width_col_evenly() {
     let col_a = WrapBuilder::col(3)
                     .name("a".to_string())
                     .height(2)
@@ -189,7 +189,7 @@ fn it_draws_a_3_and_9_width_col_evenly() {
 }
 
 #[test]
-fn it_draws_a_3_and_9_width_col_unevenly() {
+fn it_draws_a_3_and_9_grid_width_col_unevenly() {
     let col_a = WrapBuilder::col(3)
                     .name("a".to_string())
                     .height(2)
@@ -214,7 +214,7 @@ fn it_draws_a_3_and_9_width_col_unevenly() {
 }
 
 #[test]
-fn it_draws_a_pair_of_6_width_cols_evenly() {
+fn it_draws_a_pair_of_6_grid_width_cols_evenly() {
     let col_a = WrapBuilder::col(6)
                     .name("a".to_string())
                     .height(2)
@@ -239,7 +239,7 @@ fn it_draws_a_pair_of_6_width_cols_evenly() {
 }
 
 #[test]
-fn it_draws_a_pair_of_6_width_cols_unevenly() {
+fn it_draws_a_pair_of_6_grid_width_cols_unevenly() {
     let col_a = WrapBuilder::col(6)
                     .name("a".to_string())
                     .height(2)
